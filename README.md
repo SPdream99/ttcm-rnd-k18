@@ -2,31 +2,20 @@
 
 ## THÔNG TIN ĐỒ ÁN
 
-
-
 Dự án nộp cho khóa
 
-
-
-> Lớp học: 
-
-
-
+> Lớp học:
+ 
 > Hướng dẫn viên: 
-
 
 
 ## MÔ TẢ DỰ ÁN
 
 
-
 ## THÔNG TIN CÁC THÀNH VIÊN
-
-| Tên thành viên   |
-
-|------------------|
-
-| Nguyễn Nhật Anh  |
+| Tên thành viên   |      Nhiệm vụ      |
+|------------------|:--------------:|
+| Nguyễn Nhật Anh  |   uu     |
 
 
 
@@ -38,5 +27,5 @@ Mọi hành vi sao chép, phân phối, thương mại mà không có sự cho p
 
 
 
-\### CC BY-NC 4.0
+### CC BY-NC 4.0
 
