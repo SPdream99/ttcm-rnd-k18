@@ -15,7 +15,9 @@ Dự án nộp cho khóa
 ## THÔNG TIN CÁC THÀNH VIÊN
 | Tên thành viên   |      Nhiệm vụ      |
 |------------------|:--------------:|
-| Nguyễn Nhật Anh  |   uu     |
+| Nguyễn Nhật Anh  |   Nhóm trưởng     |
+| Đàm Tuấn Nhiên  |        |
+| Nguyễn Thành Đạt  |        |
 
 
 
