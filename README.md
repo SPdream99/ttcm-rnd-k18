@@ -1,6 +1,6 @@
-&#x20; # ỨNG DỤNG
+# ỨNG DỤNG
 
-\## THÔNG TIN ĐỒ ÁN
+## THÔNG TIN ĐỒ ÁN
 
 
 
@@ -16,11 +16,11 @@ Dự án nộp cho khóa
 
 
 
-\## MÔ TẢ DỰ ÁN
+## MÔ TẢ DỰ ÁN
 
 
 
-\## THÔNG TIN CÁC THÀNH VIÊN
+## THÔNG TIN CÁC THÀNH VIÊN
 
 | Tên thành viên   |
 
@@ -30,7 +30,7 @@ Dự án nộp cho khóa
 
 
 
-\## BẢN QUYỀN
+## BẢN QUYỀN
 
 Đồ án thuộc bản quyền của 
 
