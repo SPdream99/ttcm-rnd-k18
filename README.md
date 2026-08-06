@@ -4,7 +4,7 @@
 
 Dự án nộp cho khóa
 
-> Lớp học:
+> Lớp học: TTCM - RnD - K18
  
 > Hướng dẫn viên: 
 
@@ -15,14 +15,14 @@ Dự án nộp cho khóa
 ## THÔNG TIN CÁC THÀNH VIÊN
 | Tên thành viên   |      Nhiệm vụ      |
 |------------------|:--------------:|
-| Nguyễn Nhật Anh  |   uu     |
+| Nguyễn Nhật Anh  |   Nhóm trưởng     |
+| Đàm Tuấn Nhiên  |        |
+| Nguyễn Thành Đạt  |        |
 
 
 
 ## BẢN QUYỀN
-
-Đồ án thuộc bản quyền của 
-
+Đồ án thuộc bản quyền của Nhóm 1 TTCM - RnD - K18
 Mọi hành vi sao chép, phân phối, thương mại mà không có sự cho phép của nhóm đều bị nghiêm cấm.
 
 
