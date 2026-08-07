@@ -1,5 +1,5 @@
 import HeaderEffect from "./components/HeaderEffect";
-
+import Link from "next/link";
 
 export default function Home() {
     return (
@@ -16,15 +16,15 @@ export default function Home() {
                     </a>
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center gap-4">
-                        <a className="text-primary border-b-2 border-primary pb-1 font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95" href="#">Home</a>
-                        <a className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" href="#audiences">Đối Tượng</a>
-                        <a className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" href="#features">Tính Năng</a>
-                        <a className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" href="#about">About</a>
+                        <Link href="/"><a className="text-primary border-b-2 border-primary pb-1 font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95" href="#">Home</a></Link>
+                        <Link href="/public/audiences"><div className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" >Đối Tượng</div></Link>
+                        <Link href="/public/features"><div className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" >Tính Năng</div></Link>
+                        <Link href="/public/about"><div className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" >About</div></Link>
                     </nav>
                     {/* Actions */}
                     <div className="hidden md:flex items-center gap-stack-md">
-                        <button className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors active:scale-95 px-4 py-2">Login</button>
-                        <button className="btn-primary font-label-md text-label-md rounded px-6 py-2 active:scale-95 transition-transform">Register</button>
+                        <Link href="/public/login"><button className="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors active:scale-95 px-4 py-2">Login</button></Link>
+                        <Link href="/public/register"><button className="btn-primary font-label-md text-label-md rounded px-6 py-2 active:scale-95 transition-transform">Register</button></Link>
                     </div>
                     {/* Mobile Menu Toggle */}
                     <button className="md:hidden text-primary p-2">
