@@ -1,73 +1,102 @@
 @import "tailwindcss";
 
+@theme {
+  --color-surface-bright: #363941;
+  --color-surface-variant: #32353c;
+  --color-on-surface: #e1e2ec;
+  --color-background: #10131a;
+  --color-primary: #adc6ff;
+  --color-secondary: #7bd1fa;
+  --color-surface-glass: rgba(15, 21, 36, 0.6);
+  --color-border-ice: rgba(125, 211, 252, 0.2);
 
-        body {
-            background-color: #0a0e1a; /* Enforce specific background requested */
-            color: #e1e2ec;
-            background-image: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
-                              radial-gradient(circle at 100% 100%, rgba(125, 211, 252, 0.05) 0%, transparent 50%);
-            background-attachment: fixed;
-            min-height: 100vh;
-        }
-        
-        .glass-card {
-            background: rgba(15, 21, 36, 0.6);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(125, 211, 252, 0.2);
-        }
-        
-        .glass-hover:hover {
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
-            border-color: rgba(125, 211, 252, 0.4);
-            transform: translateY(-2px);
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary {
-            background-color: #005ac2; /* Fallback to a solid ocean blue */
-            color: #ffffff;
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
-            border: 1px solid rgba(125, 211, 252, 0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary:hover {
-            box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
-            background-color: #006ae6;
-        }
-        
-        .nav-link {
-            position: relative;
-        }
-        
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            bottom: -4px;
-            left: 0;
-            background-color: #7bd1fa;
-            transition: width 0.3s ease;
-        }
-        
-        .nav-link:hover::after {
-            width: 100%;
-        }
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
 
-        .pulse-anim {
-            animation: pulse-glow 3s infinite alternate;
-        }
+  --spacing-stack-sm: 0.5rem;
+  --spacing-stack-md: 1rem;
+  --spacing-stack-lg: 2rem;
+}
+body {
+  background-color: #0a0e1a; /* Enforce specific background requested */
+  color: #e1e2ec;
+  background-image:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(59, 130, 246, 0.1) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 100% 100%,
+      rgba(125, 211, 252, 0.05) 0%,
+      transparent 50%
+    );
+  background-attachment: fixed;
+  min-height: 100vh;
+}
 
-        @keyframes pulse-glow {
-            0% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.2); }
-            100% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.5); }
-        }
-        
-        .stellar-text {
-            background: linear-gradient(135deg, #e1e2ec 0%, #7bd1fa 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+.glass-card {
+  background: rgba(15, 21, 36, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(125, 211, 252, 0.2);
+}
+
+.glass-hover:hover {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+  border-color: rgba(125, 211, 252, 0.4);
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #005ac2; /* Fallback to a solid ocean blue */
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
+  background-color: #006ae6;
+}
+
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -4px;
+  left: 0;
+  background-color: #7bd1fa;
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.pulse-anim {
+  animation: pulse-glow 3s infinite alternate;
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  }
+}
+
+.stellar-text {
+  background: linear-gradient(135deg, #e1e2ec 0%, #7bd1fa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

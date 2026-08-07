@@ -1,7 +1,10 @@
+import HeaderEffect from "./components/HeaderEffect";
+
+
 export default function Home() {
     return (
         <>
-
+            <HeaderEffect />
             {/*TopNavBar (From Shared Components) */}
             <header className="fixed top-0 w-full z-50 bg-surface-glass backdrop-blur-md border-b border-ice shadow-glow-primary transition-all duration-300" id="main-header">
                 <div className="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-4 max-w-7xl mx-auto">
@@ -12,7 +15,7 @@ export default function Home() {
                         E-V-E
                     </a>
                     {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center gap-gutter">
+                    <nav className="hidden md:flex items-center gap-4">
                         <a className="text-primary border-b-2 border-primary pb-1 font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95" href="#">Home</a>
                         <a className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" href="#audiences">Đối Tượng</a>
                         <a className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" href="#features">Tính Năng</a>
@@ -76,19 +79,24 @@ export default function Home() {
                         <div className="glass-card rounded-xl p-6 glass-hover group flex flex-col h-full relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
                             <div className="w-12 h-12 rounded-lg bg-surface-container-high border border-ice flex items-center justify-center mb-6 shadow-glow-primary">
-                                <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance</span>
+                                <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}><svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 20">
+                                    <path d="M16 0H4a2 2 0 0 0-2 2v1H1a1 1 0 0 0 0 2h1v2H1a1 1 0 0 0 0 2h1v2H1a1 1 0 0 0 0 2h1v2H1a1 1 0 0 0 0 2h1v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2Zm-5.5 4.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM13.929 17H7.071a.5.5 0 0 1-.5-.5 3.935 3.935 0 1 1 7.858 0 .5.5 0 0 1-.5.5Z" />
+                                </svg></span>
                             </div>
                             <h3 className="font-headline-md text-headline-md text-on-surface mb-3">Nhà Trường</h3>
-                            <p className="font-body-md text-on-surface-variant flex-grow">Quản lý toàn diện, tối ưu hóa nguồn lực và nâng cao chất lượng giảng dạy thông qua dữ liệu phân tích sâu sắc từ hệ thống.</p>
+                            <p className="font-body-md text-on-surface-variant grow">Quản lý toàn diện, tối ưu hóa nguồn lực và nâng cao chất lượng giảng dạy thông qua dữ liệu phân tích sâu sắc từ hệ thống.</p>
                         </div>
                         {/* Card 2: Teachers */}
                         <div className="glass-card rounded-xl p-6 glass-hover group flex flex-col h-full relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-secondary/10 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
                             <div className="w-12 h-12 rounded-lg bg-surface-container-high border border-ice flex items-center justify-center mb-6 shadow-glow-primary">
-                                <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
+                                <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}><svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 20v-9l-4 1.125V20h4Zm0 0h8m-8 0V6.66667M16 20v-9l4 1.125V20h-4Zm0 0V6.66667M18 8l-6-4-6 4m5 1h2m-2 3h2" />
+                                </svg>
+                                </span>
                             </div>
                             <h3 className="font-headline-md text-headline-md text-on-surface mb-3">Giáo Viên</h3>
-                            <p className="font-body-md text-on-surface-variant flex-grow">Giảm tải công việc hành chính, dễ dàng tạo bài giảng sinh động và theo dõi sát sao tiến độ học tập của từng cá nhân học sinh.</p>
+                            <p className="font-body-md text-on-surface-variant grow">Giảm tải công việc hành chính, dễ dàng tạo bài giảng sinh động và theo dõi sát sao tiến độ học tập của từng cá nhân học sinh.</p>
                         </div>
                         {/* Card 3: Students */}
                         <div className="glass-card rounded-xl p-6 glass-hover group flex flex-col h-full relative overflow-hidden lg:col-span-2 lg:bg-surface-glass/80">
@@ -100,7 +108,10 @@ export default function Home() {
                                 }}></div>
                             </div>
                             <div className="w-12 h-12 rounded-lg bg-primary-container border border-ice flex items-center justify-center mb-6 shadow-glow-primary pulse-anim">
-                                <span className="material-symbols-outlined text-on-primary-container text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>psychology</span>
+                                <span className="material-symbols-outlined text-on-primary-container text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}><svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.05 3.00002v5C7.33127 8.93351 5.05005 11.2392 5.05005 14.2c0 3.7555 3.13401 6.8 6.99995 6.8 3.866 0 7-3.0445 7-6.8 0-2.9608-2.2812-5.26649-5-6.19998v-5m-4 0h4m-4 0H8.05005m5.99995 0h2M5.09798 15H19.0021" />
+                                </svg>
+                                </span>
                             </div>
                             <h3 className="font-headline-md text-headline-md text-primary mb-3">Học Sinh</h3>
                             <p className="font-body-lg text-body-lg text-on-surface-variant max-w-lg mb-4">Trải nghiệm học tập cá nhân hóa 100%. Trợ lý AI E-V-E đồng hành 24/7, biến những khái niệm phức tạp thành hành trình khám phá đầy mê hoặc.</p>
@@ -112,10 +123,13 @@ export default function Home() {
                         {/* Card 4: Parents (Moves below on small screens, beside on large) */}
                         <div className="glass-card rounded-xl p-6 glass-hover group flex flex-col h-full relative overflow-hidden lg:col-start-2 lg:col-span-2">
                             <div className="w-12 h-12 rounded-lg bg-surface-container-high border border-ice flex items-center justify-center mb-6 shadow-glow-primary">
-                                <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>family_restroom</span>
+                                <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}><svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m10.5785 19 4.2979-10.92966c.0369-.09379.1674-.09379.2042 0L19.3785 19m-8.8 0H9.47851m1.09999 0h1.65m7.15 0h-1.65m1.65 0h1.1m-7.7-3.9846h4.4M3 16l1.56685-3.9846m0 0 2.73102-6.94506c.03688-.09379.16738-.09379.20426 0l2.50367 6.94506H4.56685Z" />
+                                </svg>
+                                </span>
                             </div>
                             <h3 className="font-headline-md text-headline-md text-on-surface mb-3">Phụ Huynh</h3>
-                            <p className="font-body-md text-on-surface-variant flex-grow">Kết nối liền mạch với hành trình của con. Nhận báo cáo thông minh, gợi ý hỗ trợ kịp thời và an tâm với môi trường số an toàn.</p>
+                            <p className="font-body-md text-on-surface-variant grow">Kết nối liền mạch với hành trình của con. Nhận báo cáo thông minh, gợi ý hỗ trợ kịp thời và an tâm với môi trường số an toàn.</p>
                         </div>
                     </div>
                 </section>
