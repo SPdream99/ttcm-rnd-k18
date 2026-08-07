@@ -16,7 +16,7 @@ export default function Home() {
                     </a>
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center gap-4">
-                        <Link href="/"><a className="text-primary border-b-2 border-primary pb-1 font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95" href="#">Home</a></Link>
+                        <Link href="/"><div className="text-primary border-b-2 border-primary pb-1 font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95" >Home</div></Link>
                         <Link href="/public/audiences"><div className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" >Đối Tượng</div></Link>
                         <Link href="/public/features"><div className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" >Tính Năng</div></Link>
                         <Link href="/public/about"><div className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" >About</div></Link>
@@ -109,7 +109,7 @@ export default function Home() {
                             </div>
                             <div className="w-12 h-12 rounded-lg bg-primary-container border border-ice flex items-center justify-center mb-6 shadow-glow-primary pulse-anim">
                                 <span className="material-symbols-outlined text-on-primary-container text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}><svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.05 3.00002v5C7.33127 8.93351 5.05005 11.2392 5.05005 14.2c0 3.7555 3.13401 6.8 6.99995 6.8 3.866 0 7-3.0445 7-6.8 0-2.9608-2.2812-5.26649-5-6.19998v-5m-4 0h4m-4 0H8.05005m5.99995 0h2M5.09798 15H19.0021" />
+                                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.05 3.00002v5C7.33127 8.93351 5.05005 11.2392 5.05005 14.2c0 3.7555 3.13401 6.8 6.99995 6.8 3.866 0 7-3.0445 7-6.8 0-2.9608-2.2812-5.26649-5-6.19998v-5m-4 0h4m-4 0H8.05005m5.99995 0h2M5.09798 15H19.0021" />
                                 </svg>
                                 </span>
                             </div>
@@ -124,7 +124,7 @@ export default function Home() {
                         <div className="glass-card rounded-xl p-6 glass-hover group flex flex-col h-full relative overflow-hidden lg:col-start-2 lg:col-span-2">
                             <div className="w-12 h-12 rounded-lg bg-surface-container-high border border-ice flex items-center justify-center mb-6 shadow-glow-primary">
                                 <span className="material-symbols-outlined text-secondary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}><svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m10.5785 19 4.2979-10.92966c.0369-.09379.1674-.09379.2042 0L19.3785 19m-8.8 0H9.47851m1.09999 0h1.65m7.15 0h-1.65m1.65 0h1.1m-7.7-3.9846h4.4M3 16l1.56685-3.9846m0 0 2.73102-6.94506c.03688-.09379.16738-.09379.20426 0l2.50367 6.94506H4.56685Z" />
+                                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m10.5785 19 4.2979-10.92966c.0369-.09379.1674-.09379.2042 0L19.3785 19m-8.8 0H9.47851m1.09999 0h1.65m7.15 0h-1.65m1.65 0h1.1m-7.7-3.9846h4.4M3 16l1.56685-3.9846m0 0 2.73102-6.94506c.03688-.09379.16738-.09379.20426 0l2.50367 6.94506H4.56685Z" />
                                 </svg>
                                 </span>
                             </div>
