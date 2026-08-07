@@ -31,9 +31,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           rel="stylesheet"
         />
       </head>
+
       <body className="font-body-md text-body-md overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
         {children}
       </body>
+      
     </html>
   );
 }
