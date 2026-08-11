@@ -17,8 +17,7 @@ export default function Home() {
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center gap-4">
                         <Link href="/"><div className="text-primary border-b-2 border-primary pb-1 font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95" >Home</div></Link>
-                        <Link href="/public/audiences"><div className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" >Đối Tượng</div></Link>
-                        <Link href="/public/features"><div className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" >Tính Năng</div></Link>
+                        <Link href="/dashbroad/teacher"><div className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" >Dashbroad</div></Link>
                         <Link href="/public/about"><div className="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors duration-300 active:scale-95 nav-link" >About</div></Link>
                     </nav>
                     {/* Actions */}
