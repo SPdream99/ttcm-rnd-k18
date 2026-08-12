@@ -17,36 +17,94 @@ export default function ClassroomClient({
   initialAnnouncements,
   initialResources,
 }: ClassroomClientProps) {
-  // Active Full-Page Panel Screen
-  // null = Main Daginatsuko 3D Landing Immersion Screen
-  const [activeFullPanel, setActiveFullPanel] = useState<
-    'overview' | 'online' | 'video' | 'resources' | 'assignments' | 'quizzes' | 'inspector' | null
-  >(null);
-
-  // Background Carousel Index
-  const [bgIndex, setBgIndex] = useState(0);
-  const bgImages = [
-    initialCourse.bannerUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDX3K7vGdyDUJvI340aetIU0MVajGsT-e6ecJWTX_bifO55kIvgYhItv47FSH5gOlBt4WXUH320SbsaApEiFfNdG66AoUaUjk7G5Nq2aNt68S2ryprglwBXkwjP-dZTcTo4W9-bhhwQxUNBz7Ab_4QpfnZ2OdXoMk-oGfmsIb2lzhbUotG-TIe2LGsotqgod8fmizYQiYz2IWyCnHT5k1cs7W0nk68sUTOd6qV65B-dNJH1vAu6ysgZ',
-    initialCourse.thumbnailUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCFzxfRc4zu_S4KnQjuHKNY8ZHA_W1eNLJR2iXGJJg8nGFU3FODX9yH_sOsgXUVrbX4-9Q6s5uHBXbOI7OGXYjw4SKXaGl99gDdDatnZQBRjo51CYqKYFrV-5vD5N6w18NU8WRcjrn1KpkjsZOXDHoDgTSTMTcyHoKJ1TKAY_3dVAbYnujaJFw8TtiwcwHllZybE8ID_yd_e4qrzwMJfil_a6zPQiYZPtMV5sWYokBtB7iy1AVC0S2S',
+  // 6 Panel chính theo thứ tự chuẩn:
+  const panels = [
+    {
+      id: 'overview',
+      number: '01',
+      title: 'TỔNG QUAN LỚP HỌC',
+      japaneseTitle: 'コース概要',
+      subtitle: 'Mô Tả & Thông Báo Giảng Viên',
+      icon: '📌',
+      bgImage: initialCourse.bannerUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDX3K7vGdyDUJvI340aetIU0MVajGsT-e6ecJWTX_bifO55kIvgYhItv47FSH5gOlBt4WXUH320SbsaApEiFfNdG66AoUaUjk7G5Nq2aNt68S2ryprglwBXkwjP-dZTcTo4W9-bhhwQxUNBz7Ab_4QpfnZ2OdXoMk-oGfmsIb2lzhbUotG-TIe2LGsotqgod8fmizYQiYz2IWyCnHT5k1cs7W0nk68sUTOd6qV65B-dNJH1vAu6ysgZ',
+    },
+    {
+      id: 'online',
+      number: '02',
+      title: 'VÀO HỌC ONLINE',
+      japaneseTitle: 'オンライン授業',
+      subtitle: 'Phòng Google Meet / Zoom Live Stream',
+      icon: '🌐',
+      bgImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCFzxfRc4zu_S4KnQjuHKNY8ZHA_W1eNLJR2iXGJJg8nGFU3FODX9yH_sOsgXUVrbX4-9Q6s5uHBXbOI7OGXYjw4SKXaGl99gDdDatnZQBRjo51CYqKYFrV-5vD5N6w18NU8WRcjrn1KpkjsZOXDHoDgTSTMTcyHoKJ1TKAY_3dVAbYnujaJFw8TtiwcwHllZybE8ID_yd_e4qrzwMJfil_a6zPQiYZPtMV5sWYokBtB7iy1AVC0S2S',
+    },
+    {
+      id: 'video',
+      number: '03',
+      title: 'HỌC BẰNG VIDEO',
+      japaneseTitle: 'ビデオ学習',
+      subtitle: 'Trình Phát Video Bài Giảng 4K',
+      icon: '🎥',
+      bgImage: initialCourse.bannerUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDX3K7vGdyDUJvI340aetIU0MVajGsT-e6ecJWTX_bifO55kIvgYhItv47FSH5gOlBt4WXUH320SbsaApEiFfNdG66AoUaUjk7G5Nq2aNt68S2ryprglwBXkwjP-dZTcTo4W9-bhhwQxUNBz7Ab_4QpfnZ2OdXoMk-oGfmsIb2lzhbUotG-TIe2LGsotqgod8fmizYQiYz2IWyCnHT5k1cs7W0nk68sUTOd6qV65B-dNJH1vAu6ysgZ',
+    },
+    {
+      id: 'resources',
+      number: '04',
+      title: 'TÀI LIỆU BÀI GIẢNG',
+      japaneseTitle: 'ドキュメント',
+      subtitle: 'Thư Viện File PDF, ZIP, Code Mẫu',
+      icon: '📁',
+      bgImage: initialCourse.thumbnailUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCFzxfRc4zu_S4KnQjuHKNY8ZHA_W1eNLJR2iXGJJg8nGFU3FODX9yH_sOsgXUVrbX4-9Q6s5uHBXbOI7OGXYjw4SKXaGl99gDdDatnZQBRjo51CYqKYFrV-5vD5N6w18NU8WRcjrn1KpkjsZOXDHoDgTSTMTcyHoKJ1TKAY_3dVAbYnujaJFw8TtiwcwHllZybE8ID_yd_e4qrzwMJfil_a6zPQiYZPtMV5sWYokBtB7iy1AVC0S2S',
+    },
+    {
+      id: 'assignments',
+      number: '05',
+      title: 'BÀI TẬP VÀ NỘP BÀI TẬP',
+      japaneseTitle: '課題と提出',
+      subtitle: 'Đề Bài Tự Luận & Biên Soạn Code',
+      icon: '✏️',
+      bgImage: initialCourse.bannerUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDX3K7vGdyDUJvI340aetIU0MVajGsT-e6ecJWTX_bifO55kIvgYhItv47FSH5gOlBt4WXUH320SbsaApEiFfNdG66AoUaUjk7G5Nq2aNt68S2ryprglwBXkwjP-dZTcTo4W9-bhhwQxUNBz7Ab_4QpfnZ2OdXoMk-oGfmsIb2lzhbUotG-TIe2LGsotqgod8fmizYQiYz2IWyCnHT5k1cs7W0nk68sUTOd6qV65B-dNJH1vAu6ysgZ',
+    },
+    {
+      id: 'quizzes',
+      number: '06',
+      title: 'QUIZ & KIỂM TRA',
+      japaneseTitle: 'クイズ試験',
+      subtitle: 'Trắc Nghiệm Tương Tác Tự Động',
+      icon: '🧩',
+      bgImage: initialCourse.thumbnailUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCFzxfRc4zu_S4KnQjuHKNY8ZHA_W1eNLJR2iXGJJg8nGFU3FODX9yH_sOsgXUVrbX4-9Q6s5uHBXbOI7OGXYjw4SKXaGl99gDdDatnZQBRjo51CYqKYFrV-5vD5N6w18NU8WRcjrn1KpkjsZOXDHoDgTSTMTcyHoKJ1TKAY_3dVAbYnujaJFw8TtiwcwHllZybE8ID_yd_e4qrzwMJfil_a6zPQiYZPtMV5sWYokBtB7iy1AVC0S2S',
+    },
   ];
 
-  // Video Selected State
+  // Currently Focused Panel Index (Controlled by UP ▲ and DOWN ▼ buttons)
+  const [currentPanelIndex, setCurrentPanelIndex] = useState(0);
+
+  // Active Full-Screen Screen View (Opened when clicking center title or panel button)
+  const [activeFullPanel, setActiveFullPanel] = useState<string | null>(null);
+
+  // State controls
   const [selectedVideoLesson, setSelectedVideoLesson] = useState<any | null>(
     initialLessons.find((l) => l.type === 'video') || initialLessons[0] || null
   );
-
-  // Completed Lessons State
   const [completedLessons, setCompletedLessons] = useState<string[]>(['lesson-1']);
   const [copiedShare, setCopiedShare] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
 
-  // Assignment Submission State
+  // Assignment & Quiz States
   const [submissionText, setSubmissionText] = useState('');
   const [submittedAssignments, setSubmittedAssignments] = useState<Record<string, string>>({});
-
-  // Quiz State
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [quizScore, setQuizScore] = useState<number | null>(null);
+
+  const activePanelData = panels[currentPanelIndex];
+
+  // Up/Down Navigation Functions
+  const handleNavUp = () => {
+    setCurrentPanelIndex((prev) => (prev === 0 ? panels.length - 1 : prev - 1));
+  };
+
+  const handleNavDown = () => {
+    setCurrentPanelIndex((prev) => (prev === panels.length - 1 ? 0 : prev + 1));
+  };
 
   const quizQuestions = [
     {
@@ -112,13 +170,13 @@ export default function ClassroomClient({
   return (
     <div className={`fixed inset-0 w-full h-full overflow-hidden select-none font-sans ${isDarkMode ? 'bg-black text-white' : 'bg-slate-100 text-slate-900'}`}>
       
-      {/* ─── 1. FULLSCREEN IMMERSIVE BACKGROUND CAROUSEL & VIGNETTE (Main Screen) ─── */}
+      {/* ─── 1. FULLSCREEN IMMERSIVE BACKGROUND (Changes dynamically per panel) ─── */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <div
-          className="w-full h-full bg-cover bg-center transition-all duration-1000 scale-105 filter brightness-75 contrast-125"
-          style={{ backgroundImage: `url(${bgImages[bgIndex]})` }}
+          className="w-full h-full bg-cover bg-center transition-all duration-700 scale-105 filter brightness-75 contrast-125"
+          style={{ backgroundImage: `url(${activePanelData.bgImage})` }}
         ></div>
-        <div className="absolute inset-0 bg-radial-vignette pointer-events-none bg-gradient-to-t from-black/80 via-black/30 to-black/60"></div>
+        <div className="absolute inset-0 bg-radial-vignette pointer-events-none bg-gradient-to-t from-black/85 via-black/40 to-black/65"></div>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-black/40 to-black/90"></div>
       </div>
 
@@ -134,37 +192,57 @@ export default function ClassroomClient({
         </Link>
       </div>
 
-      {/* ─── 3. CENTER HERO TITLE & SUBTITLE ─── */}
+      {/* ─── 3. CENTER HERO TITLE (CHANGES DYNAMICALLY WITH UP ▲ / DOWN ▼ BUTTONS) ─── */}
       <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
+        
+        {/* UP ARROW ▲ (Switches to Previous Panel) */}
         <button
-          onClick={() => setBgIndex((prev) => (prev + 1) % bgImages.length)}
-          className="pointer-events-auto mb-8 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 backdrop-blur-md flex items-center justify-center text-white text-xl transition-transform hover:scale-110 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+          onClick={handleNavUp}
+          title="Panel Trước [Mũi Tên Lên]"
+          className="pointer-events-auto mb-8 w-14 h-14 rounded-full bg-white/10 hover:bg-cyan-500/30 border border-white/30 hover:border-cyan-400 backdrop-blur-xl flex items-center justify-center text-white text-2xl transition-all hover:scale-110 shadow-[0_0_25px_rgba(6,182,212,0.3)] active:scale-95 cursor-pointer"
         >
           ▲
         </button>
 
-        <h1 className="text-5xl md:text-7xl font-extrabold italic tracking-tight text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.9)] mb-3 font-serif">
-          {initialCourse.title}
-        </h1>
+        {/* Dynamic Center Title: Name of Current Panel (Clickable to open full page) */}
+        <div
+          onClick={() => setActiveFullPanel(activePanelData.id)}
+          className="pointer-events-auto cursor-pointer group transition-transform hover:scale-105"
+        >
+          <div className="font-mono text-xs text-cyan-400 tracking-widest uppercase mb-2">
+            PANEL {activePanelData.number} / {panels.length}
+          </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-          <span className="px-4 py-1 rounded-full bg-white/15 border border-white/30 backdrop-blur-md text-xs font-mono text-white/90 shadow-md">
-            {initialCourse.japaneseTitle || 'コース概要'}
-          </span>
-          <span className="px-4 py-1 rounded-full bg-white/15 border border-white/30 backdrop-blur-md text-xs font-mono text-white/90 shadow-md">
-            {initialCourse.subtitle || 'E-V-E Cosmic Class'}
-          </span>
+          <h1 className="text-4xl md:text-6xl font-extrabold italic tracking-tight text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.9)] mb-3 font-serif group-hover:text-cyan-300 transition-colors">
+            {activePanelData.icon} {activePanelData.title}
+          </h1>
+
+          {/* Japanese Subtext & Subtitle */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+            <span className="px-4 py-1 rounded-full bg-white/15 border border-white/30 backdrop-blur-md text-xs font-mono text-white/90 shadow-md">
+              {activePanelData.japaneseTitle}
+            </span>
+            <span className="px-4 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/40 backdrop-blur-md text-xs font-mono text-cyan-300 shadow-md">
+              {activePanelData.subtitle}
+            </span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono text-xs shadow-[0_0_20px_rgba(6,182,212,0.6)] transition-all">
+            🚀 MỞ TRANG CHI TIẾT PANEL
+          </div>
         </div>
 
+        {/* DOWN ARROW ▼ (Switches to Next Panel) */}
         <button
-          onClick={() => setBgIndex((prev) => (prev + 1) % bgImages.length)}
-          className="pointer-events-auto mt-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 backdrop-blur-md flex items-center justify-center text-white text-xl transition-transform hover:scale-110 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+          onClick={handleNavDown}
+          title="Panel Tiếp Theo [Mũi Tên Xuống]"
+          className="pointer-events-auto mt-8 w-14 h-14 rounded-full bg-white/10 hover:bg-cyan-500/30 border border-white/30 hover:border-cyan-400 backdrop-blur-xl flex items-center justify-center text-white text-2xl transition-all hover:scale-110 shadow-[0_0_25px_rgba(6,182,212,0.3)] active:scale-95 cursor-pointer"
         >
           ▼
         </button>
       </div>
 
-      {/* ─── 4. LEFT SIDE PILL HANDLE (FOLIO) ─── */}
+      {/* ─── 4. LEFT SIDE PILL HANDLE: LỚP HỌC (FOLIO) ─── */}
       <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20">
         <button
           onClick={() => setActiveFullPanel('overview')}
@@ -181,7 +259,7 @@ export default function ClassroomClient({
         </button>
       </div>
 
-      {/* ─── 5. RIGHT SIDE PILL HANDLE (ABOUT) ─── */}
+      {/* ─── 5. RIGHT SIDE PILL HANDLE: INSPECTOR (ABOUT) ─── */}
       <div className="absolute right-6 top-1/2 -translate-y-1/2 z-20">
         <button
           onClick={() => setActiveFullPanel('inspector')}
@@ -198,76 +276,25 @@ export default function ClassroomClient({
         </button>
       </div>
 
-      {/* ─── 6. BOTTOM NAVIGATION BAR (6 PANEL FULL-PAGE TRIGGERS) ─── */}
+      {/* ─── 6. BOTTOM NAVIGATION BAR (HIGHLIGHTS CURRENT PANEL INDEX) ─── */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 w-full max-w-4xl px-4">
         <div className="p-2.5 rounded-2xl bg-black/65 border border-white/20 backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] flex flex-wrap items-center justify-center gap-2">
-          
-          <button
-            onClick={() => setActiveFullPanel('overview')}
-            className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-              activeFullPanel === 'overview'
-                ? 'bg-cyan-500 text-black font-bold shadow-[0_0_20px_rgba(6,182,212,0.7)]'
-                : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
-            }`}
-          >
-            <span>1. 📌</span> Tổng quan
-          </button>
-
-          <button
-            onClick={() => setActiveFullPanel('online')}
-            className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-              activeFullPanel === 'online'
-                ? 'bg-emerald-400 text-black font-bold shadow-[0_0_20px_rgba(52,211,153,0.7)]'
-                : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
-            }`}
-          >
-            <span>2. 🌐</span> Vào học online
-          </button>
-
-          <button
-            onClick={() => setActiveFullPanel('video')}
-            className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-              activeFullPanel === 'video'
-                ? 'bg-cyan-400 text-black font-bold shadow-[0_0_20px_rgba(34,211,238,0.7)]'
-                : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
-            }`}
-          >
-            <span>3. 🎥</span> Học bằng video
-          </button>
-
-          <button
-            onClick={() => setActiveFullPanel('resources')}
-            className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-              activeFullPanel === 'resources'
-                ? 'bg-cyan-400 text-black font-bold shadow-[0_0_20px_rgba(34,211,238,0.7)]'
-                : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
-            }`}
-          >
-            <span>4. 📁</span> Tài liệu
-          </button>
-
-          <button
-            onClick={() => setActiveFullPanel('assignments')}
-            className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-              activeFullPanel === 'assignments'
-                ? 'bg-amber-400 text-black font-bold shadow-[0_0_20px_rgba(251,191,36,0.7)]'
-                : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
-            }`}
-          >
-            <span>5. ✏️</span> Bài tập & Nộp bài
-          </button>
-
-          <button
-            onClick={() => setActiveFullPanel('quizzes')}
-            className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-              activeFullPanel === 'quizzes'
-                ? 'bg-purple-400 text-black font-bold shadow-[0_0_20px_rgba(192,132,252,0.7)]'
-                : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
-            }`}
-          >
-            <span>6. 🧩</span> Quize
-          </button>
-
+          {panels.map((p, idx) => {
+            const isSelected = currentPanelIndex === idx;
+            return (
+              <button
+                key={p.id}
+                onClick={() => setCurrentPanelIndex(idx)}
+                className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
+                  isSelected
+                    ? 'bg-cyan-500 text-black font-bold shadow-[0_0_20px_rgba(6,182,212,0.8)] scale-105'
+                    : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
+                }`}
+              >
+                <span>{p.icon}</span> {p.number}. {p.title.split(' ')[0]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -287,22 +314,20 @@ export default function ClassroomClient({
         </div>
       </div>
 
-      {/* ─── 8. FULL-PAGE SCREEN PANELS (DAGINATSUKO FULL SCREEN PAGE LAYOUT) ─── */}
+      {/* ─── 8. FULL-PAGE PANEL SCREENS ─── */}
       {activeFullPanel && (
         <div className="fixed inset-0 z-50 w-full h-full bg-[#060a12]/95 backdrop-blur-3xl text-white flex flex-col overflow-y-auto animate-in fade-in duration-300">
           
-          {/* Full-Page Top Header Bar */}
           <header className="sticky top-0 z-40 bg-[#090e1a]/90 backdrop-blur-2xl border-b border-white/15 px-6 md:px-12 py-4 flex justify-between items-center">
             <div className="flex items-center gap-4">
               <span className="px-3 py-1 rounded font-mono text-xs bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 uppercase font-bold">
-                PANEL {activeFullPanel === 'overview' ? '01' : activeFullPanel === 'online' ? '02' : activeFullPanel === 'video' ? '03' : activeFullPanel === 'resources' ? '04' : activeFullPanel === 'assignments' ? '05' : '06'} // {activeFullPanel.toUpperCase()}
+                PANEL // {activeFullPanel.toUpperCase()}
               </span>
               <span className="font-mono text-xs text-white/50 hidden sm:inline-block">
                 {initialCourse.japaneseTitle || 'コース概要'}
               </span>
             </div>
 
-            {/* Close / Return to Landing Screen Button */}
             <button
               onClick={() => setActiveFullPanel(null)}
               className="px-5 py-2 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 font-mono text-xs text-white transition-all hover:scale-105 flex items-center gap-2 shadow-lg"
@@ -311,10 +336,9 @@ export default function ClassroomClient({
             </button>
           </header>
 
-          {/* Full-Page Content Area */}
           <main className="flex-1 max-w-6xl w-full mx-auto px-6 md:px-12 py-10">
             
-            {/* PANEL 1: TỔNG QUAN (FULL PAGE VIEW) */}
+            {/* PANEL 1: TỔNG QUAN */}
             {activeFullPanel === 'overview' && (
               <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300">
                 <div className="p-8 md:p-12 rounded-3xl bg-slate-900/80 border border-cyan-500/30 backdrop-blur-xl shadow-2xl">
@@ -347,7 +371,6 @@ export default function ClassroomClient({
                   </div>
                 </div>
 
-                {/* Important Announcements Feed */}
                 {initialAnnouncements.length > 0 && (
                   <div className="p-8 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
                     <h3 className="font-mono text-sm text-amber-400 tracking-wider uppercase mb-2">
@@ -367,7 +390,7 @@ export default function ClassroomClient({
               </div>
             )}
 
-            {/* PANEL 2: VÀO HỌC ONLINE (FULL PAGE VIEW) */}
+            {/* PANEL 2: VÀO HỌC ONLINE */}
             {activeFullPanel === 'online' && (
               <div className="p-10 md:p-16 rounded-3xl bg-slate-900/90 border border-emerald-500/40 backdrop-blur-xl text-center space-y-8 animate-in slide-in-from-bottom-4 duration-300 shadow-2xl">
                 <div className="w-20 h-20 rounded-3xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-300 text-4xl mx-auto shadow-[0_0_40px_rgba(16,185,129,0.5)]">
@@ -401,7 +424,7 @@ export default function ClassroomClient({
               </div>
             )}
 
-            {/* PANEL 3: HỌC BẰNG VIDEO (FULL PAGE VIEW) */}
+            {/* PANEL 3: HỌC BẰNG VIDEO */}
             {activeFullPanel === 'video' && (
               <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300">
                 {selectedVideoLesson && (
@@ -461,7 +484,7 @@ export default function ClassroomClient({
               </div>
             )}
 
-            {/* PANEL 4: TÀI LIỆU (FULL PAGE VIEW) */}
+            {/* PANEL 4: TÀI LIỆU */}
             {activeFullPanel === 'resources' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-4 duration-300">
                 {initialResources.map((res) => (
@@ -488,7 +511,7 @@ export default function ClassroomClient({
               </div>
             )}
 
-            {/* PANEL 5: BÀI TẬP VÀ NỘP BÀI TẬP (FULL PAGE VIEW) */}
+            {/* PANEL 5: BÀI TẬP VÀ NỘP BÀI TẬP */}
             {activeFullPanel === 'assignments' && (
               <div className="p-8 md:p-12 rounded-3xl bg-slate-900/90 border border-amber-500/30 backdrop-blur-xl space-y-6 animate-in slide-in-from-bottom-4 duration-300">
                 <div className="flex items-center gap-4 pb-6 border-b border-amber-500/20">
@@ -525,7 +548,7 @@ export default function ClassroomClient({
               </div>
             )}
 
-            {/* PANEL 6: QUIZE (FULL PAGE VIEW) */}
+            {/* PANEL 6: QUIZE */}
             {activeFullPanel === 'quizzes' && (
               <div className="p-8 md:p-12 rounded-3xl bg-slate-900/90 border border-purple-500/30 backdrop-blur-xl space-y-8 animate-in slide-in-from-bottom-4 duration-300">
                 <div className="flex justify-between items-center pb-6 border-b border-purple-500/20">
@@ -572,7 +595,7 @@ export default function ClassroomClient({
               </div>
             )}
 
-            {/* INSPECTOR PANEL (FULL PAGE VIEW) */}
+            {/* INSPECTOR PANEL */}
             {activeFullPanel === 'inspector' && (
               <div className="p-8 md:p-12 rounded-3xl bg-slate-900/90 border border-cyan-500/30 backdrop-blur-xl space-y-8 animate-in slide-in-from-bottom-4 duration-300">
                 <div className="flex justify-between items-center pb-6 border-b border-cyan-500/20">
@@ -614,48 +637,20 @@ export default function ClassroomClient({
 
           </main>
 
-          {/* Full-Page Bottom Switcher Bar */}
           <footer className="sticky bottom-0 z-40 bg-[#090e1a]/95 backdrop-blur-2xl border-t border-white/15 px-6 md:px-12 py-3">
             <div className="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-2">
               <span className="font-mono text-xs text-white/50 hidden md:inline-block">CHUYỂN PANEL NHANH:</span>
               
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setActiveFullPanel('overview')}
-                  className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === 'overview' ? 'bg-cyan-500 text-black font-bold' : 'bg-white/5 text-white/70'}`}
-                >
-                  1. Tổng quan
-                </button>
-                <button
-                  onClick={() => setActiveFullPanel('online')}
-                  className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === 'online' ? 'bg-emerald-400 text-black font-bold' : 'bg-white/5 text-white/70'}`}
-                >
-                  2. Học online
-                </button>
-                <button
-                  onClick={() => setActiveFullPanel('video')}
-                  className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === 'video' ? 'bg-cyan-400 text-black font-bold' : 'bg-white/5 text-white/70'}`}
-                >
-                  3. Video
-                </button>
-                <button
-                  onClick={() => setActiveFullPanel('resources')}
-                  className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === 'resources' ? 'bg-cyan-400 text-black font-bold' : 'bg-white/5 text-white/70'}`}
-                >
-                  4. Tài liệu
-                </button>
-                <button
-                  onClick={() => setActiveFullPanel('assignments')}
-                  className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === 'assignments' ? 'bg-amber-400 text-black font-bold' : 'bg-white/5 text-white/70'}`}
-                >
-                  5. Bài tập
-                </button>
-                <button
-                  onClick={() => setActiveFullPanel('quizzes')}
-                  className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === 'quizzes' ? 'bg-purple-400 text-black font-bold' : 'bg-white/5 text-white/70'}`}
-                >
-                  6. Quize
-                </button>
+                {panels.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setActiveFullPanel(p.id)}
+                    className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === p.id ? 'bg-cyan-500 text-black font-bold' : 'bg-white/5 text-white/70'}`}
+                  >
+                    {p.number}. {p.title.split(' ')[0]}
+                  </button>
+                ))}
               </div>
             </div>
           </footer>
