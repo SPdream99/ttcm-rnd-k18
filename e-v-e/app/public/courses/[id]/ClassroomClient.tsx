@@ -17,7 +17,7 @@ export default function ClassroomClient({
   initialAnnouncements,
   initialResources,
 }: ClassroomClientProps) {
-  // 6 Panel chính theo thứ tự chuẩn:
+  // 6 Panel chính theo thứ tự chuẩn (Đã xóa toàn bộ chữ Nhật):
   const panels = [
     {
       id: 'overview',
@@ -69,15 +69,22 @@ export default function ClassroomClient({
     },
   ];
 
+  // Currently Focused Panel Index (Controlled by UP ▲ and DOWN ▼ buttons)
   const [currentPanelIndex, setCurrentPanelIndex] = useState(0);
+
+  // Active Full-Screen Screen View
   const [activeFullPanel, setActiveFullPanel] = useState<string | null>(null);
+
+  // Dark Mode Toggle State
   const [isDarkMode, setIsDarkMode] = useState(true);
 
+  // State controls
   const [selectedVideoLesson, setSelectedVideoLesson] = useState<any | null>(
     initialLessons.find((l) => l.type === 'video') || initialLessons[0] || null
   );
   const [completedLessons, setCompletedLessons] = useState<string[]>(['lesson-1']);
 
+  // Assignment & Quiz States
   const [submissionText, setSubmissionText] = useState('');
   const [submittedAssignments, setSubmittedAssignments] = useState<Record<string, string>>({});
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
@@ -85,6 +92,7 @@ export default function ClassroomClient({
 
   const activePanelData = panels[currentPanelIndex];
 
+  // Up/Down Navigation Functions
   const handleNavUp = () => {
     setCurrentPanelIndex((prev) => (prev === 0 ? panels.length - 1 : prev - 1));
   };
@@ -158,10 +166,10 @@ export default function ClassroomClient({
         <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'bg-radial-vignette bg-gradient-to-t from-black/85 via-black/40 to-black/65' : 'bg-gradient-to-t from-slate-100/90 via-slate-100/40 to-slate-100/70'}`}></div>
       </div>
 
-      {/* ─── 2. TOP RIGHT BRAND BADGE ─── */}
+      {/* ─── 2. TOP RIGHT BRAND BADGE (Navigates to Demo Home Page /public/demo) ─── */}
       <div className="absolute top-6 right-8 z-30 flex items-center gap-3">
         <Link
-          href="/"
+          href="/public/demo"
           className={`px-4 py-1.5 rounded-full border backdrop-blur-md text-xs font-mono transition-all flex items-center gap-2 shadow-lg ${
             isDarkMode
               ? 'bg-black/40 border-white/20 text-white/80 hover:text-white hover:bg-black/70'
@@ -170,13 +178,14 @@ export default function ClassroomClient({
         >
           <span>⚡ E-V-E</span>
           <span className="opacity-40">|</span>
-          <span>Trang Chủ</span>
+          <span>Trang Chủ Demo</span>
         </Link>
       </div>
 
-      {/* ─── 3. CENTER HERO TITLE & DIRECTIONAL CONTROLS ─── */}
+      {/* ─── 3. CENTER HERO TITLE & DIRECTIONAL CONTROLS (UP ▲ / DOWN ▼) ─── */}
       <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
         
+        {/* UP ARROW ▲ */}
         <button
           onClick={handleNavUp}
           title="Panel Trước [Mũi Tên Lên]"
@@ -189,6 +198,7 @@ export default function ClassroomClient({
           ▲
         </button>
 
+        {/* Dynamic Center Title */}
         <div
           onClick={() => setActiveFullPanel(activePanelData.id)}
           className="pointer-events-auto cursor-pointer group transition-transform hover:scale-105"
@@ -220,6 +230,7 @@ export default function ClassroomClient({
           </div>
         </div>
 
+        {/* DOWN ARROW ▼ */}
         <button
           onClick={handleNavDown}
           title="Panel Tiếp Theo [Mũi Tên Xuống]"
@@ -233,7 +244,7 @@ export default function ClassroomClient({
         </button>
       </div>
 
-      {/* ─── 4. LEFT SIDE PILL HANDLE: LỚP HỌC (Điều Hướng Đến Trang Toàn Bộ Lớp Học) ─── */}
+      {/* ─── 4. LEFT SIDE PILL HANDLE: LỚP HỌC (Điều Hướng Đến Trang Toàn Bộ Lớp Học /public/courses) ─── */}
       <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20">
         <Link
           href="/public/courses"
@@ -253,28 +264,23 @@ export default function ClassroomClient({
         </Link>
       </div>
 
-      {/* ─── 5. RIGHT SIDE PILL HANDLE: CHỈ HIỂN THỊ CHỮ "i" MẶC ĐỊNH, HOVER HIỆN TÊN KHÓA HỌC ─── */}
-      {/* 
-          Mặc định: Hiển thị duy nhất chữ "i" (hoặc biểu tượng ⓘ)
-          Khi hover: Mở rộng ra để ngang hiển thị tên của lớp học này
-          Không điều hướng được (Non-clickable / Informative ONLY)
-      */}
+      {/* ─── 5. RIGHT SIDE PILL HANDLE: CHỈ HIỂN THỊ CHỮ 'ⓘ' (Khi Hover Hiện Tên Lớp Học, Không Điều Hướng) ─── */}
       <div className="absolute right-6 top-1/2 -translate-y-1/2 z-20">
         <div
-          className={`group relative flex items-center justify-center rounded-full border backdrop-blur-xl transition-all duration-300 shadow-2xl cursor-default w-12 h-12 hover:w-auto hover:px-6 hover:py-3.5 ${
+          className={`group relative flex items-center justify-center p-3.5 rounded-full border backdrop-blur-xl transition-all duration-300 shadow-2xl cursor-default hover:px-7 hover:py-4 ${
             isDarkMode
-              ? 'bg-black/50 border-white/30 text-white hover:border-cyan-400'
-              : 'bg-white/70 border-slate-300 text-slate-900 hover:border-cyan-500'
+              ? 'bg-black/50 border-white/30 text-white'
+              : 'bg-white/70 border-slate-300 text-slate-900'
           }`}
         >
-          {/* Default State: Displaying letter "i" */}
-          <span className="font-mono text-base font-bold text-cyan-400 group-hover:hidden flex items-center justify-center italic">
-            i
+          {/* Default Unhovered State: Chữ 'ⓘ' */}
+          <span className="font-mono text-base font-bold text-cyan-400 group-hover:hidden px-1 py-1">
+            ⓘ
           </span>
 
-          {/* Hover State: Full Course Name Horizontally */}
-          <span className="font-mono text-xs font-extrabold tracking-widest text-cyan-400 uppercase hidden group-hover:inline-block whitespace-nowrap">
-            ℹ️ {initialCourse.title}
+          {/* Hover State: Hiển thị Tên Khóa Học Hiện Tại */}
+          <span className="font-mono text-xs font-extrabold tracking-widest text-cyan-400 uppercase hidden group-hover:inline-block whitespace-nowrap py-1">
+            {initialCourse.title}
           </span>
         </div>
       </div>

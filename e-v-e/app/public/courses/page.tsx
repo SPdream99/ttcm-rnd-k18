@@ -10,7 +10,7 @@ export default async function AllCoursesPage() {
       {/* Header */}
       <header className="max-w-7xl mx-auto flex justify-between items-center pb-8 border-b border-cyan-500/20 mb-10">
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/public/demo" className="flex items-center gap-2 group">
             <span className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-400/50 flex items-center justify-center text-cyan-400 text-xl font-bold group-hover:scale-105 transition-transform">
               ⚡
             </span>
@@ -21,10 +21,10 @@ export default async function AllCoursesPage() {
         </div>
 
         <Link
-          href="/"
+          href="/public/demo"
           className="px-5 py-2 rounded-full border border-slate-700 hover:border-cyan-400 bg-slate-900/80 text-slate-300 hover:text-white font-mono text-xs transition-all"
         >
-          ← Trang Chủ
+          ← Trang Chủ Demo
         </Link>
       </header>
 
