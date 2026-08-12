@@ -194,7 +194,7 @@ export default function Home() {
                                             <span className="material-symbols-outlined text-on-primary-container text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
                                         </div>
                                         <div className="glass-card p-4 rounded-lg rounded-tl-none font-body-sm text-sm text-on-surface">
-                                            Hãy tưởng tượng một ngôi sao khổng lồ như một quả bóng bay khổng lồ... Khi nó cạn kiệt năng lượng, lực hấp dẫn ép nó lại thành một điểm vô cùng nhỏ bé nhưng cực kỳ nặng. Cậu muốn tìm hiểu thêm về "chân trời sự kiện" không?
+                                            Hãy tưởng tượng một ngôi sao khổng lồ như một quả bóng bay khổng lồ... Khi nó cạn kiệt năng lượng, lực hấp dẫn ép nó lại thành một điểm vô cùng nhỏ bé nhưng cực kỳ nặng. Cậu muốn tìm hiểu thêm về chân trời sự kiện không?
                                         </div>
                                     </div>
                                 </div>
@@ -255,7 +255,7 @@ export default function Home() {
                 </section>
             </main >
             {/* Footer (From Shared Components) */}
-            < footer className="w-full mt-stack-lg bg-surface-container-lowest border-t border-ice py-stack-lg px-margin-mobile md:px-margin-desktop flex flex-col md:flex-row justify-between items-center" >
+            < footer className="w-full mt-stack-lg bg-surface-container-lowest border-t border-ice py-10 px-5 md:px-10 flex flex-col md:flex-row justify-between items-center" >
                 <div className="mb-6 md:mb-0 flex flex-col items-center md:items-start">
                     <span className="font-headline-sm text-headline-sm text-on-surface mb-2 flex items-center gap-2">
                         <span
