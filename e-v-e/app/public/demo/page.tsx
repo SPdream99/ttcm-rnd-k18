@@ -1,233 +1,317 @@
-'use client';
-
-import React, { useState } from 'react';
 import Link from 'next/link';
 
 export default function DemoHomePage() {
-  // Full User Flows & Routes Data matching exact Site Tree Architecture
-  const userFlows = [
-    {
-      id: 'student-flow',
-      role: 'STUDENT & PARENTS FLOW (HỌC SINH & PHỤ HUYNH)',
-      title: 'LUỒNG 01: TRẢI NGHIỆM HỌC TẬP TƯƠNG TÁC & PHỤ HUYNH',
-      subtitle: 'Dashboard • Profile (Reset password / Rechange Info) • Learning Path • AI Tutor • Conversation • Class (Member / Assignment)',
-      icon: '🎓',
-      badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-400/40',
-      btnColor: 'bg-sky-500 hover:bg-sky-400 text-black shadow-[0_0_25px_rgba(125,211,252,0.6)]',
-      targetUrl: '/public/dashboard/student',
-      targetLabel: '🚀 Vào Main Dashboard Học Sinh & Phụ Huynh',
-      routes: [
-        { label: '🖥️ Main Dashboard', url: '/public/dashboard/student' },
-        { label: '👤 Profile (Reset Password & Info)', url: '/public/dashboard/student/profile' },
-        { label: '🗺️ Learning Path (Lộ Trình Học)', url: '/public/dashboard/student/learning-path' },
-        { label: '🤖 AI Tutor 24/7 (Hỏi Đáp)', url: '/public/dashboard/student/ai-tutor' },
-        { label: '💬 Conversation (Trò Chuyện)', url: '/public/dashboard/student/conversation' },
-        { label: '🏫 Class (Member & Assignment)', url: '/public/dashboard/student/class' },
-        { label: '🎥 Trang Lớp Học Daginatsuko 6 Panels', url: '/public/courses/course-001' },
-      ],
-      bgImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDX3K7vGdyDUJvI340aetIU0MVajGsT-e6ecJWTX_bifO55kIvgYhItv47FSH5gOlBt4WXUH320SbsaApEiFfNdG66AoUaUjk7G5Nq2aNt68S2ryprglwBXkwjP-dZTcTo4W9-bhhwQxUNBz7Ab_4QpfnZ2OdXoMk-oGfmsIb2lzhbUotG-TIe2LGsotqgod8fmizYQiYz2IWyCnHT5k1cs7W0nk68sUTOd6qV65B-dNJH1vAu6ysgZ',
-    },
-    {
-      id: 'teacher-flow',
-      role: 'TEACHER FLOW (GIẢNG VIÊN)',
-      title: 'LUỒNG 02: BÀN LÀM VIỆC GIẢNG VIÊN',
-      subtitle: 'Dashboard • Profile (Reset password / Rechange Info) • Announcement & Conversation • Class Management (Student / Lecture / Assignment)',
-      icon: '👨‍🏫',
-      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40',
-      btnColor: 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_25px_rgba(16,185,129,0.6)]',
-      targetUrl: '/public/dashboard/teacher',
-      targetLabel: '🚀 Vào Main Dashboard Giảng Viên',
-      routes: [
-        { label: '🖥️ Main Dashboard', url: '/public/dashboard/teacher' },
-        { label: '👤 Profile (Reset Password & Info)', url: '/public/dashboard/teacher/profile' },
-        { label: '📢 Announcement & Conversation', url: '/public/dashboard/teacher/announcements' },
-        { label: '📚 Class Management (Student/Lecture/Assignment)', url: '/public/dashboard/teacher/classes' },
-        { label: '🎥 Trang Lớp Học Daginatsuko 6 Panels', url: '/public/courses/course-001' },
-      ],
-      bgImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCFzxfRc4zu_S4KnQjuHKNY8ZHA_W1eNLJR2iXGJJg8nGFU3FODX9yH_sOsgXUVrbX4-9Q6s5uHBXbOI7OGXYjw4SKXaGl99gDdDatnZQBRjo51CYqKYFrV-5vD5N6w18NU8WRcjrn1KpkjsZOXDHoDgTSTMTcyHoKJ1TKAY_3dVAbYnujaJFw8TtiwcwHllZybE8ID_yd_e4qrzwMJfil_a6zPQiYZPtMV5sWYokBtB7iy1AVC0S2S',
-    },
-    {
-      id: 'school-flow',
-      role: 'SCHOOL ADMIN FLOW (NHÀ TRƯỜNG)',
-      title: 'LUỒNG 03: HỆ THỐNG ĐIỀU HÀNH NHÀ TRƯỜNG',
-      subtitle: 'Dashboard • Profile • Khởi Tạo Tài Khoản Cho Cả 2 Vai Trò • Student Management • Teacher Management',
-      icon: '🏫',
-      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/40',
-      btnColor: 'bg-purple-500 hover:bg-purple-400 text-black shadow-[0_0_25px_rgba(168,85,247,0.6)]',
-      targetUrl: '/public/dashboard/school',
-      targetLabel: '🚀 Vào Main Dashboard Nhà Trường',
-      routes: [
-        { label: '🖥️ Main Dashboard', url: '/public/dashboard/school' },
-        { label: '🏫 Profile Nhà Trường', url: '/public/dashboard/school/profile' },
-        { label: '🔑 Cổng Cấp Tài Khoản Mới', url: '/public/school/users' },
-        { label: '🎓 Student Management', url: '/public/dashboard/school/students' },
-        { label: '👨‍🏫 Teacher Management', url: '/public/dashboard/school/teachers' },
-      ],
-      bgImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDX3K7vGdyDUJvI340aetIU0MVajGsT-e6ecJWTX_bifO55kIvgYhItv47FSH5gOlBt4WXUH320SbsaApEiFfNdG66AoUaUjk7G5Nq2aNt68S2ryprglwBXkwjP-dZTcTo4W9-bhhwQxUNBz7Ab_4QpfnZ2OdXoMk-oGfmsIb2lzhbUotG-TIe2LGsotqgod8fmizYQiYz2IWyCnHT5k1cs7W0nk68sUTOd6qV65B-dNJH1vAu6ysgZ',
-    },
-  ];
-
-  const [activeFlowIndex, setActiveFlowIndex] = useState(0);
-  const activeFlow = userFlows[activeFlowIndex];
-
-  const handleNavUp = () => {
-    setActiveFlowIndex((prev) => (prev === 0 ? userFlows.length - 1 : prev - 1));
-  };
-
-  const handleNavDown = () => {
-    setActiveFlowIndex((prev) => (prev === userFlows.length - 1 ? 0 : prev + 1));
-  };
-
   return (
-    <div className="fixed inset-0 w-full h-full overflow-hidden select-none font-sans bg-[#0a0e1a] text-white">
-      
-      {/* Background Image Carousel */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <div
-          className="w-full h-full bg-cover bg-center transition-all duration-700 scale-105 filter brightness-75 contrast-125"
-          style={{ backgroundImage: `url(${activeFlow.bgImage})` }}
-        ></div>
-        <div className="absolute inset-0 bg-radial-vignette pointer-events-none bg-gradient-to-t from-black/95 via-black/55 to-black/75"></div>
-      </div>
+    <div className="min-h-screen bg-[#0a0e1a] text-white p-6 md:p-12 font-sans selection:bg-sky-500 selection:text-black">
+      {/* Ambient background glow */}
+      <div className="fixed top-0 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[140px] pointer-events-none"></div>
+      <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[140px] pointer-events-none"></div>
 
-      {/* Top Header Badge */}
-      <div className="absolute top-6 left-8 right-8 z-30 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-400 flex items-center justify-center text-sky-400 font-bold">⚡</span>
-          <span className="font-mono text-xl font-bold tracking-widest text-sky-400">E-V-E SYSTEM NAVIGATION</span>
+      {/* Header Banner */}
+      <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center pb-8 border-b border-sky-500/20 mb-10 gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-400 flex items-center justify-center text-sky-400 font-bold">⚡</span>
+            <span className="font-mono text-2xl font-bold tracking-widest text-sky-400">E-V-E DEMO HUB</span>
+          </div>
+          <p className="text-xs text-sky-300/80 font-mono mt-1">
+            💡 <strong className="text-sky-300">Nhà Trường sẽ cung cấp tài khoản riêng</strong> • Sơ Đồ Cây Điều Hướng Toàn Bộ Trang Web
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 font-mono text-xs">
           <Link
             href="/public/login"
-            className="px-4 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-sky-500/30 font-mono text-xs text-sky-300 transition-all"
+            className="px-4 py-2 rounded-full bg-sky-500/20 hover:bg-sky-500/40 border border-sky-400 text-sky-300 transition-all"
           >
-            🔒 Login Page
+            🔒 Đăng Nhập (Login)
           </Link>
           <Link
             href="/public/about"
-            className="px-4 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-700 font-mono text-xs text-slate-300 transition-all"
+            className="px-4 py-2 rounded-full bg-slate-900 border border-slate-700 text-slate-300 hover:text-white transition-all"
           >
-            ℹ️ About Page
+            ℹ️ About E-V-E
           </Link>
         </div>
-      </div>
+      </header>
 
-      {/* Center Directional Arrow Controls & User Flow Showcase */}
-      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
+      {/* Main Grid: Structured Panels by Role & Site Tree */}
+      <main className="max-w-7xl mx-auto space-y-10">
         
-        {/* UP ARROW ▲ */}
-        <button
-          onClick={handleNavUp}
-          title="Phân Hệ Trước [Mũi Tên Lên]"
-          className="pointer-events-auto mb-4 w-14 h-14 rounded-full bg-white/10 hover:bg-sky-500/30 border border-white/30 hover:border-sky-400 backdrop-blur-xl flex items-center justify-center text-white text-2xl transition-all hover:scale-110 active:scale-95 shadow-[0_0_25px_rgba(125,211,252,0.4)] cursor-pointer"
-        >
-          ▲
-        </button>
-
-        {/* Dynamic User Flow Title */}
-        <div className="pointer-events-auto max-w-4xl space-y-3">
-          <div className={`inline-flex items-center gap-2 px-4 py-1 rounded-full border backdrop-blur-md text-xs font-mono shadow-lg ${activeFlow.badgeColor}`}>
-            <span>{activeFlow.icon}</span>
-            <span>{activeFlow.role}</span>
+        {/* SECTION 1: TRANG CHUNG (General Pages) */}
+        <section className="p-8 rounded-3xl bg-[#0f1524]/80 border border-sky-500/30 backdrop-blur-xl shadow-2xl space-y-6">
+          <div className="flex justify-between items-center pb-4 border-b border-sky-500/20">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400 flex items-center justify-center text-sky-300 text-sm">
+                🌐
+              </span>
+              <h2 className="font-mono text-lg font-bold text-sky-300 uppercase tracking-widest">
+                01 // TRANG CHUNG (GENERAL PAGES)
+              </h2>
+            </div>
+            <span className="font-mono text-xs text-slate-400">3 ROUTE CHÍNH</span>
           </div>
 
-          <h1 className="text-2xl md:text-4xl font-extrabold italic tracking-tight text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.9)] font-serif">
-            {activeFlow.title}
-          </h1>
-
-          <p className="text-slate-300 text-xs md:text-sm font-light max-w-2xl mx-auto">
-            {activeFlow.subtitle}
-          </p>
-
-          {/* Activity Steps / Routes Grid */}
-          <div className="flex flex-wrap justify-center gap-2 max-w-3xl mx-auto py-2">
-            {activeFlow.routes.map((r, idx) => (
-              <Link
-                key={idx}
-                href={r.url}
-                className="px-3.5 py-1.5 rounded-xl bg-black/75 hover:bg-slate-900 border border-white/20 hover:border-sky-400 backdrop-blur-md text-xs font-mono text-slate-200 hover:text-white transition-all shadow-md"
-              >
-                {r.label}
-              </Link>
-            ))}
-          </div>
-
-          {/* Primary Action Button */}
-          <div className="pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
             <Link
-              href={activeFlow.targetUrl}
-              className={`inline-block px-8 py-3 rounded-2xl font-bold font-mono text-sm transition-all hover:scale-105 ${activeFlow.btnColor}`}
+              href="/public/courses/course-001"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-sky-400 transition-all group flex flex-col justify-between"
             >
-              {activeFlow.targetLabel}
+              <div>
+                <span className="text-sky-400 font-bold block mb-1">🏠 Main Page (Course Classroom)</span>
+                <p className="text-slate-400 text-[11px]">Trang Lớp Học Daginatsuko với 6 Panel full-screen.</p>
+              </div>
+              <span className="text-sky-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Vào Trang Main →</span>
+            </Link>
+
+            <Link
+              href="/public/login"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-sky-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-sky-400 font-bold block mb-1">🔒 Login Page</span>
+                <p className="text-slate-400 text-[11px]">Cổng đăng nhập hệ thống với lưu ý tài khoản riêng.</p>
+              </div>
+              <span className="text-sky-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Vào Trang Login →</span>
+            </Link>
+
+            <Link
+              href="/public/about"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-sky-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-sky-400 font-bold block mb-1">ℹ️ About Page</span>
+                <p className="text-slate-400 text-[11px]">Trang giới thiệu kiến trúc & tính năng E-V-E.</p>
+              </div>
+              <span className="text-sky-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Vào Trang About →</span>
             </Link>
           </div>
-        </div>
+        </section>
 
-        {/* DOWN ARROW ▼ */}
-        <button
-          onClick={handleNavDown}
-          title="Phân Hệ Tiếp theo [Mũi Tên Xuống]"
-          className="pointer-events-auto mt-4 w-14 h-14 rounded-full bg-white/10 hover:bg-sky-500/30 border border-white/30 hover:border-sky-400 backdrop-blur-xl flex items-center justify-center text-white text-2xl transition-all hover:scale-110 active:scale-95 shadow-[0_0_25px_rgba(125,211,252,0.4)] cursor-pointer"
-        >
-          ▼
-        </button>
+        {/* SECTION 2: PHÂN HỆ NHÀ TRƯỜNG (School Admin) */}
+        <section className="p-8 rounded-3xl bg-[#0f1524]/80 border border-purple-500/30 backdrop-blur-xl shadow-2xl space-y-6">
+          <div className="flex justify-between items-center pb-4 border-b border-purple-500/20">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-400 flex items-center justify-center text-purple-300 text-sm">
+                🏫
+              </span>
+              <h2 className="font-mono text-lg font-bold text-purple-300 uppercase tracking-widest">
+                02 // DASHBOARD - SCHOOL (NHÀ TRƯỜNG)
+              </h2>
+            </div>
+            <span className="font-mono text-xs text-slate-400">4 CHI NHÁNH ROUTE</span>
+          </div>
 
-      </div>
-
-      {/* LEFT SIDE PILL HANDLE: TOÀN BỘ LỚP HỌC */}
-      <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20">
-        <Link
-          href="/public/courses"
-          className="group relative flex items-center justify-center p-4 rounded-full bg-black/50 hover:bg-black/80 border border-white/30 hover:border-sky-400 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:px-7 hover:py-5"
-        >
-          <span className="font-mono text-xs font-extrabold tracking-widest uppercase group-hover:hidden [writing-mode:vertical-lr] rotate-180 whitespace-nowrap py-4">
-            TOÀN BỘ LỚP HỌC
-          </span>
-          <span className="font-mono text-xs font-extrabold tracking-widest text-sky-400 uppercase hidden group-hover:inline-block whitespace-nowrap py-1">
-            ← TOÀN BỘ LỚP HỌC
-          </span>
-        </Link>
-      </div>
-
-      {/* RIGHT SIDE PILL HANDLE: HỆ THỐNG DEMO E-V-E */}
-      <div className="absolute right-6 top-1/2 -translate-y-1/2 z-20">
-        <div className="group relative flex items-center justify-center p-3.5 rounded-full bg-black/50 border border-white/30 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl cursor-default hover:px-7 hover:py-5">
-          <span className="font-mono text-sm font-bold text-sky-400 group-hover:hidden py-1">
-            ⓘ
-          </span>
-          <span className="font-mono text-xs font-extrabold tracking-widest text-sky-400 uppercase hidden group-hover:inline-block whitespace-nowrap py-1">
-            HỆ THỐNG ĐIỀU HƯỚNG E-V-E
-          </span>
-        </div>
-      </div>
-
-      {/* Bottom Flow Selector Bar */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 w-full max-w-2xl px-4">
-        <div className="p-2 rounded-2xl bg-black/70 border border-white/20 backdrop-blur-2xl shadow-2xl flex justify-center gap-2">
-          {userFlows.map((f, idx) => (
-            <button
-              key={f.id}
-              onClick={() => setActiveFlowIndex(idx)}
-              className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-                activeFlowIndex === idx
-                  ? 'bg-sky-400 text-black font-bold shadow-[0_0_20px_rgba(56,189,248,0.7)] scale-105'
-                  : 'bg-white/5 hover:bg-white/15 text-white/70 border border-white/10'
-              }`}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 font-mono text-xs">
+            <Link
+              href="/public/dashboard/school"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-purple-400 transition-all group flex flex-col justify-between"
             >
-              <span>{f.icon}</span> {f.role.split(' ')[0]}
-            </button>
-          ))}
-        </div>
-      </div>
+              <div>
+                <span className="text-purple-300 font-bold block mb-1">🖥️ Dashboard (main page)</span>
+                <p className="text-slate-400 text-[11px]">Bàn điều hành hệ thống nhà trường.</p>
+              </div>
+              <span className="text-purple-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Dashboard →</span>
+            </Link>
 
-      {/* Bottom Copyright */}
-      <div className="absolute bottom-6 right-8 z-30">
-        <div className="px-3.5 py-1 rounded-full bg-black/50 border border-white/20 backdrop-blur-md font-mono text-xs text-white/70">
-          © 2026 E-V-E DEMO HUB
-        </div>
-      </div>
+            <Link
+              href="/public/dashboard/school/profile"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-purple-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-purple-300 font-bold block mb-1">👤 Profile</span>
+                <p className="text-slate-400 text-[11px]">Thông tin hồ sơ và cơ sở trường học.</p>
+              </div>
+              <span className="text-purple-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Profile →</span>
+            </Link>
 
+            <Link
+              href="/public/dashboard/school/students"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-purple-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-purple-300 font-bold block mb-1">🎓 Student Management</span>
+                <p className="text-slate-400 text-[11px]">Quản lý danh sách học sinh toàn trường.</p>
+              </div>
+              <span className="text-purple-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Student Mgmt →</span>
+            </Link>
+
+            <Link
+              href="/public/dashboard/school/teachers"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-purple-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-purple-300 font-bold block mb-1">👨‍🏫 Teacher Management</span>
+                <p className="text-slate-400 text-[11px]">Quản lý danh sách giảng viên toàn trường.</p>
+              </div>
+              <span className="text-purple-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Teacher Mgmt →</span>
+            </Link>
+          </div>
+        </section>
+
+        {/* SECTION 3: PHÂN HỆ GIẢNG VIÊN (Teacher) */}
+        <section className="p-8 rounded-3xl bg-[#0f1524]/80 border border-emerald-500/30 backdrop-blur-xl shadow-2xl space-y-6">
+          <div className="flex justify-between items-center pb-4 border-b border-emerald-500/20">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-300 text-sm">
+                👨‍🏫
+              </span>
+              <h2 className="font-mono text-lg font-bold text-emerald-300 uppercase tracking-widest">
+                03 // DASHBOARD - TEACHER (GIẢNG VIÊN)
+              </h2>
+            </div>
+            <span className="font-mono text-xs text-slate-400">4 CHI NHÁNH ROUTE & SUB-ITEMS</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 font-mono text-xs">
+            <Link
+              href="/public/dashboard/teacher"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-emerald-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-emerald-300 font-bold block mb-1">🖥️ Dashboard (main page)</span>
+                <p className="text-slate-400 text-[11px]">Bàn làm việc giảng viên tổng quan.</p>
+              </div>
+              <span className="text-emerald-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Dashboard →</span>
+            </Link>
+
+            <Link
+              href="/public/dashboard/teacher/profile"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-emerald-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-emerald-300 font-bold block mb-1">👤 Profile</span>
+                <ul className="text-slate-400 text-[11px] space-y-0.5 mt-1">
+                  <li>• Reset password</li>
+                  <li>• Rechange Info</li>
+                </ul>
+              </div>
+              <span className="text-emerald-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Profile →</span>
+            </Link>
+
+            <Link
+              href="/public/dashboard/teacher/announcements"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-emerald-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-emerald-300 font-bold block mb-1">📢 Announcement or conversation</span>
+                <p className="text-slate-400 text-[11px]">Đăng thông báo & trò chuyện với lớp.</p>
+              </div>
+              <span className="text-emerald-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Announcement →</span>
+            </Link>
+
+            <Link
+              href="/public/dashboard/teacher/classes"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-emerald-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-emerald-300 font-bold block mb-1">📚 Class Management</span>
+                <ul className="text-slate-400 text-[11px] space-y-0.5 mt-1">
+                  <li>• Student Management</li>
+                  <li>• Lecture Management</li>
+                  <li>• Assignment Management</li>
+                </ul>
+              </div>
+              <span className="text-emerald-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Class Mgmt →</span>
+            </Link>
+          </div>
+        </section>
+
+        {/* SECTION 4: PHÂN HỆ HỌC SINH & PHỤ HUYNH (Student / Parents) */}
+        <section className="p-8 rounded-3xl bg-[#0f1524]/80 border border-sky-500/30 backdrop-blur-xl shadow-2xl space-y-6">
+          <div className="flex justify-between items-center pb-4 border-b border-sky-500/20">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400 flex items-center justify-center text-sky-300 text-sm">
+                🎓
+              </span>
+              <h2 className="font-mono text-lg font-bold text-sky-300 uppercase tracking-widest">
+                04 // DASHBOARD - STUDENT/PARENTS (HỌC SINH & PHỤ HUYNH)
+              </h2>
+            </div>
+            <span className="font-mono text-xs text-slate-400">6 CHI NHÁNH ROUTE & SUB-ITEMS</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 font-mono text-xs">
+            <Link
+              href="/public/dashboard/student"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-sky-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-sky-300 font-bold block mb-1">🖥️ Dashboard (main page)</span>
+                <p className="text-slate-400 text-[11px]">Góc học tập Học sinh & Phụ huynh.</p>
+              </div>
+              <span className="text-sky-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Dashboard →</span>
+            </Link>
+
+            <Link
+              href="/public/dashboard/student/profile"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-sky-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-sky-300 font-bold block mb-1">👤 Profile</span>
+                <ul className="text-slate-400 text-[11px] space-y-0.5 mt-1">
+                  <li>• Reset password</li>
+                  <li>• Rechange Info</li>
+                </ul>
+              </div>
+              <span className="text-sky-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Profile →</span>
+            </Link>
+
+            <Link
+              href="/public/dashboard/student/learning-path"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-sky-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-sky-300 font-bold block mb-1">🗺️ Learning Path</span>
+                <p className="text-slate-400 text-[11px]">Lộ trình học tập cá nhân hóa.</p>
+              </div>
+              <span className="text-sky-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Learning Path →</span>
+            </Link>
+
+            <Link
+              href="/public/dashboard/student/ai-tutor"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-sky-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-sky-300 font-bold block mb-1">🤖 AI Tutor (student)</span>
+                <p className="text-slate-400 text-[11px]">Trợ lý AI giải đáp thắc mắc 24/7.</p>
+              </div>
+              <span className="text-sky-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở AI Tutor →</span>
+            </Link>
+
+            <Link
+              href="/public/dashboard/student/conversation"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-sky-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-sky-300 font-bold block mb-1">💬 Conversation</span>
+                <p className="text-slate-400 text-[11px]">Hộp thư trò chuyện & thảo luận.</p>
+              </div>
+              <span className="text-sky-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Conversation →</span>
+            </Link>
+
+            <Link
+              href="/public/dashboard/student/class"
+              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-sky-400 transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <span className="text-sky-300 font-bold block mb-1">🏫 Class (student)</span>
+                <ul className="text-slate-400 text-[11px] space-y-0.5 mt-1">
+                  <li>• Member</li>
+                  <li>• Assignment</li>
+                </ul>
+              </div>
+              <span className="text-sky-400 font-bold pt-3 group-hover:translate-x-1 transition-transform">Mở Class (Student) →</span>
+            </Link>
+          </div>
+        </section>
+
+      </main>
+
+      {/* Footer */}
+      <footer className="max-w-7xl mx-auto mt-12 pt-6 border-t border-slate-800 text-center font-mono text-xs text-slate-500">
+        © 2026 E-V-E EDUCATION PLATFORM • GLACIER GLASSMORPHISM SITE TREE HUB
+      </footer>
     </div>
   );
 }
