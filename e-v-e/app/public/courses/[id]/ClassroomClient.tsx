@@ -17,9 +17,9 @@ export default function ClassroomClient({
   initialAnnouncements,
   initialResources,
 }: ClassroomClientProps) {
-  // Active Window Modal (exact Daginatsuko popup style)
-  // null = Main Immersion Screen (matching user screenshot)
-  const [openPanel, setOpenPanel] = useState<
+  // Active Full-Page Panel Screen
+  // null = Main Daginatsuko 3D Landing Immersion Screen
+  const [activeFullPanel, setActiveFullPanel] = useState<
     'overview' | 'online' | 'video' | 'resources' | 'assignments' | 'quizzes' | 'inspector' | null
   >(null);
 
@@ -112,19 +112,17 @@ export default function ClassroomClient({
   return (
     <div className={`fixed inset-0 w-full h-full overflow-hidden select-none font-sans ${isDarkMode ? 'bg-black text-white' : 'bg-slate-100 text-slate-900'}`}>
       
-      {/* ─── 1. FULLSCREEN IMMERSIVE BACKGROUND CAROUSEL & VIGNETTE (Matching Daginatsuko Screenshot) ─── */}
+      {/* ─── 1. FULLSCREEN IMMERSIVE BACKGROUND CAROUSEL & VIGNETTE (Main Screen) ─── */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <div
           className="w-full h-full bg-cover bg-center transition-all duration-1000 scale-105 filter brightness-75 contrast-125"
           style={{ backgroundImage: `url(${bgImages[bgIndex]})` }}
         ></div>
-        
-        {/* Daginatsuko Vignette & Gradient Overlays */}
         <div className="absolute inset-0 bg-radial-vignette pointer-events-none bg-gradient-to-t from-black/80 via-black/30 to-black/60"></div>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-black/40 to-black/90"></div>
       </div>
 
-      {/* ─── 2. TOP RIGHT KO-FI / BRAND BADGE ─── */}
+      {/* ─── 2. TOP RIGHT BRAND BADGE ─── */}
       <div className="absolute top-6 right-8 z-30 flex items-center gap-3">
         <Link
           href="/"
@@ -136,9 +134,8 @@ export default function ClassroomClient({
         </Link>
       </div>
 
-      {/* ─── 3. CENTER HERO TITLE & SUBTITLE (Matching Daginatsuko Screenshot) ─── */}
+      {/* ─── 3. CENTER HERO TITLE & SUBTITLE ─── */}
       <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
-        {/* Top Arrow Indicator ▲ */}
         <button
           onClick={() => setBgIndex((prev) => (prev + 1) % bgImages.length)}
           className="pointer-events-auto mb-8 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 backdrop-blur-md flex items-center justify-center text-white text-xl transition-transform hover:scale-110 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
@@ -146,12 +143,10 @@ export default function ClassroomClient({
           ▲
         </button>
 
-        {/* Main Stylized Course Title */}
         <h1 className="text-5xl md:text-7xl font-extrabold italic tracking-tight text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.9)] mb-3 font-serif">
           {initialCourse.title}
         </h1>
 
-        {/* Japanese Subtext & Tag Pills */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
           <span className="px-4 py-1 rounded-full bg-white/15 border border-white/30 backdrop-blur-md text-xs font-mono text-white/90 shadow-md">
             {initialCourse.japaneseTitle || 'コース概要'}
@@ -161,7 +156,6 @@ export default function ClassroomClient({
           </span>
         </div>
 
-        {/* Bottom Arrow Indicator ▼ */}
         <button
           onClick={() => setBgIndex((prev) => (prev + 1) % bgImages.length)}
           className="pointer-events-auto mt-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 backdrop-blur-md flex items-center justify-center text-white text-xl transition-transform hover:scale-110 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
@@ -170,10 +164,10 @@ export default function ClassroomClient({
         </button>
       </div>
 
-      {/* ─── 4. LEFT SIDE PILL HANDLE: LỚP HỌC (Matching Daginatsuko Screenshot "FOLIO") ─── */}
+      {/* ─── 4. LEFT SIDE PILL HANDLE (FOLIO) ─── */}
       <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20">
         <button
-          onClick={() => setOpenPanel('overview')}
+          onClick={() => setActiveFullPanel('overview')}
           className="group relative flex items-center gap-3 px-3 py-6 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 backdrop-blur-xl transition-all shadow-[0_0_30px_rgba(0,0,0,0.5)] hover:scale-105 active:scale-95"
         >
           <div className="flex flex-col items-center">
@@ -187,10 +181,10 @@ export default function ClassroomClient({
         </button>
       </div>
 
-      {/* ─── 5. RIGHT SIDE PILL HANDLE: INSPECTOR (Matching Daginatsuko Screenshot "ABOUT") ─── */}
+      {/* ─── 5. RIGHT SIDE PILL HANDLE (ABOUT) ─── */}
       <div className="absolute right-6 top-1/2 -translate-y-1/2 z-20">
         <button
-          onClick={() => setOpenPanel('inspector')}
+          onClick={() => setActiveFullPanel('inspector')}
           className="group relative flex items-center gap-3 px-3 py-6 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 backdrop-blur-xl transition-all shadow-[0_0_30px_rgba(0,0,0,0.5)] hover:scale-105 active:scale-95"
         >
           <div className="flex flex-col items-center">
@@ -204,15 +198,15 @@ export default function ClassroomClient({
         </button>
       </div>
 
-      {/* ─── 6. BOTTOM NAVIGATION BAR WITH 6 PANELS (Matching Daginatsuko Bottom Controls) ─── */}
+      {/* ─── 6. BOTTOM NAVIGATION BAR (6 PANEL FULL-PAGE TRIGGERS) ─── */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 w-full max-w-4xl px-4">
-        <div className="p-2.5 rounded-2xl bg-black/60 border border-white/20 backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] flex flex-wrap items-center justify-center gap-2">
+        <div className="p-2.5 rounded-2xl bg-black/65 border border-white/20 backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] flex flex-wrap items-center justify-center gap-2">
           
           <button
-            onClick={() => setOpenPanel('overview')}
+            onClick={() => setActiveFullPanel('overview')}
             className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-              openPanel === 'overview'
-                ? 'bg-cyan-500 text-black font-bold shadow-[0_0_15px_rgba(6,182,212,0.6)]'
+              activeFullPanel === 'overview'
+                ? 'bg-cyan-500 text-black font-bold shadow-[0_0_20px_rgba(6,182,212,0.7)]'
                 : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
             }`}
           >
@@ -220,10 +214,10 @@ export default function ClassroomClient({
           </button>
 
           <button
-            onClick={() => setOpenPanel('online')}
+            onClick={() => setActiveFullPanel('online')}
             className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-              openPanel === 'online'
-                ? 'bg-emerald-400 text-black font-bold shadow-[0_0_15px_rgba(52,211,153,0.6)]'
+              activeFullPanel === 'online'
+                ? 'bg-emerald-400 text-black font-bold shadow-[0_0_20px_rgba(52,211,153,0.7)]'
                 : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
             }`}
           >
@@ -231,10 +225,10 @@ export default function ClassroomClient({
           </button>
 
           <button
-            onClick={() => setOpenPanel('video')}
+            onClick={() => setActiveFullPanel('video')}
             className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-              openPanel === 'video'
-                ? 'bg-cyan-400 text-black font-bold shadow-[0_0_15px_rgba(34,211,238,0.6)]'
+              activeFullPanel === 'video'
+                ? 'bg-cyan-400 text-black font-bold shadow-[0_0_20px_rgba(34,211,238,0.7)]'
                 : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
             }`}
           >
@@ -242,10 +236,10 @@ export default function ClassroomClient({
           </button>
 
           <button
-            onClick={() => setOpenPanel('resources')}
+            onClick={() => setActiveFullPanel('resources')}
             className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-              openPanel === 'resources'
-                ? 'bg-cyan-400 text-black font-bold shadow-[0_0_15px_rgba(34,211,238,0.6)]'
+              activeFullPanel === 'resources'
+                ? 'bg-cyan-400 text-black font-bold shadow-[0_0_20px_rgba(34,211,238,0.7)]'
                 : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
             }`}
           >
@@ -253,10 +247,10 @@ export default function ClassroomClient({
           </button>
 
           <button
-            onClick={() => setOpenPanel('assignments')}
+            onClick={() => setActiveFullPanel('assignments')}
             className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-              openPanel === 'assignments'
-                ? 'bg-amber-400 text-black font-bold shadow-[0_0_15px_rgba(251,191,36,0.6)]'
+              activeFullPanel === 'assignments'
+                ? 'bg-amber-400 text-black font-bold shadow-[0_0_20px_rgba(251,191,36,0.7)]'
                 : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
             }`}
           >
@@ -264,10 +258,10 @@ export default function ClassroomClient({
           </button>
 
           <button
-            onClick={() => setOpenPanel('quizzes')}
+            onClick={() => setActiveFullPanel('quizzes')}
             className={`px-4 py-2 rounded-xl font-mono text-xs transition-all flex items-center gap-1.5 ${
-              openPanel === 'quizzes'
-                ? 'bg-purple-400 text-black font-bold shadow-[0_0_15px_rgba(192,132,252,0.6)]'
+              activeFullPanel === 'quizzes'
+                ? 'bg-purple-400 text-black font-bold shadow-[0_0_20px_rgba(192,132,252,0.7)]'
                 : 'bg-white/5 hover:bg-white/15 text-white/80 border border-white/10'
             }`}
           >
@@ -277,7 +271,7 @@ export default function ClassroomClient({
         </div>
       </div>
 
-      {/* ─── 7. BOTTOM LEFT & RIGHT CONTROL BADGES (Matching Daginatsuko Screenshot) ─── */}
+      {/* ─── 7. BOTTOM CONTROLS ─── */}
       <div className="absolute bottom-6 left-8 z-30 flex items-center gap-2">
         <button
           onClick={() => setIsDarkMode(!isDarkMode)}
@@ -293,118 +287,145 @@ export default function ClassroomClient({
         </div>
       </div>
 
-      {/* ─── 8. DAGINATSUKO FULL-SCREEN GLASS MODAL WINDOW OVERLAYS ─── */}
-      {openPanel && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-2xl p-4 md:p-12 animate-in fade-in duration-300">
+      {/* ─── 8. FULL-PAGE SCREEN PANELS (DAGINATSUKO FULL SCREEN PAGE LAYOUT) ─── */}
+      {activeFullPanel && (
+        <div className="fixed inset-0 z-50 w-full h-full bg-[#060a12]/95 backdrop-blur-3xl text-white flex flex-col overflow-y-auto animate-in fade-in duration-300">
           
-          {/* Close Window Header Button (Matching Daginatsuko Modal Close Button) */}
-          <div className="max-w-5xl mx-auto flex justify-between items-center mb-6 pb-4 border-b border-white/15">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-xs px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 uppercase">
-                {openPanel} WINDOW
+          {/* Full-Page Top Header Bar */}
+          <header className="sticky top-0 z-40 bg-[#090e1a]/90 backdrop-blur-2xl border-b border-white/15 px-6 md:px-12 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <span className="px-3 py-1 rounded font-mono text-xs bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 uppercase font-bold">
+                PANEL {activeFullPanel === 'overview' ? '01' : activeFullPanel === 'online' ? '02' : activeFullPanel === 'video' ? '03' : activeFullPanel === 'resources' ? '04' : activeFullPanel === 'assignments' ? '05' : '06'} // {activeFullPanel.toUpperCase()}
               </span>
-              <span className="font-mono text-xs text-white/50">DAGINATSUKO MILK UX 3.0</span>
+              <span className="font-mono text-xs text-white/50 hidden sm:inline-block">
+                {initialCourse.japaneseTitle || 'コース概要'}
+              </span>
             </div>
 
+            {/* Close / Return to Landing Screen Button */}
             <button
-              onClick={() => setOpenPanel(null)}
-              className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 font-mono text-xs text-white transition-all hover:scale-105"
+              onClick={() => setActiveFullPanel(null)}
+              className="px-5 py-2 rounded-full bg-white/10 hover:bg-white/25 border border-white/30 font-mono text-xs text-white transition-all hover:scale-105 flex items-center gap-2 shadow-lg"
             >
-              ✕ Close Window
+              <span>✕</span> TRỞ VỀ MENU CHÍNH
             </button>
-          </div>
+          </header>
 
-          {/* Modal Inner Container */}
-          <div className="max-w-5xl mx-auto space-y-6">
-
-            {/* 1. TỔNG QUAN PANEL MODAL */}
-            {openPanel === 'overview' && (
-              <div className="space-y-6">
-                <div className="p-8 rounded-3xl bg-slate-900/90 border border-cyan-500/30 backdrop-blur-xl shadow-2xl">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="font-mono text-xs text-cyan-400 uppercase tracking-widest">
-                      {initialCourse.japaneseTitle || 'コース概要'}
-                    </span>
+          {/* Full-Page Content Area */}
+          <main className="flex-1 max-w-6xl w-full mx-auto px-6 md:px-12 py-10">
+            
+            {/* PANEL 1: TỔNG QUAN (FULL PAGE VIEW) */}
+            {activeFullPanel === 'overview' && (
+              <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300">
+                <div className="p-8 md:p-12 rounded-3xl bg-slate-900/80 border border-cyan-500/30 backdrop-blur-xl shadow-2xl">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-md bg-cyan-500/10 border border-cyan-400/40 text-cyan-300 font-mono text-xs mb-4">
+                    <span>{initialCourse.japaneseTitle || 'コース概要'}</span>
+                    <span>•</span>
+                    <span>OVERVIEW</span>
                   </div>
-                  <h2 className="text-3xl font-extrabold text-white mb-4">{initialCourse.title}</h2>
-                  <p className="text-slate-300 text-sm leading-relaxed mb-6">{initialCourse.description}</p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-slate-800">
-                    <div className="p-4 rounded-2xl bg-black/40 border border-slate-800">
-                      <div className="font-mono text-2xl font-bold text-cyan-400 mb-1">12,400+</div>
-                      <div className="font-mono text-xs text-slate-400">Lines of Code</div>
+                  <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-6 leading-tight">
+                    {initialCourse.title}
+                  </h2>
+                  <p className="text-slate-300 text-base md:text-lg leading-relaxed mb-8 font-light max-w-4xl">
+                    {initialCourse.description}
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-slate-800">
+                    <div className="p-6 rounded-2xl bg-black/50 border border-slate-800">
+                      <div className="font-mono text-3xl font-bold text-cyan-400 mb-1">12,400+</div>
+                      <div className="font-mono text-xs text-slate-400 uppercase tracking-wider">Lines of Code</div>
                     </div>
-                    <div className="p-4 rounded-2xl bg-black/40 border border-slate-800">
-                      <div className="font-mono text-2xl font-bold text-emerald-400">{progressPercentage}%</div>
-                      <div className="font-mono text-xs text-slate-400">Tiến Độ Học Bản Thân</div>
+                    <div className="p-6 rounded-2xl bg-black/50 border border-slate-800">
+                      <div className="font-mono text-3xl font-bold text-emerald-400">{progressPercentage}%</div>
+                      <div className="font-mono text-xs text-slate-400 uppercase tracking-wider">Tiến Độ Học Bản Thân</div>
                     </div>
-                    <div className="p-4 rounded-2xl bg-black/40 border border-slate-800">
-                      <div className="font-mono text-2xl font-bold text-purple-400">{initialCourse.studentsCount || 128}</div>
-                      <div className="font-mono text-xs text-slate-400">Sĩ Số Học Viên</div>
+                    <div className="p-6 rounded-2xl bg-black/50 border border-slate-800">
+                      <div className="font-mono text-3xl font-bold text-purple-400">{initialCourse.studentsCount || 128}</div>
+                      <div className="font-mono text-xs text-slate-400 uppercase tracking-wider">Sĩ Số Học Viên</div>
                     </div>
                   </div>
                 </div>
 
-                {/* Announcement Cards */}
-                {initialAnnouncements.map((ann) => (
-                  <div key={ann.id} className="p-6 rounded-2xl bg-slate-900/70 border border-amber-500/30">
-                    <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-bold text-amber-300 text-base">{ann.title}</h4>
-                      <span className="font-mono text-xs text-slate-500">{new Date(ann.createdAt).toLocaleDateString('vi-VN')}</span>
-                    </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">{ann.content}</p>
+                {/* Important Announcements Feed */}
+                {initialAnnouncements.length > 0 && (
+                  <div className="p-8 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
+                    <h3 className="font-mono text-sm text-amber-400 tracking-wider uppercase mb-2">
+                      📢 Thông Báo Mới Nhất Từ Giảng Viên
+                    </h3>
+                    {initialAnnouncements.map((ann) => (
+                      <div key={ann.id} className="p-5 rounded-2xl bg-slate-950/80 border border-amber-500/30">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="font-bold text-amber-300 text-base">{ann.title}</h4>
+                          <span className="font-mono text-xs text-slate-500">{new Date(ann.createdAt).toLocaleDateString('vi-VN')}</span>
+                        </div>
+                        <p className="text-sm text-slate-300 leading-relaxed">{ann.content}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
 
-            {/* 2. VÀO HỌC ONLINE PANEL MODAL */}
-            {openPanel === 'online' && (
-              <div className="p-8 rounded-3xl bg-slate-900/90 border border-emerald-500/40 backdrop-blur-xl text-center space-y-6">
-                <div className="w-16 h-16 rounded-3xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-300 text-3xl mx-auto shadow-[0_0_30px_rgba(16,185,129,0.4)]">
+            {/* PANEL 2: VÀO HỌC ONLINE (FULL PAGE VIEW) */}
+            {activeFullPanel === 'online' && (
+              <div className="p-10 md:p-16 rounded-3xl bg-slate-900/90 border border-emerald-500/40 backdrop-blur-xl text-center space-y-8 animate-in slide-in-from-bottom-4 duration-300 shadow-2xl">
+                <div className="w-20 h-20 rounded-3xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-300 text-4xl mx-auto shadow-[0_0_40px_rgba(16,185,129,0.5)]">
                   🎥
                 </div>
-                <h3 className="text-2xl font-extrabold text-white">Phòng Học Trực Tuyến Live Stream</h3>
-                <p className="text-xs text-slate-300 max-w-lg mx-auto leading-relaxed">
-                  Lớp học Google Meet / Zoom được kết nối trực tiếp với Giảng viên Trần Thị Bình.
-                </p>
+                <div>
+                  <h3 className="text-3xl md:text-4xl font-extrabold text-white mb-2">Phòng Học Trực Tuyến Live Stream</h3>
+                  <p className="text-slate-400 font-mono text-sm">Lớp học Google Meet / Zoom được kết nối trực tiếp</p>
+                </div>
 
-                <a
-                  href="https://meet.google.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-block px-10 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold font-mono text-base shadow-[0_0_35px_rgba(16,185,129,0.6)] transition-all hover:scale-105"
-                >
-                  🚀 Tham Gia Phòng Học Google Meet
-                </a>
+                <div className="p-8 rounded-2xl bg-black/60 border border-slate-800 max-w-2xl mx-auto space-y-4">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-xs border border-emerald-500/40">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span>BUỔI HỌC LIVE ĐANG DIỄN RA</span>
+                  </div>
+
+                  <h4 className="text-xl font-bold text-white">Chủ Đề: Hướng Dẫn Thực Hành Thuật Toán Python & Q&A</h4>
+                  <p className="text-xs text-slate-400 max-w-lg mx-auto leading-relaxed">
+                    Giảng viên Trần Thị Bình đang chủ trì lớp học online. Nhấp nút bên dưới để vào phòng học ngay.
+                  </p>
+
+                  <a
+                    href="https://meet.google.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block px-10 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold font-mono text-base shadow-[0_0_35px_rgba(16,185,129,0.6)] transition-all hover:scale-105"
+                  >
+                    🚀 Tham Gia Phòng Học Google Meet
+                  </a>
+                </div>
               </div>
             )}
 
-            {/* 3. HỌC BẰNG VIDEO PANEL MODAL */}
-            {openPanel === 'video' && (
-              <div className="space-y-6">
+            {/* PANEL 3: HỌC BẰNG VIDEO (FULL PAGE VIEW) */}
+            {activeFullPanel === 'video' && (
+              <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300">
                 {selectedVideoLesson && (
                   <div className="p-8 rounded-3xl bg-slate-900/90 border border-cyan-500/30 backdrop-blur-xl">
-                    <div className="flex justify-between items-center mb-3">
+                    <div className="flex justify-between items-center mb-4">
                       <span className="px-3 py-1 rounded bg-cyan-500/20 text-cyan-300 font-mono text-xs border border-cyan-500/30">
                         📹 VIDEO LECTURE #{selectedVideoLesson.order}
                       </span>
                       <span className="font-mono text-xs text-slate-400">{Math.round((selectedVideoLesson.duration || 1800) / 60)} Phút</span>
                     </div>
 
-                    <h3 className="text-2xl font-bold text-white mb-3">{selectedVideoLesson.title}</h3>
-                    <p className="text-xs text-slate-300 mb-6">{selectedVideoLesson.description}</p>
+                    <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">{selectedVideoLesson.title}</h3>
+                    <p className="text-slate-300 text-sm mb-6">{selectedVideoLesson.description}</p>
 
                     <div className="aspect-video w-full rounded-2xl bg-black border border-slate-800 flex flex-col items-center justify-center relative overflow-hidden group mb-6">
-                      <div className="w-16 h-16 rounded-full bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-400 text-2xl shadow-[0_0_30px_rgba(6,182,212,0.4)] group-hover:scale-110 transition-transform cursor-pointer">
+                      <div className="w-20 h-20 rounded-full bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-400 text-3xl shadow-[0_0_35px_rgba(6,182,212,0.5)] group-hover:scale-110 transition-transform cursor-pointer">
                         ▶
                       </div>
-                      <span className="mt-3 font-mono text-xs text-slate-400">Phát video bài giảng 4K</span>
+                      <span className="mt-4 font-mono text-xs text-slate-400">Phát video bài giảng 4K</span>
                     </div>
 
                     <button
                       onClick={() => toggleLessonComplete(selectedVideoLesson.id)}
-                      className={`px-6 py-2.5 rounded-xl font-mono text-xs transition-all ${
+                      className={`px-6 py-3 rounded-xl font-mono text-xs transition-all ${
                         completedLessons.includes(selectedVideoLesson.id)
                           ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                           : 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30'
@@ -415,22 +436,22 @@ export default function ClassroomClient({
                   </div>
                 )}
 
-                <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800">
+                <div className="p-8 rounded-3xl bg-slate-900/60 border border-slate-800">
                   <h4 className="font-mono text-xs text-cyan-400 uppercase tracking-widest mb-4">Danh Sách Video Bài Giảng</h4>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {videoLessons.map((lesson) => (
                       <div
                         key={lesson.id}
                         onClick={() => setSelectedVideoLesson(lesson)}
-                        className={`p-4 rounded-xl border transition-all cursor-pointer flex justify-between items-center ${
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex justify-between items-center ${
                           selectedVideoLesson?.id === lesson.id
                             ? 'border-cyan-400 bg-cyan-950/40'
                             : 'border-slate-800 bg-slate-950/30 hover:border-slate-700'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <span className="text-cyan-400 font-mono text-xs">▶</span>
-                          <span className="text-xs font-medium text-slate-200">{lesson.title}</span>
+                        <div className="flex items-center gap-4">
+                          <span className="text-cyan-400 font-mono text-sm">▶</span>
+                          <span className="text-sm font-medium text-slate-200">{lesson.title}</span>
                         </div>
                         <span className="font-mono text-xs text-slate-500">{Math.round((lesson.duration || 1800) / 60)} phút</span>
                       </div>
@@ -440,25 +461,25 @@ export default function ClassroomClient({
               </div>
             )}
 
-            {/* 4. TÀI LIỆU PANEL MODAL */}
-            {openPanel === 'resources' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* PANEL 4: TÀI LIỆU (FULL PAGE VIEW) */}
+            {activeFullPanel === 'resources' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-4 duration-300">
                 {initialResources.map((res) => (
-                  <div key={res.id} className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between">
+                  <div key={res.id} className="p-8 rounded-3xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between">
                     <div>
-                      <div className="flex justify-between items-start mb-3">
-                        <span className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-mono font-bold text-xs uppercase">
+                      <div className="flex justify-between items-start mb-4">
+                        <span className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-mono font-bold text-sm uppercase">
                           {res.fileType}
                         </span>
                         <span className="font-mono text-xs text-slate-500">{res.fileSize}</span>
                       </div>
-                      <h4 className="font-bold text-white text-base mb-2">{res.title}</h4>
-                      <p className="text-xs text-slate-400 mb-4">{res.description || 'Tài liệu học tập.'}</p>
+                      <h4 className="font-bold text-white text-lg mb-2">{res.title}</h4>
+                      <p className="text-xs text-slate-400 mb-6 leading-relaxed">{res.description || 'Tài liệu học tập.'}</p>
                     </div>
                     <a
                       href={res.fileUrl}
                       download
-                      className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-cyan-500 text-slate-300 hover:text-black font-mono text-xs font-bold transition-all text-center block"
+                      className="w-full py-3 rounded-xl bg-slate-800 hover:bg-cyan-500 text-slate-300 hover:text-black font-mono text-xs font-bold transition-all text-center block"
                     >
                       ↓ Tải Xuống File ({res.downloadCount || 0} lượt tải)
                     </a>
@@ -467,35 +488,35 @@ export default function ClassroomClient({
               </div>
             )}
 
-            {/* 5. BÀI TẬP VÀ NỘP BÀI TẬP PANEL MODAL */}
-            {openPanel === 'assignments' && (
-              <div className="p-8 rounded-3xl bg-slate-900/90 border border-amber-500/30 backdrop-blur-xl space-y-6">
-                <div className="flex items-center gap-3 pb-4 border-b border-amber-500/20">
-                  <span className="text-3xl">✏️</span>
+            {/* PANEL 5: BÀI TẬP VÀ NỘP BÀI TẬP (FULL PAGE VIEW) */}
+            {activeFullPanel === 'assignments' && (
+              <div className="p-8 md:p-12 rounded-3xl bg-slate-900/90 border border-amber-500/30 backdrop-blur-xl space-y-6 animate-in slide-in-from-bottom-4 duration-300">
+                <div className="flex items-center gap-4 pb-6 border-b border-amber-500/20">
+                  <span className="text-4xl">✏️</span>
                   <div>
-                    <h3 className="font-bold text-white text-lg">Bài Tập Tự Luận: Thuật Toán Python</h3>
+                    <h3 className="font-bold text-white text-xl">Bài Tập Tự Luận: Thuật Toán Python</h3>
                     <p className="font-mono text-xs text-amber-300">Hạn nộp: 23:59 Chủ Nhật Tuần Này</p>
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Yêu cầu: Viết chương trình Python nhập vào một chuỗi ký tự và đếm số lượng nguyên âm (a, e, i, o, u) xuất hiện trong chuỗi đó.
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  Yêu cầu: Viết chương trình Python nhập vào một chuỗi ký tự và đếm số lượng nguyên âm (a, e, i, o, u) xuất hiện trong chuỗi đó. Hãy dán mã nguồn bài giải của bạn vào ô bên dưới.
                 </p>
 
                 <form onSubmit={(e) => handleAssignmentSubmit(e, 'assign-1')} className="space-y-4">
                   <textarea
-                    rows={6}
+                    rows={8}
                     value={submissionText}
                     onChange={(e) => setSubmissionText(e.target.value)}
                     placeholder="Dán mã nguồn Python bài tập của bạn tại đây..."
-                    className="w-full bg-slate-950 border border-amber-500/40 rounded-2xl p-4 text-xs font-mono text-slate-100 focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-950 border border-amber-500/40 rounded-2xl p-5 text-sm font-mono text-slate-100 focus:outline-none focus:border-amber-400 leading-relaxed"
                   ></textarea>
 
                   <div className="flex justify-between items-center">
                     <span className="font-mono text-xs text-slate-400">Trạng thái: {submittedAssignments['assign-1'] ? '✓ Đã Nộp Bài' : 'Chưa nộp'}</span>
                     <button
                       type="submit"
-                      className="px-8 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold font-mono text-xs transition-all"
+                      className="px-8 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold font-mono text-sm transition-all shadow-[0_0_20px_rgba(245,158,11,0.4)]"
                     >
                       Nộp Bài Tập
                     </button>
@@ -504,16 +525,16 @@ export default function ClassroomClient({
               </div>
             )}
 
-            {/* 6. QUIZE PANEL MODAL */}
-            {openPanel === 'quizzes' && (
-              <div className="p-8 rounded-3xl bg-slate-900/90 border border-purple-500/30 backdrop-blur-xl space-y-6">
-                <div className="flex justify-between items-center pb-4 border-b border-purple-500/20">
+            {/* PANEL 6: QUIZE (FULL PAGE VIEW) */}
+            {activeFullPanel === 'quizzes' && (
+              <div className="p-8 md:p-12 rounded-3xl bg-slate-900/90 border border-purple-500/30 backdrop-blur-xl space-y-8 animate-in slide-in-from-bottom-4 duration-300">
+                <div className="flex justify-between items-center pb-6 border-b border-purple-500/20">
                   <div>
-                    <h3 className="font-bold text-white text-lg">Bài Kiểm Tra Trắc Nghiệm Quiz #1</h3>
+                    <h3 className="font-bold text-white text-2xl">Bài Kiểm Tra Trắc Nghiệm Quiz #1</h3>
                     <p className="font-mono text-xs text-purple-300">3 Câu hỏi • Thang điểm 30</p>
                   </div>
                   {quizScore !== null && (
-                    <span className="px-4 py-2 rounded-xl bg-purple-500/20 text-purple-300 font-mono font-bold text-sm border border-purple-500/40">
+                    <span className="px-5 py-2.5 rounded-2xl bg-purple-500/20 text-purple-300 font-mono font-bold text-base border border-purple-500/40">
                       Điểm Số: {quizScore}/30
                     </span>
                   )}
@@ -521,16 +542,16 @@ export default function ClassroomClient({
 
                 <div className="space-y-6">
                   {quizQuestions.map((q, qIdx) => (
-                    <div key={qIdx} className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800">
-                      <h4 className="font-semibold text-white text-sm mb-3">Câu {qIdx + 1}: {q.question}</h4>
-                      <div className="space-y-2">
+                    <div key={qIdx} className="p-6 rounded-2xl bg-slate-950/60 border border-slate-800">
+                      <h4 className="font-semibold text-white text-base mb-4">Câu {qIdx + 1}: {q.question}</h4>
+                      <div className="space-y-3">
                         {q.options.map((opt, oIdx) => (
                           <div
                             key={oIdx}
                             onClick={() => handleQuizOptionSelect(qIdx, oIdx)}
-                            className={`p-3.5 rounded-xl border text-xs font-mono cursor-pointer transition-all ${
+                            className={`p-4 rounded-xl border text-xs font-mono cursor-pointer transition-all ${
                               selectedAnswers[qIdx] === oIdx
-                                ? 'border-purple-400 bg-purple-950/40 text-purple-200'
+                                ? 'border-purple-400 bg-purple-950/40 text-purple-200 font-bold'
                                 : 'border-slate-800 bg-slate-900/50 text-slate-400 hover:border-slate-700'
                             }`}
                           >
@@ -544,28 +565,28 @@ export default function ClassroomClient({
 
                 <button
                   onClick={handleQuizSubmit}
-                  className="w-full py-4 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-sm font-bold shadow-[0_0_25px_rgba(168,85,247,0.5)] transition-all"
+                  className="w-full py-4 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-base font-bold shadow-[0_0_30px_rgba(168,85,247,0.5)] transition-all"
                 >
                   Nộp Bài Kiểm Tra Quiz
                 </button>
               </div>
             )}
 
-            {/* 7. INSPECTOR SIDE PANEL MODAL */}
-            {openPanel === 'inspector' && (
-              <div className="p-8 rounded-3xl bg-slate-900/90 border border-cyan-500/30 backdrop-blur-xl space-y-6">
-                <div className="flex justify-between items-center pb-4 border-b border-cyan-500/20">
-                  <h3 className="font-mono text-sm font-bold text-cyan-400 uppercase tracking-widest">CLASSROOM INSPECTOR</h3>
+            {/* INSPECTOR PANEL (FULL PAGE VIEW) */}
+            {activeFullPanel === 'inspector' && (
+              <div className="p-8 md:p-12 rounded-3xl bg-slate-900/90 border border-cyan-500/30 backdrop-blur-xl space-y-8 animate-in slide-in-from-bottom-4 duration-300">
+                <div className="flex justify-between items-center pb-6 border-b border-cyan-500/20">
+                  <h3 className="font-mono text-lg font-bold text-cyan-400 uppercase tracking-widest">CLASSROOM INSPECTOR</h3>
                   <span className="font-mono text-xs text-slate-500">デバッガ</span>
                 </div>
 
-                <div className="space-y-4 font-mono text-xs">
+                <div className="space-y-6 font-mono text-xs">
                   <div>
-                    <div className="flex justify-between text-slate-300 mb-1">
+                    <div className="flex justify-between text-slate-300 mb-2 text-sm">
                       <span>Phần Trăm Hoàn Thành</span>
-                      <span className="text-cyan-400 font-bold">{progressPercentage}%</span>
+                      <span className="text-cyan-400 font-bold text-base">{progressPercentage}%</span>
                     </div>
-                    <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                    <div className="w-full h-4 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
                       <div
                         className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-500"
                         style={{ width: `${progressPercentage}%` }}
@@ -573,7 +594,7 @@ export default function ClassroomClient({
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3 text-xs">
+                  <div className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4 text-sm">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Học Viên:</span>
                       <span className="text-white font-bold">Nguyễn Văn An</span>
@@ -583,7 +604,7 @@ export default function ClassroomClient({
                       <span className="text-amber-400 font-bold">🔥 7 Ngày</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Database Backend:</span>
+                      <span className="text-slate-400">Database Engine:</span>
                       <span className="text-emerald-400 font-bold">Firebase Firestore (default)</span>
                     </div>
                   </div>
@@ -591,7 +612,54 @@ export default function ClassroomClient({
               </div>
             )}
 
-          </div>
+          </main>
+
+          {/* Full-Page Bottom Switcher Bar */}
+          <footer className="sticky bottom-0 z-40 bg-[#090e1a]/95 backdrop-blur-2xl border-t border-white/15 px-6 md:px-12 py-3">
+            <div className="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-2">
+              <span className="font-mono text-xs text-white/50 hidden md:inline-block">CHUYỂN PANEL NHANH:</span>
+              
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setActiveFullPanel('overview')}
+                  className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === 'overview' ? 'bg-cyan-500 text-black font-bold' : 'bg-white/5 text-white/70'}`}
+                >
+                  1. Tổng quan
+                </button>
+                <button
+                  onClick={() => setActiveFullPanel('online')}
+                  className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === 'online' ? 'bg-emerald-400 text-black font-bold' : 'bg-white/5 text-white/70'}`}
+                >
+                  2. Học online
+                </button>
+                <button
+                  onClick={() => setActiveFullPanel('video')}
+                  className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === 'video' ? 'bg-cyan-400 text-black font-bold' : 'bg-white/5 text-white/70'}`}
+                >
+                  3. Video
+                </button>
+                <button
+                  onClick={() => setActiveFullPanel('resources')}
+                  className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === 'resources' ? 'bg-cyan-400 text-black font-bold' : 'bg-white/5 text-white/70'}`}
+                >
+                  4. Tài liệu
+                </button>
+                <button
+                  onClick={() => setActiveFullPanel('assignments')}
+                  className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === 'assignments' ? 'bg-amber-400 text-black font-bold' : 'bg-white/5 text-white/70'}`}
+                >
+                  5. Bài tập
+                </button>
+                <button
+                  onClick={() => setActiveFullPanel('quizzes')}
+                  className={`px-3 py-1 rounded-lg font-mono text-xs ${activeFullPanel === 'quizzes' ? 'bg-purple-400 text-black font-bold' : 'bg-white/5 text-white/70'}`}
+                >
+                  6. Quize
+                </button>
+              </div>
+            </div>
+          </footer>
+
         </div>
       )}
 
