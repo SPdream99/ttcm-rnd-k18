@@ -1,4 +1,4 @@
-import HeaderEffect from "./components/HeaderEffect";
+import HeaderEffect from "@/components/HeaderEffect";
 import Link from "next/link";
 
 export default function Home() {
