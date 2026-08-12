@@ -42,18 +42,18 @@ export default function DemoHomePage() {
     },
     {
       id: 'admin-flow',
-      role: 'QUẢN TRỊ VIÊN (ADMIN FLOW)',
+      role: 'NHÀ TRƯỜNG / ADMIN FLOW',
       title: 'LUỒNG 03: ĐIỀU HÀNH HỆ THỐNG E-V-E',
-      subtitle: 'Phê Duyệt Khóa Học • Giám Sát Firestore Database • Quản Lý Người Dùng',
-      icon: '⚙️',
+      subtitle: 'Tạo Tài Khoản Giảng Viên / Học Sinh • Phê Duyệt Lớp • Giám Sát Firestore Engine',
+      icon: '🏫',
       badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/40',
       btnColor: 'bg-purple-500 hover:bg-purple-400 text-black shadow-[0_0_25px_rgba(168,85,247,0.6)]',
-      targetUrl: '/public/courses',
-      targetLabel: '🚀 Thử Luồng Admin (Quản Lý Toàn Bộ Lớp Học)',
+      targetUrl: '/public/school/users',
+      targetLabel: '🚀 Thử Luồng Nhà Trường (Cổng Khởi Tạo & Quản Lý Tài Khoản)',
       steps: [
-        { label: '1. Phê Duyệt Khóa Học & Kiểm Soát Danh Mục', url: '/public/courses' },
-        { label: '2. Phân Quyền Vai Trò Admin / Instructor', url: '/public/courses' },
-        { label: '3. Giám Sát Engine Kết Nối Realtime Firestore', url: '/public/courses/course-001' },
+        { label: '1. Cổng Nhà Trường Tạo Tài Khoản', url: '/public/school/users' },
+        { label: '2. Phê Duyệt Lớp Học & Danh Mục', url: '/public/courses' },
+        { label: '3. Giám Sát Firestore Engine', url: '/public/courses/course-001' },
       ],
       bgImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDX3K7vGdyDUJvI340aetIU0MVajGsT-e6ecJWTX_bifO55kIvgYhItv47FSH5gOlBt4WXUH320SbsaApEiFfNdG66AoUaUjk7G5Nq2aNt68S2ryprglwBXkwjP-dZTcTo4W9-bhhwQxUNBz7Ab_4QpfnZ2OdXoMk-oGfmsIb2lzhbUotG-TIe2LGsotqgod8fmizYQiYz2IWyCnHT5k1cs7W0nk68sUTOd6qV65B-dNJH1vAu6ysgZ',
     },
@@ -89,12 +89,21 @@ export default function DemoHomePage() {
           <span className="font-mono text-xl font-bold tracking-widest text-cyan-400">E-V-E DEMO HUB</span>
         </div>
 
-        <Link
-          href="/public/courses"
-          className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 backdrop-blur-md font-mono text-xs text-white transition-all"
-        >
-          Toàn Bộ Lớp Học →
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/public/school/users"
+            className="px-4 py-1.5 rounded-full bg-purple-500/20 hover:bg-purple-500/40 border border-purple-400 backdrop-blur-md font-mono text-xs text-purple-300 transition-all"
+          >
+            🏫 Nhà Trường Tạo Tài Khoản
+          </Link>
+
+          <Link
+            href="/public/courses"
+            className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 backdrop-blur-md font-mono text-xs text-white transition-all"
+          >
+            Toàn Bộ Lớp Học →
+          </Link>
+        </div>
       </div>
 
       {/* Center Directional Arrow Controls & User Flow Showcase */}
@@ -172,7 +181,7 @@ export default function DemoHomePage() {
         </Link>
       </div>
 
-      {/* RIGHT SIDE PILL HANDLE: HỆ THỐNG DEMO E-V-E (Informative ONLY with 'ⓘ' icon) */}
+      {/* RIGHT SIDE PILL HANDLE: HỆ THỐNG DEMO E-V-E */}
       <div className="absolute right-6 top-1/2 -translate-y-1/2 z-20">
         <div className="group relative flex items-center justify-center p-3.5 rounded-full bg-black/50 border border-white/30 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl cursor-default hover:px-7 hover:py-5">
           <span className="font-mono text-sm font-bold text-cyan-400 group-hover:hidden py-1">

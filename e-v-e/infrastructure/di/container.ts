@@ -11,6 +11,7 @@ import { GetUserProfileUseCase } from '@/core/use-cases/user/GetUserProfile';
 import { RegisterUserUseCase } from '@/core/use-cases/user/RegisterUser';
 import { EnrollInCourseUseCase } from '@/core/use-cases/enrollment/EnrollInCourse';
 import { GetMyEnrollmentsUseCase } from '@/core/use-cases/enrollment/GetMyEnrollments';
+import { CreateUserAccount } from '@/core/use-cases/CreateUserAccount';
 
 import { UserRepository } from '@/core/ports/UserRepository';
 import { CourseRepository } from '@/core/ports/CourseRepository';
@@ -24,6 +25,8 @@ export type AppContainer = {
   // User
   getUserProfileUseCase: GetUserProfileUseCase;
   registerUserUseCase: RegisterUserUseCase;
+  createUserAccountUseCase: CreateUserAccount;
+  userRepo: UserRepository;
   // Course
   getPublishedCoursesUseCase: GetPublishedCoursesUseCase;
   createCourseUseCase: CreateCourseUseCase;
@@ -102,6 +105,8 @@ async function buildContainer(): Promise<AppContainer> {
   return {
     getUserProfileUseCase: new GetUserProfileUseCase(userRepo),
     registerUserUseCase: new RegisterUserUseCase(userRepo),
+    createUserAccountUseCase: new CreateUserAccount(userRepo),
+    userRepo,
     getPublishedCoursesUseCase: new GetPublishedCoursesUseCase(courseRepo),
     createCourseUseCase: new CreateCourseUseCase(courseRepo, userRepo),
     courseRepo,
