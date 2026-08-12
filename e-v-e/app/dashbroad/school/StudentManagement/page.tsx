@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
-import { Users, Search, Plus, Filter, Download, GraduationCap, Award } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useSchoolAdapter } from "@/hooks/useSchoolAdapter";
+import { Users, Search, Plus, Download } from "lucide-react";
 
 export default function SchoolStudentManagementPage() {
   const [selectedGrade, setSelectedGrade] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const { students, loadStudents } = useSchoolAdapter();
 
-  const students = [
-    { name: "Nguyễn Trần Hải Đăng", code: "HS1201", grade: "Khối 12", class: "12A1", gpa: "9.5", rank: "Hạng 1 Khối", status: "Đang Học" },
-    { name: "Lê Bảo Ngọc", code: "HS1105", grade: "Khối 11", class: "11B2", gpa: "8.8", rank: "Hạng 5 Khối", status: "Đang Học" },
-    { name: "Phạm Quốc Thái", code: "HS1002", grade: "Khối 10", class: "10A5", gpa: "8.2", rank: "Hạng 12 Khối", status: "Đang Học" },
-    { name: "Trần Minh Khoa", code: "HS1209", grade: "Khối 12", class: "12A1", gpa: "7.2", rank: "Hạng 25 Khối", status: "Cần Cố Gắng" },
-  ];
+  useEffect(() => {
+    loadStudents(selectedGrade, searchQuery);
+  }, [loadStudents, selectedGrade, searchQuery]);
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] p-4 md:p-8 font-sans space-y-8">
@@ -44,6 +44,8 @@ export default function SchoolStudentManagementPage() {
             <input
               type="text"
               placeholder="Tìm theo tên, mã HS..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#151b2c] border border-purple-500/30 rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-purple-400"
             />
           </div>
@@ -78,8 +80,8 @@ export default function SchoolStudentManagementPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#7bd1fa]/10">
-              {students.map((st, idx) => (
-                <tr key={idx} className="hover:bg-[#151b2c]/40 transition-colors">
+              {students.map((st) => (
+                <tr key={st.id} className="hover:bg-[#151b2c]/40 transition-colors">
                   <td className="p-3.5 font-semibold text-white">{st.name}</td>
                   <td className="p-3.5 text-xs text-[#8e9bb4]">{st.code}</td>
                   <td className="p-3.5 text-xs text-cyan-300 font-medium">{st.grade} • {st.class}</td>

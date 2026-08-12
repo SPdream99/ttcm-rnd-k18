@@ -1,25 +1,29 @@
 "use client";
 
-import React, { useState } from "react";
-import { Users, Search, MessageSquare, AlertTriangle, GraduationCap, CheckCircle } from "lucide-react";
+import React from "react";
+import { useTeacherAdapter } from "@/hooks/useTeacherAdapter";
+import { Users, Search, MessageSquare } from "lucide-react";
 
 export default function TeacherStudentManagementPage() {
-  const students = [
-    { name: "Nguyễn Trần Hải Đăng", id: "HS-1201", gpa: "9.5", attendance: "98%", status: "Xuất Sắc", tagColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" },
-    { name: "Lê Bảo Ngọc", id: "HS-1202", gpa: "8.8", attendance: "95%", status: "Giỏi", tagColor: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
-    { name: "Phạm Quốc Thái", id: "HS-1203", gpa: "7.2", attendance: "90%", status: "Khá", tagColor: "bg-purple-500/20 text-purple-300 border-purple-500/30" },
-    { name: "Trần Minh Khoa", id: "HS-1204", gpa: "5.2", attendance: "82%", status: "Cảnh Báo", tagColor: "bg-amber-500/20 text-amber-300 border-amber-500/30" },
-  ];
+  const { students, loading } = useTeacherAdapter();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] flex items-center justify-center font-sans">
+        <p className="text-emerald-400 font-medium">Đang tải danh sách học sinh lớp...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] p-4 md:p-8 font-sans space-y-8">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/10">
         <div>
           <div className="flex items-center gap-2 text-sm text-emerald-400 font-medium mb-1">
-            <Users className="w-4 h-4" /> Danh sách sinh viên
+            <Users className="w-4 h-4" /> Danh sách học sinh
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-            Quản Lý Sĩ Số Lớp 12A1 👨‍🎓
+            Quản Lý Sĩ Số Lớp 👨‍🎓
           </h1>
           <p className="text-sm text-[#8e9bb4] mt-1">Sổ điểm điện tử, tỷ lệ chuyên cần và hỗ trợ cá nhân hóa.</p>
         </div>
@@ -36,16 +40,16 @@ export default function TeacherStudentManagementPage() {
 
       {/* Roster Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {students.map((st, idx) => (
+        {students.map((st) => (
           <div
-            key={idx}
+            key={st.id}
             className="p-4 rounded-2xl bg-[#0f1524]/60 backdrop-blur-md border border-[#7bd1fa]/15 hover:border-emerald-500/40 transition-all space-y-3"
           >
             <div className="flex items-center justify-between">
-              <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${st.tagColor}`}>
+              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 {st.status}
               </span>
-              <span className="text-xs text-[#8e9bb4]">{st.id}</span>
+              <span className="text-xs text-[#8e9bb4]">{st.code}</span>
             </div>
 
             <div>

@@ -1,10 +1,31 @@
 "use client";
 
 import React, { useState } from "react";
-import { User, Mail, Shield, Award, Flame, Bell, Key, Save, Sparkles, BookOpen } from "lucide-react";
+import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { User, Bell, Save, Flame, Award } from "lucide-react";
 
 export default function StudentProfilePage() {
+  const { profile, updateProfile, loading } = useAuthAdapter("usr_student");
   const [emailNotifications, setEmailNotifications] = useState(true);
+  const [fullName, setFullName] = useState(profile?.fullName || "Trần Minh Đức");
+  const [email, setEmail] = useState(profile?.email || "duc.tm@eve-cosmic.edu.vn");
+
+  const handleSave = () => {
+    if (!profile) return;
+    updateProfile({
+      ...profile,
+      fullName,
+      email,
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] flex items-center justify-center font-sans">
+        <p className="text-cyan-400 font-medium">Đang tải trang cá nhân...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] p-4 md:p-8 font-sans space-y-8 max-w-4xl mx-auto">
@@ -27,9 +48,9 @@ export default function StudentProfilePage() {
 
         <div className="space-y-1 text-center sm:text-left">
           <h2 className="text-xl font-bold text-white flex items-center justify-center sm:justify-start gap-2">
-            Alex Explorer <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-xs border border-cyan-500/30">Học Sinh Xuất Sắc</span>
+            {profile?.fullName || "Trần Minh Đức"} <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-xs border border-cyan-500/30">Học Sinh Xuất Sắc</span>
           </h2>
-          <p className="text-xs text-[#8e9bb4]">Mã SV: EVE-2026-8890 • Lớp: 12A1 Chuyên Lý</p>
+          <p className="text-xs text-[#8e9bb4]">{profile?.departmentOrClass || "Lớp 12A1 - Chuyên Khoa Học Tự Nhiên"}</p>
           <div className="flex items-center justify-center sm:justify-start gap-3 pt-1 text-xs text-amber-400 font-semibold">
             <span className="flex items-center gap-1"><Flame className="w-3.5 h-3.5" /> Chuỗi 7 ngày</span>
             <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-cyan-400" /> GPA 3.85/4.0</span>
@@ -44,11 +65,21 @@ export default function StudentProfilePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-[#8e9bb4] block mb-1.5 font-medium">Họ và tên</label>
-            <input type="text" defaultValue="Alex Explorer" className="w-full bg-[#151b2c] border border-[#7bd1fa]/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400" />
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full bg-[#151b2c] border border-[#7bd1fa]/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400"
+            />
           </div>
           <div>
             <label className="text-xs text-[#8e9bb4] block mb-1.5 font-medium">Email liên hệ</label>
-            <input type="email" defaultValue="alex.explorer@eve.edu.vn" className="w-full bg-[#151b2c] border border-[#7bd1fa]/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-[#151b2c] border border-[#7bd1fa]/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400"
+            />
           </div>
         </div>
 
@@ -60,10 +91,18 @@ export default function StudentProfilePage() {
               <div className="text-xs text-[#8e9bb4]">Nhắc nhở lịch học và hạn nộp bài tập</div>
             </div>
           </div>
-          <input type="checkbox" checked={emailNotifications} onChange={(e) => setEmailNotifications(e.target.checked)} className="w-5 h-5 accent-blue-600 cursor-pointer" />
+          <input
+            type="checkbox"
+            checked={emailNotifications}
+            onChange={(e) => setEmailNotifications(e.target.checked)}
+            className="w-5 h-5 accent-blue-600 cursor-pointer"
+          />
         </div>
 
-        <button className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium text-sm shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all flex items-center gap-2">
+        <button
+          onClick={handleSave}
+          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium text-sm shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all flex items-center gap-2"
+        >
           <Save className="w-4 h-4" /> Lưu Thay Đổi
         </button>
       </div>
