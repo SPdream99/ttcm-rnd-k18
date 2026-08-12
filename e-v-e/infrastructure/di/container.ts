@@ -2,12 +2,7 @@
  * DEPENDENCY INJECTION CONTAINER
  *
  * "Ổ cắm tổng" — nơi DUY NHẤT lắp ráp toàn bộ hệ thống.
- * Đồng bộ với schema Firestore thực tế (instructor, isPublished, lessons subcollection...)
- *
- * ┌─────────────────────────────────────────────────┐
- * │  USE_MOCK_DB=true  → Mock (dev offline)         │
- * │  USE_MOCK_DB=false → Firebase Firestore thật    │
- * └─────────────────────────────────────────────────┘
+ * Đồng bộ với schema Firestore thực tế (instructor, isPublished, lessons, announcements, resources, discussions...)
  */
 
 import { GetPublishedCoursesUseCase } from '@/core/use-cases/course/GetPublishedCourses';
@@ -21,6 +16,9 @@ import { UserRepository } from '@/core/ports/UserRepository';
 import { CourseRepository } from '@/core/ports/CourseRepository';
 import { EnrollmentRepository } from '@/core/ports/EnrollmentRepository';
 import { LessonRepository } from '@/core/ports/LessonRepository';
+import { AnnouncementRepository } from '@/core/ports/AnnouncementRepository';
+import { ResourceRepository } from '@/core/ports/ResourceRepository';
+import { DiscussionRepository } from '@/core/ports/DiscussionRepository';
 
 export type AppContainer = {
   // User
@@ -29,11 +27,15 @@ export type AppContainer = {
   // Course
   getPublishedCoursesUseCase: GetPublishedCoursesUseCase;
   createCourseUseCase: CreateCourseUseCase;
+  courseRepo: CourseRepository;
   // Enrollment
   enrollInCourseUseCase: EnrollInCourseUseCase;
   getMyEnrollmentsUseCase: GetMyEnrollmentsUseCase;
-  // Repos exposed (cho API routes cần truy vấn linh hoạt)
+  // Repos
   lessonRepo: LessonRepository;
+  announcementRepo: AnnouncementRepository;
+  resourceRepo: ResourceRepository;
+  discussionRepo: DiscussionRepository;
 };
 
 let _container: AppContainer | null = null;
@@ -43,6 +45,9 @@ async function buildContainer(): Promise<AppContainer> {
   let courseRepo: CourseRepository;
   let enrollmentRepo: EnrollmentRepository;
   let lessonRepo: LessonRepository;
+  let announcementRepo: AnnouncementRepository;
+  let resourceRepo: ResourceRepository;
+  let discussionRepo: DiscussionRepository;
 
   const useMock = process.env.USE_MOCK_DB === 'true';
 
@@ -50,12 +55,27 @@ async function buildContainer(): Promise<AppContainer> {
     const { MockUserRepo } = await import('@/infrastructure/repositories/mock/MockUserRepo');
     const { MockCourseRepo } = await import('@/infrastructure/repositories/mock/MockCourseRepo');
     const { MockEnrollmentRepo } = await import('@/infrastructure/repositories/mock/MockEnrollmentRepo');
-    // Lesson mock đơn giản — trả về rỗng
+    
     lessonRepo = {
       getLessonsByCourse: async () => [],
       getLessonById: async () => null,
       saveLesson: async () => {},
       deleteLesson: async () => {},
+    };
+    announcementRepo = {
+      getAnnouncementsByCourse: async () => [],
+      saveAnnouncement: async () => {},
+      deleteAnnouncement: async () => {},
+    };
+    resourceRepo = {
+      getResourcesByCourse: async () => [],
+      saveResource: async () => {},
+      deleteResource: async () => {},
+    };
+    discussionRepo = {
+      getDiscussionsByCourse: async () => [],
+      saveDiscussion: async () => {},
+      deleteDiscussion: async () => {},
     };
 
     userRepo = new MockUserRepo();
@@ -66,11 +86,17 @@ async function buildContainer(): Promise<AppContainer> {
     const { FirebaseCourseRepo } = await import('@/infrastructure/repositories/firebase/FirebaseCourseRepo');
     const { FirebaseEnrollmentRepo } = await import('@/infrastructure/repositories/firebase/FirebaseEnrollmentRepo');
     const { FirebaseLessonRepo } = await import('@/infrastructure/repositories/firebase/FirebaseLessonRepo');
+    const { FirebaseAnnouncementRepo } = await import('@/infrastructure/repositories/firebase/FirebaseAnnouncementRepo');
+    const { FirebaseResourceRepo } = await import('@/infrastructure/repositories/firebase/FirebaseResourceRepo');
+    const { FirebaseDiscussionRepo } = await import('@/infrastructure/repositories/firebase/FirebaseDiscussionRepo');
 
     userRepo = new FirebaseUserRepo();
     courseRepo = new FirebaseCourseRepo();
     enrollmentRepo = new FirebaseEnrollmentRepo();
     lessonRepo = new FirebaseLessonRepo();
+    announcementRepo = new FirebaseAnnouncementRepo();
+    resourceRepo = new FirebaseResourceRepo();
+    discussionRepo = new FirebaseDiscussionRepo();
   }
 
   return {
@@ -78,9 +104,13 @@ async function buildContainer(): Promise<AppContainer> {
     registerUserUseCase: new RegisterUserUseCase(userRepo),
     getPublishedCoursesUseCase: new GetPublishedCoursesUseCase(courseRepo),
     createCourseUseCase: new CreateCourseUseCase(courseRepo, userRepo),
+    courseRepo,
     enrollInCourseUseCase: new EnrollInCourseUseCase(enrollmentRepo, courseRepo),
     getMyEnrollmentsUseCase: new GetMyEnrollmentsUseCase(enrollmentRepo),
     lessonRepo,
+    announcementRepo,
+    resourceRepo,
+    discussionRepo,
   };
 }
 

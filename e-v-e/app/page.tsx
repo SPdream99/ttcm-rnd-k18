@@ -56,14 +56,18 @@ export default function Home() {
                             Trải nghiệm lộ trình học tập cá nhân hóa được dẫn dắt bởi AI. Khám phá vũ trụ tri thức với giao diện tương lai, nơi sự tập trung và khơi gợi trí tò mò hòa quyện trong một không gian thanh tĩnh.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                            <button className="btn-primary rounded-lg px-8 py-4 font-headline-sm text-headline-sm flex items-center justify-center gap-2 group">
-                                Khám Phá Ngay
-                                <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
-                            </button>
-                            <button className="glass-card rounded-lg px-8 py-4 font-headline-sm text-headline-sm text-on-surface flex items-center justify-center gap-2 hover:bg-white/5 transition-colors">
-                                <span className="material-symbols-outlined text-secondary">play_circle</span>
-                                Xem Demo
-                            </button>
+                            <Link href="/public/courses/course-001">
+                                <button className="btn-primary rounded-lg px-8 py-4 font-headline-sm text-headline-sm flex items-center justify-center gap-2 group w-full sm:w-auto">
+                                    Khám Phá Ngay
+                                    <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                                </button>
+                            </Link>
+                            <Link href="/public/courses/course-001">
+                                <button className="glass-card rounded-lg px-8 py-4 font-headline-sm text-headline-sm text-on-surface flex items-center justify-center gap-2 hover:bg-white/5 transition-colors w-full sm:w-auto">
+                                    <span className="material-symbols-outlined text-secondary">play_circle</span>
+                                    Vào Lớp Học Demo
+                                </button>
+                            </Link>
                         </div>
                     </div>
                 </section>
