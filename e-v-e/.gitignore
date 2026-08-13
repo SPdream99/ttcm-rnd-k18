@@ -45,3 +45,7 @@ firebase-adminsdk*.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# batch scripts
+*.bat
+
