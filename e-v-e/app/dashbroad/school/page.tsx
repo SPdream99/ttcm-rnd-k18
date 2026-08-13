@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSchoolAdapter } from "@/hooks/useSchoolAdapter";
 import {
   Building2,
   Users,
@@ -8,105 +9,27 @@ import {
   Award,
   ShieldCheck,
   Download,
-  Search,
-  Bell,
-  Sparkles,
   BarChart3,
-  PieChart,
-  Calendar,
   Layers,
-  Server,
-  Plus,
-  ChevronRight,
   TrendingUp,
-  FileSpreadsheet,
   Megaphone,
   Radio,
   Settings,
   HelpCircle,
-  Activity,
-  CheckCircle2,
+  Plus,
 } from "lucide-react";
 
 export default function SchoolDashboard() {
   const [academicYear, setAcademicYear] = useState("2025-2026");
-  const [selectedDept, setSelectedDept] = useState("all");
+  const { metrics, gradeBreakdown, departmentRankings, events, loading } = useSchoolAdapter();
 
-  const schoolMetrics = [
-    {
-      title: "Tổng Quy Mô Học Sinh",
-      value: "1,450 HS",
-      change: "+85 học sinh năm mới",
-      icon: Users,
-      color: "text-cyan-400",
-      bgColor: "bg-cyan-500/10",
-      borderColor: "border-cyan-500/20",
-    },
-    {
-      title: "Đội Ngũ Giáo Viên & Cán Bộ",
-      value: "120 Giáo Viên",
-      change: "100% Đạt chuẩn & Trên chuẩn",
-      icon: GraduationCap,
-      color: "text-purple-400",
-      bgColor: "bg-purple-500/10",
-      borderColor: "border-purple-500/20",
-    },
-    {
-      title: "Tỷ Lệ Học Sinh Khá / Giỏi",
-      value: "88.5%",
-      change: "+3.2% so với cùng kỳ",
-      icon: Award,
-      color: "text-emerald-400",
-      bgColor: "bg-emerald-500/10",
-      borderColor: "border-emerald-500/20",
-    },
-    {
-      title: "Hạ Tầng AI & Máy Chủ School",
-      value: "99.9% Uptime",
-      change: "Hoạt động hoàn hảo",
-      icon: ShieldCheck,
-      color: "text-blue-400",
-      bgColor: "bg-blue-500/10",
-      borderColor: "border-blue-500/20",
-    },
-  ];
-
-  const gradeBreakdown = [
-    { grade: "Khối 10", classes: 12, students: 480, avgGpa: "8.2 / 10", progress: 82, color: "from-blue-500 to-cyan-400" },
-    { grade: "Khối 11", classes: 12, students: 470, avgGpa: "8.4 / 10", progress: 84, color: "from-purple-500 to-indigo-500" },
-    { grade: "Khối 12", classes: 13, students: 500, avgGpa: "8.7 / 10", progress: 87, color: "from-emerald-400 to-teal-500" },
-  ];
-
-  const departmentRanking = [
-    { name: "Tổ Tự Nhiên - Vật Lý", head: "GS. Nguyễn Văn An", classes: 15, rating: "9.8/10", status: "Xuất Sắc" },
-    { name: "Tổ Công Nghệ & AI", head: "TS. Lê Thị Mai", classes: 18, rating: "9.7/10", status: "Xuất Sắc" },
-    { name: "Tổ Toán Học", head: "GS. Alan Turing", classes: 20, rating: "9.5/10", status: "Tiên Tiến" },
-    { name: "Tổ UI/UX & Thiết Kế", head: "ThS. Trần Hoàng Nam", classes: 10, rating: "9.4/10", status: "Tiên Tiến" },
-  ];
-
-  const schoolEvents = [
-    {
-      id: 1,
-      title: "Kỳ Thi Chọn Học Sinh Giỏi Quốc Gia 2026",
-      date: "15 Tháng 9, 2026",
-      category: "Kỳ Thi",
-      important: true,
-    },
-    {
-      id: 2,
-      title: "Hội Thảo Ứng Dụng AI Trong Đổi Mới Giáo Dục THPT",
-      date: "28 Tháng 9, 2026",
-      category: "Hội Thảo",
-      important: false,
-    },
-    {
-      id: 3,
-      title: "Họp Phụ Huynh Toàn Trường Đầu Năm Học",
-      date: "05 Tháng 10, 2026",
-      category: "Sự Kiện",
-      important: false,
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] flex items-center justify-center font-sans">
+        <p className="text-purple-400 font-medium">Đang tải dữ liệu trường học...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] flex flex-col md:flex-row relative font-sans">
@@ -215,8 +138,8 @@ export default function SchoolDashboard() {
 
         {/* Executive KPI Banner */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {schoolMetrics.map((metric, idx) => {
-            const Icon = metric.icon;
+          {metrics.map((metric, idx) => {
+            const Icon = metric.icon || Users;
             return (
               <div
                 key={idx}
@@ -241,7 +164,7 @@ export default function SchoolDashboard() {
 
         {/* Executive Bento Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Grade Breakdown & Department Performance (8 cols) */}
+          {/* Left Column: Grade Breakdown & Department Performance */}
           <div className="lg:col-span-8 space-y-6">
             {/* Grade Breakdown Cards */}
             <section className="p-6 rounded-2xl bg-[#0f1524]/60 backdrop-blur-md border border-[#7bd1fa]/15 space-y-6">
@@ -290,7 +213,7 @@ export default function SchoolDashboard() {
               </div>
 
               <div className="space-y-3">
-                {departmentRanking.map((dept, idx) => (
+                {departmentRankings.map((dept, idx) => (
                   <div
                     key={idx}
                     className="p-4 rounded-xl bg-[#151b2c]/60 border border-[#7bd1fa]/10 hover:border-purple-500/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
@@ -319,9 +242,8 @@ export default function SchoolDashboard() {
             </section>
           </div>
 
-          {/* Right Column: School Events & Announcements (4 cols) */}
+          {/* Right Column: School Events & Announcements */}
           <div className="lg:col-span-4 space-y-6">
-            {/* School Wide Announcements */}
             <section className="p-6 rounded-2xl bg-[#0f1524]/60 backdrop-blur-md border border-[#7bd1fa]/15 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -333,7 +255,7 @@ export default function SchoolDashboard() {
               </div>
 
               <div className="space-y-3">
-                {schoolEvents.map((ev) => (
+                {events.map((ev) => (
                   <div
                     key={ev.id}
                     className={`p-3.5 rounded-xl border transition-all ${
@@ -357,7 +279,6 @@ export default function SchoolDashboard() {
               </div>
             </section>
 
-            {/* Emergency Broadcast / Quick Executive Action */}
             <section className="p-6 rounded-2xl bg-gradient-to-br from-purple-950/40 via-[#0f1524] to-blue-950/40 border border-purple-500/30 space-y-4">
               <div className="flex items-center gap-2 text-purple-300 font-bold text-sm">
                 <Radio className="w-4 h-4 text-purple-400 animate-pulse" /> Phát Thông Báo Toàn Trường

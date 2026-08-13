@@ -1,35 +1,19 @@
 "use client";
 
 import React from "react";
-import { BookOpen, Video, FileText, Plus, Eye, Edit, Lock, Unlock } from "lucide-react";
+import { useTeacherAdapter } from "@/hooks/useTeacherAdapter";
+import { BookOpen, Plus, Eye } from "lucide-react";
 
 export default function TeacherLectureManagementPage() {
-  const lectures = [
-    {
-      id: 1,
-      chapter: "Chương 1: Cơ sở Vật Lý Lượng Tử",
-      title: "Bài 1.1: Giới thiệu Tiên đề Lượng tử & Lưỡng tính sóng hạt",
-      type: "Video",
-      views: "142 Lượt xem",
-      status: "Công khai",
-    },
-    {
-      id: 2,
-      chapter: "Chương 1: Cơ sở Vật Lý Lượng Tử",
-      title: "Bài 1.2: Hàm sóng & Phương trình Schrödinger",
-      type: "PDF Slide",
-      views: "128 Lượt xem",
-      status: "Công khai",
-    },
-    {
-      id: 3,
-      chapter: "Chương 2: Ma trận Mật độ & Vướng víu",
-      title: "Bài 2.1: Thí nghiệm Khe Song & Tiên đề Đo lường",
-      type: "Interactive Quiz",
-      views: "95 Lượt xem",
-      status: "Nháp",
-    },
-  ];
+  const { lectures, loading } = useTeacherAdapter();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] flex items-center justify-center font-sans">
+        <p className="text-emerald-400 font-medium">Đang tải danh sách bài giảng...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] p-4 md:p-8 font-sans space-y-8">
@@ -58,12 +42,12 @@ export default function TeacherLectureManagementPage() {
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-xs">
                 <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-medium border border-emerald-500/30">
-                  {lec.type}
+                  {lec.className}
                 </span>
-                <span className="text-[#8e9bb4]">{lec.chapter}</span>
+                <span className="text-[#8e9bb4]">Ngày: {lec.date}</span>
               </div>
               <h3 className="font-bold text-base text-white">{lec.title}</h3>
-              <p className="text-xs text-[#8e9bb4]">{lec.views} • Trạng thái: <span className="text-cyan-400 font-semibold">{lec.status}</span></p>
+              <p className="text-xs text-[#8e9bb4]">Thời lượng: {lec.duration} • Slide: {lec.slidesCount} trang</p>
             </div>
 
             <div className="flex items-center gap-2 self-start md:self-auto">
