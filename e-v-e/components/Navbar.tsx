@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, LogOut, LayoutDashboard, UserCheck, Sparkles, ChevronDown } from "lucide-react";
+import { User, LogOut, LayoutDashboard, UserCheck, ChevronDown } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
@@ -28,7 +28,7 @@ export default function Navbar() {
   const user = currentUser || profile;
   const isLoggedIn = Boolean(user && user.email);
 
-  const displayName = user?.name || (user as any)?.fullName || "Người dùng";
+  const displayName = (user as any)?.name || (user as any)?.fullName || "Người dùng";
   const displayRole = (user?.role || "student").toUpperCase();
   const displayEmail = user?.email || "";
 
