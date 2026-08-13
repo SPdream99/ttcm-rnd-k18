@@ -10,19 +10,43 @@ import {
   Mic,
   Copy,
   Check,
-  RotateCcw,
+  Settings,
   Sparkles,
+  Key,
 } from "lucide-react";
 
 export default function StudentAITutorPage() {
   const { messages, loading, isSending, sendMessage } = useAITutorAdapter();
   const [inputMessage, setInputMessage] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [hasApiKey, setHasApiKey] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("eve_gemini_api_key");
+    if (saved) {
+      setApiKeyInput(saved);
+      setHasApiKey(true);
+    }
+  }, []);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isSending]);
+
+  const handleSaveApiKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (apiKeyInput.trim()) {
+      localStorage.setItem("eve_gemini_api_key", apiKeyInput.trim());
+      setHasApiKey(true);
+    } else {
+      localStorage.removeItem("eve_gemini_api_key");
+      setHasApiKey(false);
+    }
+    setShowKeyModal(false);
+  };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isSending) return;
@@ -86,7 +110,7 @@ export default function StudentAITutorPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-6.5rem)] flex flex-col font-sans bg-[#0a0e1a] rounded-2xl border border-[#7bd1fa]/15 overflow-hidden">
+    <div className="h-[calc(100vh-6.5rem)] flex flex-col font-sans bg-[#0a0e1a] rounded-2xl border border-[#7bd1fa]/15 overflow-hidden relative">
       {/* Header */}
       <header className="p-4 bg-[#0f1524]/80 border-b border-[#7bd1fa]/15 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
@@ -99,9 +123,25 @@ export default function StudentAITutorPage() {
             <h1 className="font-bold text-base text-white flex items-center gap-2">
               Trợ Lý Học Tập AI E-V-E <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             </h1>
-            <p className="text-xs text-[#8e9bb4]">Đồng hành 24/7 cùng lộ trình học tập của bạn</p>
+            <p className="text-xs text-[#8e9bb4]">
+              {hasApiKey ? "⚡ Đang kết nối mô hình Google Gemini AI trực tiếp" : "Đồng hành 24/7 cùng lộ trình học tập của bạn"}
+            </p>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setShowKeyModal(true)}
+          className={`px-3 py-1.5 rounded-xl border font-mono text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+            hasApiKey
+              ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
+              : "bg-[#151b2c] text-slate-400 border-slate-700 hover:text-white"
+          }`}
+          title="Cài đặt Google Gemini API Key"
+        >
+          <Key className="w-3.5 h-3.5" />
+          <span>{hasApiKey ? "Gemini Key ✓" : "Cài đặt API Key"}</span>
+        </button>
       </header>
 
       {/* Message Stream */}
@@ -176,7 +216,7 @@ export default function StudentAITutorPage() {
             </div>
             <div className="rounded-2xl bg-[#0f1524] border border-cyan-400/15 px-4 py-3">
               <p className="text-gray-400 text-sm flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-cyan-400 animate-spin" /> AI Tutor đang suy nghĩ...
+                <Sparkles className="w-4 h-4 text-cyan-400 animate-spin" /> AI Tutor đang suy nghĩ và trả lời...
               </p>
             </div>
           </div>
@@ -233,6 +273,63 @@ export default function StudentAITutorPage() {
           </button>
         </div>
       </div>
+
+      {/* ── MODAL CÀI ĐẶT API KEY ── */}
+      {showKeyModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0f1524] border border-cyan-500/40 rounded-3xl p-6 md:p-8 space-y-5 shadow-2xl animate-scale-up">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="font-bold text-base text-white flex items-center gap-2">
+                <Key className="w-5 h-5 text-cyan-400" /> Cài Đặt Google Gemini API Key
+              </h3>
+              <button
+                onClick={() => setShowKeyModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-[#8e9bb4] leading-relaxed">
+              Để AI Tutor suy nghĩ và trả lời linh hoạt 100% mọi câu hỏi thực tế (như ChatGPT / Gemini Live), bạn hãy nhập Google Gemini API Key bên dưới:
+            </p>
+
+            <form onSubmit={handleSaveApiKey} className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono text-slate-300 mb-1.5">
+                  Gemini API Key (AIzaSy...):
+                </label>
+                <input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="Dán mã API Key của bạn vào đây"
+                  className="w-full bg-[#151b2c] border border-cyan-500/30 focus:border-cyan-400 rounded-xl px-4 py-2.5 text-xs font-mono text-white focus:outline-none"
+                />
+                <span className="text-[11px] text-slate-500 block mt-1">
+                  Lấy miễn phí tại: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline">aistudio.google.com</a>
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowKeyModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-mono hover:bg-slate-700 cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold transition-all cursor-pointer"
+                >
+                  Lưu & Kích Hoạt
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -233,8 +233,12 @@ export async function POST(req: Request) {
       });
     }
 
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-    const openaiKey = process.env.OPENAI_API_KEY;
+    const geminiKey =
+      body.geminiApiKey ||
+      body.apiKey ||
+      process.env.GEMINI_API_KEY ||
+      process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    const openaiKey = body.openaiApiKey || process.env.OPENAI_API_KEY;
 
     // 1. Try Gemini AI if key exists
     if (geminiKey) {

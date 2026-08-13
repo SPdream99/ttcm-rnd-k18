@@ -20,6 +20,8 @@ export class ApiAITutorRepo implements AITutorPort {
     userMessage: string,
     subjectId?: string
   ): Promise<ChatMessage> {
+    const savedKey = typeof window !== "undefined" ? localStorage.getItem("eve_gemini_api_key") : null;
+
     const response = await fetch("/api/tutor", {
       method: "POST",
       headers: {
@@ -28,6 +30,7 @@ export class ApiAITutorRepo implements AITutorPort {
       body: JSON.stringify({
         message: userMessage,
         subjectId,
+        geminiApiKey: savedKey,
       }),
     });
 
