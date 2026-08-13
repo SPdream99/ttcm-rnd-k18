@@ -22,7 +22,7 @@ export class FirestoreLearningPathRepo implements LearningPathPort {
   private mapDocToLearningPath(id: string, data: any): LearningPath {
     return {
       id,
-      lpathId: data.lpath_id || data.id || id,
+      lpathId: data.id || id,
       title: data.title || "",
       description: data.description || "",
       authorId: data.author_id || "",
@@ -37,17 +37,7 @@ export class FirestoreLearningPathRepo implements LearningPathPort {
     try {
       const docRef = doc(db, COLLECTION_NAME, lpathId);
       const snap = await getDoc(docRef);
-
-      if (!snap.exists()) {
-        const q = query(collection(db, COLLECTION_NAME), where("lpath_id", "==", lpathId));
-        const querySnap = await getDocs(q);
-        if (!querySnap.empty) {
-          const d = querySnap.docs[0];
-          return this.mapDocToLearningPath(d.id, d.data());
-        }
-        return null;
-      }
-
+      if (!snap.exists()) return null;
       return this.mapDocToLearningPath(snap.id, snap.data());
     } catch (error) {
       console.error("Error getting learning path by ID:", error);
@@ -99,8 +89,6 @@ export class FirestoreLearningPathRepo implements LearningPathPort {
 
     const payload = {
       id: lpathId,
-      _id: lpathId,
-      lpath_id: lpathId,
       title: input.title,
       description: input.description,
       author_id: input.authorId,

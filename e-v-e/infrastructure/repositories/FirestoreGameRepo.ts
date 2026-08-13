@@ -19,7 +19,7 @@ export class FirestoreGameRepo implements GamePort {
   private mapDocToGame(id: string, data: any): Game {
     return {
       id,
-      gameId: data.game_id || data.id || id,
+      gameId: data.id || id,
       authors: Array.isArray(data.authors) ? data.authors : [],
       title: data.title || "",
       description: data.description || "",
@@ -38,17 +38,7 @@ export class FirestoreGameRepo implements GamePort {
     try {
       const docRef = doc(db, COLLECTION_NAME, gameId);
       const snap = await getDoc(docRef);
-
-      if (!snap.exists()) {
-        const q = query(collection(db, COLLECTION_NAME), where("game_id", "==", gameId));
-        const querySnap = await getDocs(q);
-        if (!querySnap.empty) {
-          const d = querySnap.docs[0];
-          return this.mapDocToGame(d.id, d.data());
-        }
-        return null;
-      }
-
+      if (!snap.exists()) return null;
       return this.mapDocToGame(snap.id, snap.data());
     } catch (error) {
       console.error("Error getting game by ID:", error);
@@ -100,8 +90,6 @@ export class FirestoreGameRepo implements GamePort {
 
     const payload = {
       id: gameId,
-      _id: gameId,
-      game_id: gameId,
       authors: input.authors,
       title: input.title,
       description: input.description,
