@@ -14,6 +14,12 @@ import {
   Sparkles,
   Key,
 } from "lucide-react";
+import {
+  saveEncryptedAIKey,
+  getDecryptedAIKey,
+  removeAIKey,
+  hasAIKey,
+} from "@/lib/secureKeyStorage";
 
 export default function StudentAITutorPage() {
   const { messages, loading, isSending, sendMessage } = useAITutorAdapter();
@@ -21,15 +27,11 @@ export default function StudentAITutorPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState("");
-  const [hasApiKey, setHasApiKey] = useState(false);
+  const [hasApiKeyActive, setHasApiKeyActive] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("eve_gemini_api_key");
-    if (saved) {
-      setApiKeyInput(saved);
-      setHasApiKey(true);
-    }
+    setHasApiKeyActive(hasAIKey());
   }, []);
 
   useEffect(() => {
@@ -39,11 +41,12 @@ export default function StudentAITutorPage() {
   const handleSaveApiKey = (e: React.FormEvent) => {
     e.preventDefault();
     if (apiKeyInput.trim()) {
-      localStorage.setItem("eve_gemini_api_key", apiKeyInput.trim());
-      setHasApiKey(true);
+      saveEncryptedAIKey(apiKeyInput.trim());
+      setHasApiKeyActive(true);
+      setApiKeyInput("");
     } else {
-      localStorage.removeItem("eve_gemini_api_key");
-      setHasApiKey(false);
+      removeAIKey();
+      setHasApiKeyActive(false);
     }
     setShowKeyModal(false);
   };
@@ -124,7 +127,7 @@ export default function StudentAITutorPage() {
               Trợ Lý Học Tập AI E-V-E <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             </h1>
             <p className="text-xs text-[#8e9bb4]">
-              {hasApiKey ? "⚡ Đang kết nối mô hình Google Gemini AI trực tiếp" : "Đồng hành 24/7 cùng lộ trình học tập của bạn"}
+              {hasApiKeyActive ? "⚡ Đang kết nối mô hình Google Gemini AI trực tiếp" : "Đồng hành 24/7 cùng lộ trình học tập của bạn"}
             </p>
           </div>
         </div>
@@ -133,14 +136,14 @@ export default function StudentAITutorPage() {
           type="button"
           onClick={() => setShowKeyModal(true)}
           className={`px-3 py-1.5 rounded-xl border font-mono text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-            hasApiKey
+            hasApiKeyActive
               ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
               : "bg-[#151b2c] text-slate-400 border-slate-700 hover:text-white"
           }`}
           title="Cài đặt Google Gemini API Key"
         >
           <Key className="w-3.5 h-3.5" />
-          <span>{hasApiKey ? "Gemini Key ✓" : "Cài đặt API Key"}</span>
+          <span>{hasApiKeyActive ? "Gemini Key ✓" : "Cài đặt API Key"}</span>
         </button>
       </header>
 

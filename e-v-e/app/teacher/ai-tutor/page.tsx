@@ -15,6 +15,7 @@ import {
   Check,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { getDecryptedAIKey } from "@/lib/secureKeyStorage";
 
 interface ChatMessage {
   id: string;
@@ -60,12 +61,14 @@ export default function TeacherAITutorPage() {
     setIsTyping(true);
 
     try {
+      const savedKey = getDecryptedAIKey();
       const res = await fetch("/api/tutor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: promptText,
           role: "teacher",
+          geminiApiKey: savedKey,
         }),
       });
 

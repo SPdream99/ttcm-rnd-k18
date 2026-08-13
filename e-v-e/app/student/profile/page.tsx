@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   UserCheck,
@@ -13,8 +13,20 @@ import {
   CheckCircle2,
   BookOpen,
   Trophy,
+  Key,
+  Eye,
+  EyeOff,
+  Trash2,
+  ExternalLink,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import {
+  saveEncryptedAIKey,
+  getDecryptedAIKey,
+  removeAIKey,
+  hasAIKey,
+  getMaskedAIKey,
+} from "@/lib/secureKeyStorage";
 
 export default function StudentProfilePage() {
   const { currentUser, profile } = useAuthAdapter();
@@ -24,7 +36,21 @@ export default function StudentProfilePage() {
 
   const [activeFrame, setActiveFrame] = useState("frame_supernova_gold");
   const [activeBadge, setActiveBadge] = useState("badge_cosmic_legend");
-  const [savedMsg, setSavedMsg] = useState(false);
+  const [savedMsg, setSavedMsg] = useState("");
+
+  // AI Key state
+  const [keyInput, setKeyInput] = useState("");
+  const [showRawKey, setShowRawKey] = useState(false);
+  const [isKeyConfigured, setIsKeyConfigured] = useState(false);
+  const [maskedKeyDisplay, setMaskedKeyDisplay] = useState("");
+
+  useEffect(() => {
+    const configured = hasAIKey();
+    setIsKeyConfigured(configured);
+    if (configured) {
+      setMaskedKeyDisplay(getMaskedAIKey());
+    }
+  }, []);
 
   const ownedFrames = [
     { id: "frame_supernova_gold", name: "Khung Siêu Tân Tinh (Gold)", ringClass: "ring-4 ring-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.5)]" },
@@ -38,23 +64,45 @@ export default function StudentProfilePage() {
     { id: "badge_flame_streak", name: "Ngọn Lửa Bất Diệt 🔥" },
   ];
 
-  const handleSave = () => {
-    setSavedMsg(true);
-    setTimeout(() => setSavedMsg(false), 3000);
+  const handleSaveEquipment = () => {
+    setSavedMsg("✅ Đã lưu cấu hình trang phục và huy hiệu thành công!");
+    setTimeout(() => setSavedMsg(""), 3000);
+  };
+
+  const handleSaveAIKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!keyInput.trim()) return;
+
+    saveEncryptedAIKey(keyInput.trim());
+    setIsKeyConfigured(true);
+    setMaskedKeyDisplay(getMaskedAIKey());
+    setKeyInput("");
+    setShowRawKey(false);
+    setSavedMsg("🔑 Đã mã hóa và lưu trữ Google Gemini API Key an toàn trên trình duyệt của bạn!");
+    setTimeout(() => setSavedMsg(""), 4000);
+  };
+
+  const handleRemoveAIKey = () => {
+    removeAIKey();
+    setIsKeyConfigured(false);
+    setMaskedKeyDisplay("");
+    setKeyInput("");
+    setSavedMsg("🗑️ Đã xóa API Key khỏi bộ nhớ trình duyệt.");
+    setTimeout(() => setSavedMsg(""), 3000);
   };
 
   const selectedFrame = ownedFrames.find((f) => f.id === activeFrame) || ownedFrames[0];
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans">
+    <div className="space-y-8 animate-fade-in font-sans pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <UserCheck className="w-7 h-7 text-cyan-400" /> Hồ Sơ & Trang Bị Học Sinh
+            <UserCheck className="w-7 h-7 text-cyan-400" /> Hồ Sơ & Trang Bị Cá Nhân
           </h1>
           <p className="text-sm text-[#8e9bb4] mt-1">
-            Quản lý thông tin tài khoản, danh hiệu và tùy biến khung avatar từ Cửa hàng Vũ Trụ.
+            Quản lý tài khoản, danh hiệu, mã hóa API Key và tùy biến ngoại trang.
           </p>
         </div>
 
@@ -66,7 +114,7 @@ export default function StudentProfilePage() {
 
       {savedMsg && (
         <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-xs flex items-center justify-between animate-fade-in">
-          <span>✅ Đã lưu cấu hình trang phục và huy hiệu thành công!</span>
+          <span>{savedMsg}</span>
         </div>
       )}
 
@@ -94,6 +142,100 @@ export default function StudentProfilePage() {
             <span><Coins className="w-3.5 h-3.5 inline mr-1 text-yellow-400" /> {displayCoins} Coins</span>
           </div>
         </div>
+      </div>
+
+      {/* ── CARD QUẢN LÝ MÃ HÓA AI KEY ── */}
+      <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-[#0f1524] to-[#151b2c] border border-cyan-500/30 shadow-xl space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-800">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Key className="w-5 h-5 text-cyan-400" /> Khóa Trí Tuệ Nhân Tạo (Gemini / OpenAI API Key)
+            </h3>
+            <p className="text-xs text-[#8e9bb4] mt-1">
+              Khóa API của bạn được <strong className="text-cyan-300">mã hóa an toàn trực tiếp trên trình duyệt (Local Storage)</strong> và không bao giờ bị lưu trên máy chủ công cộng.
+            </p>
+          </div>
+
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-mono font-bold self-start sm:self-auto ${
+              isKeyConfigured
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+            }`}
+          >
+            {isKeyConfigured ? "⚡ Đã Kích Hoạt Live AI" : "Chưa Cấu Hình Key"}
+          </span>
+        </div>
+
+        {isKeyConfigured ? (
+          <div className="p-4 rounded-2xl bg-[#0a0e1a]/80 border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-[11px] font-mono text-slate-400 block">Khóa API hiện tại (Đã mã hóa):</span>
+              <span className="font-mono text-sm text-emerald-400 tracking-wider">{maskedKeyDisplay}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Link
+                href="/student/ai-tutor"
+                className="px-4 py-2 rounded-xl bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Dùng Thử AI Tutor</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
+              <button
+                type="button"
+                onClick={handleRemoveAIKey}
+                className="px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 text-xs font-mono transition-all cursor-pointer flex items-center gap-1"
+                title="Xóa khóa API khỏi máy"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Xóa
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSaveAIKey} className="space-y-4">
+            <div className="relative">
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">
+                Nhập Google Gemini API Key:
+              </label>
+              <div className="relative flex items-center">
+                <input
+                  type={showRawKey ? "text" : "password"}
+                  value={keyInput}
+                  onChange={(e) => setKeyInput(e.target.value)}
+                  placeholder="Dán mã API Key của bạn (VD: AIzaSy...)"
+                  className="w-full bg-[#0a0e1a] border border-cyan-500/30 focus:border-cyan-400 rounded-xl px-4 py-3 text-xs font-mono text-white placeholder-slate-600 focus:outline-none pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRawKey(!showRawKey)}
+                  className="absolute right-3 text-slate-400 hover:text-white"
+                >
+                  {showRawKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between mt-1.5 text-[11px] text-slate-500">
+                <span>Khóa được mã hóa Base64-Cipher trước khi ghi vào Local Storage.</span>
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-cyan-400 hover:underline flex items-center gap-1"
+                >
+                  Lấy Key miễn phí tại Google AI Studio <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={!keyInput.trim()}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-mono font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2"
+            >
+              <Key className="w-3.5 h-3.5" /> Mã Hóa & Lưu Khóa API
+            </button>
+          </form>
+        )}
       </div>
 
       {/* Customization Section */}
@@ -153,7 +295,7 @@ export default function StudentProfilePage() {
       </div>
 
       <button
-        onClick={handleSave}
+        onClick={handleSaveEquipment}
         className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:from-blue-500 hover:to-cyan-300 text-white font-bold font-mono text-sm shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all cursor-pointer flex items-center justify-center gap-2"
       >
         <CheckCircle2 className="w-4 h-4" /> Lưu Thiết Lập Trang Bị
