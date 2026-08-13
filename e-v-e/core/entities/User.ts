@@ -49,6 +49,7 @@ export interface LoginCredentials {
   email: string;
   pass: string;
   role?: "school" | "teacher" | "student" | string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterCredentials {

@@ -1,27 +1,14 @@
 "use client";
 
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
+import React from "react";
 import { LogOut } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Logout() {
-  const router = useRouter();
+  const { signOut } = useAuth();
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Đăng xuất thất bại:", error);
-    }
-
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("eve_user");
-      localStorage.removeItem("remember_me");
-      localStorage.removeItem("user_email");
-    }
-
-    router.push("/public/login");
+    await signOut();
   };
 
   return (

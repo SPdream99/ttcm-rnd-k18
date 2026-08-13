@@ -16,10 +16,9 @@ import {
   Coins,
   ChevronRight,
 } from "lucide-react";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { useStudentTab, useTeacherTab } from "@/context/DashboardTabContext";
+import { useAuth } from "@/context/AuthContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,6 +52,7 @@ export default function DashboardSidebar({ role }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { currentUser, profile } = useAuthAdapter();
+  const { signOut } = useAuth();
 
   const isStudent = role === "student";
   const navItems = isStudent ? STUDENT_NAV : TEACHER_NAV;
@@ -95,17 +95,7 @@ export default function DashboardSidebar({ role }: SidebarProps) {
 
   // Logout
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.error(err);
-    }
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("eve_user");
-      localStorage.removeItem("remember_me");
-      localStorage.removeItem("user_email");
-    }
-    router.push("/public/login");
+    await signOut();
   };
 
   // ─── Brand accent ────────────────────────────────────────────────────────────

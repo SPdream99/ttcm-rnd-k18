@@ -1,12 +1,23 @@
 import { AuthPort } from "@/core/ports/AuthPort";
 import { User, UserProfile, LoginCredentials, RegisterCredentials } from "@/core/entities/User";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+} from "firebase/auth";
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 
 export class FirebaseAuthRepo implements AuthPort {
   async login(credentials: LoginCredentials): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
+      if (typeof window !== "undefined") {
+        const persistence = credentials.rememberMe ? browserLocalPersistence : browserSessionPersistence;
+        await setPersistence(auth, persistence).catch(() => {});
+      }
+
       const userCredential = await signInWithEmailAndPassword(
         auth,
         credentials.email,

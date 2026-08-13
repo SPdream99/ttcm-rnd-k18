@@ -4,13 +4,13 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User, LogOut, LayoutDashboard, UserCheck, ChevronDown } from "lucide-react";
-import { auth } from "@/lib/firebase";
-import { signOut } from "firebase/auth";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const router = useRouter();
   const { currentUser, profile, loading } = useAuthAdapter();
+  const { signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -33,18 +33,8 @@ export default function Navbar() {
   const displayEmail = user?.email || "";
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.error("Logout error:", err);
-    }
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("eve_user");
-      localStorage.removeItem("remember_me");
-      localStorage.removeItem("user_email");
-    }
     setDropdownOpen(false);
-    router.push("/public/login");
+    await signOut();
   };
 
   const getDashboardUrl = () => {

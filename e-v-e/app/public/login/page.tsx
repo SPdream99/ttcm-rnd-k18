@@ -27,12 +27,14 @@ export default function LoginPage() {
     setMessage("");
 
     if (rememberMe) {
+      localStorage.setItem("eve_remember_me", "true");
       localStorage.setItem("eve_remembered_email", email);
     } else {
+      localStorage.setItem("eve_remember_me", "false");
       localStorage.removeItem("eve_remembered_email");
     }
 
-    const res = await login({ email, pass: password });
+    const res = await login({ email, pass: password, rememberMe });
 
     if (!res.success || !res.user) {
       setMessage(res.error || "Email hoặc mật khẩu không đúng.");
