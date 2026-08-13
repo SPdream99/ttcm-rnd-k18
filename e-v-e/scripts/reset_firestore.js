@@ -67,6 +67,18 @@ const COLLECTIONS = [
 const SEED_DATA = {
   users: [
     {
+      id: "f89rGIGZVlQoA5J82jqavzWEvIs2",
+      _id: "f89rGIGZVlQoA5J82jqavzWEvIs2",
+      uid: "f89rGIGZVlQoA5J82jqavzWEvIs2",
+      name: "Đạt Student",
+      fullName: "Đạt Student",
+      email: "dat@gmail.com",
+      role: "student",
+      status: "active",
+      coins: 250,
+      profile_decorations: ["item_frame_cosmic_01", "item_title_explorer"],
+    },
+    {
       id: "usr_admin_001",
       _id: "usr_admin_001",
       uid: "usr_admin_001",
@@ -260,7 +272,7 @@ const SEED_DATA = {
     {
       id: "res_student_001",
       _id: "res_student_001",
-      uid: "usr_student_001",
+      uid: "f89rGIGZVlQoA5J82jqavzWEvIs2",
       cid: "crs_quantum_101",
       gid: "game_space_quiz_3d",
       result: 95,
@@ -272,7 +284,7 @@ const SEED_DATA = {
     {
       id: "enr_student_001",
       _id: "enr_student_001",
-      uid: "usr_student_001",
+      uid: "f89rGIGZVlQoA5J82jqavzWEvIs2",
       lpath_id: "lpath_quantum_physics",
       enrollment_date: new Date().toISOString(),
       is_finished: false,
