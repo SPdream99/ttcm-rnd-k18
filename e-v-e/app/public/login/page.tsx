@@ -8,6 +8,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
   const { login, loading } = useAuthAdapter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -51,6 +54,16 @@ export default function LoginPage() {
     }, 1000);
   };
 
+  const handleForgotPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setMessage("Vui lòng nhập email của bạn trước khi khôi phục.");
+      return;
+    }
+    setResetSent(true);
+    setMessage(`Mã hướng dẫn đặt lại mật khẩu đã được gửi đến email ${email}. Vui lòng kiểm tra hộp thư!`);
+  };
+
   return (
     <div className="bg-background text-on-surface min-h-screen flex flex-col items-center justify-center bg-nebula p-margin-mobile md:p-margin-desktop overflow-hidden relative">
       {/* Background Stars Effect */}
@@ -71,51 +84,106 @@ export default function LoginPage() {
           </h1>
 
           <h2 className="font-headline-md text-headline-md text-on-surface mb-stack-sm">
-            Chào mừng trở lại
+            {isForgotPassword ? "Khôi Phục Mật Khẩu" : "Chào mừng trở lại"}
           </h2>
 
           <p className="font-body-md text-body-md text-on-surface-variant">
-            Tiếp tục hành trình khám phá tri thức của bạn.
+            {isForgotPassword
+              ? "Nhập email của bạn để nhận liên kết đặt lại mật khẩu."
+              : "Tiếp tục hành trình khám phá tri thức của bạn."}
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="block text-xs font-mono text-slate-300 mb-1.5">
-              Email Chỉ Huy
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="user@truong.edu.vn"
-              className="w-full bg-slate-950/80 border border-sky-500/20 focus:border-sky-400 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all"
-              required
-            />
-          </div>
+        {!isForgotPassword ? (
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">
+                Email Chỉ Huy
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@truong.edu.vn"
+                className="w-full bg-slate-950/80 border border-sky-500/20 focus:border-sky-400 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all"
+                required
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs font-mono text-slate-300 mb-1.5">
-              Mật Khẩu
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••••"
-              className="w-full bg-slate-950/80 border border-sky-500/20 focus:border-sky-400 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all"
-              required
-            />
-          </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-mono text-slate-300">
+                  Mật Khẩu
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(true);
+                    setMessage("");
+                    setResetSent(false);
+                  }}
+                  className="text-xs font-mono text-sky-400 hover:underline cursor-pointer"
+                >
+                  Quên mật khẩu?
+                </button>
+              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                className="w-full bg-slate-950/80 border border-sky-500/20 focus:border-sky-400 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all"
+                required
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold font-mono text-sm shadow-[0_0_25px_rgba(125,211,252,0.4)] transition-all hover:scale-[1.02] disabled:opacity-50"
-          >
-            {loading ? "Đang xử lý..." : "🚀 Đăng Nhập"}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold font-mono text-sm shadow-[0_0_25px_rgba(125,211,252,0.4)] transition-all hover:scale-[1.02] disabled:opacity-50 cursor-pointer"
+            >
+              {loading ? "Đang xử lý..." : "🚀 Đăng Nhập"}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleForgotPassword} className="space-y-6">
+            <div>
+              <label className="block text-xs font-mono text-slate-300 mb-1.5">
+                Email Chỉ Huy
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@truong.edu.vn"
+                className="w-full bg-slate-950/80 border border-sky-500/20 focus:border-sky-400 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={resetSent}
+              className="w-full py-3.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold font-mono text-sm shadow-[0_0_25px_rgba(125,211,252,0.4)] transition-all hover:scale-[1.02] disabled:opacity-50 cursor-pointer"
+            >
+              {resetSent ? "Đã Gửi Yêu Cầu" : "📩 Gửi Yêu Cầu Khôi Phục"}
+            </button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setMessage("");
+                  setResetSent(false);
+                }}
+                className="text-xs font-mono text-slate-400 hover:text-white hover:underline cursor-pointer"
+              >
+                ← Quay lại Đăng nhập
+              </button>
+            </div>
+          </form>
+        )}
 
         {message && (
           <p className="text-center text-sm font-medium text-cyan-300 mt-4">
