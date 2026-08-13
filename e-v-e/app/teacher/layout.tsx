@@ -46,7 +46,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   return (
     <div className="flex min-h-screen bg-[#0a0e1a] text-[#e1e2ec] font-sans">
       {/* ── Teacher Sidebar ── */}
-      <aside className="w-64 min-h-screen bg-[#0d1220] border-r border-[#7bd1fa]/15 p-5 flex flex-col justify-between z-40 sticky top-0 shrink-0">
+      <aside className="w-64 h-screen bg-[#0d1220] border-r border-[#7bd1fa]/15 p-5 flex flex-col justify-between z-40 sticky top-0 shrink-0 overflow-y-auto">
         <div className="space-y-8">
           {/* Brand Header */}
           <div className="flex items-center gap-3 px-1">
