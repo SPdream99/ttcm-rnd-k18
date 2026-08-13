@@ -9,6 +9,10 @@ import {
   RotateCcw,
   Lightbulb,
   GraduationCap,
+  FileCode,
+  Layers,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 
@@ -27,45 +31,46 @@ export default function TeacherAITutorPage() {
     {
       id: "m_init",
       sender: "ai",
-      text: `Kính chào ${displayName}! Tôi là Trợ lý Sư Phạm AI E-V-E. Tôi có thể hỗ trợ Thầy/Cô tự động soạn các cặp câu hỏi & đáp án (JSON Pairs), thiết kế bản đồ kho báu lộ trình học hoặc viết gợi ý game.`,
+      text: `Kính chào **${displayName}**! 👨‍🏫\n\nTôi là **Trợ Giảng AI E-V-E**. Tôi có thể hỗ trợ Thầy/Cô:\n1. **Tự động sinh các cặp câu hỏi & đáp án (JSON Pairs)** theo chủ đề bài học.\n2. **Gợi ý thiết kế lộ trình học tập** từng bước cho học sinh.\n3. **Tạo đề bài lập trình / mini-game** và hướng dẫn tích hợp Game SDK.`,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  const handleSend = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!input.trim() || isTyping) return;
+  const handleSend = async (customPrompt?: string) => {
+    const promptText = customPrompt || input.trim();
+    if (!promptText || isTyping) return;
 
     const userMsg: ChatMessage = {
       id: `usr_${Date.now()}`,
       sender: "user",
-      text: input.trim(),
+      text: promptText,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    const prompt = input.trim();
-    setInput("");
+    if (!customPrompt) setInput("");
     setIsTyping(true);
 
-    setTimeout(() => {
-      let aiReply = "";
-      const lower = prompt.toLowerCase();
+    try {
+      const res = await fetch("/api/tutor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: promptText,
+          role: "teacher",
+        }),
+      });
 
-      if (lower.includes("soạn") || lower.includes("json") || lower.includes("câu hỏi")) {
-        aiReply = `Dưới đây là mẫu 2 Cặp Dữ Liệu (JSON Pairs) đề xuất cho bài học:\n\n1. Câu hỏi: "Đơn vị đo lường tần số sóng là gì?"\n- Đáp án đúng: Hertz (Hz)\n- Gây nhiễu: Joule (J), Pascal (Pa), Watt (W)\n\n2. Câu hỏi: "Vận tốc ánh sáng trong chân không xấp xỉ bằng bao nhiêu?"\n- Đáp án đúng: 300,000 km/s\n- Gây nhiễu: 150,000 km/s, 30,000 km/s, 3,000 km/s\n\nThầy/Cô có thể sao chép nhanh vào Tab Tạo Khóa Học ở Upload Center! ✍️`;
-      } else if (lower.includes("game") || lower.includes("api") || lower.includes("sdk")) {
-        aiReply = "Hệ thống E-V-E cung cấp trọn bộ REST API và SDK Javascript (`window.EVEGameSDK`) cho giáo viên. Game của Thầy/Cô chỉ cần gọi `EVEGameSDK.finishGame({ score, isWin })` là hệ thống sẽ tự động cập nhật tiến độ x/y và mở khóa các chặng trên bản đồ kho báu cho học sinh!";
-      } else {
-        aiReply = `Ý tưởng của Thầy/Cô về "${prompt}" rất tuyệt vời! Để triển khai hiệu quả, Thầy/Cô nên chia lộ trình thành 2-3 course nhỏ trên Bản đồ kho báu, mỗi course gắn 1-2 Game Quiz để học sinh hào hứng chinh phục.`;
-      }
+      const data = await res.json();
+      const aiReply = data.reply || "Đã xử lý yêu cầu, Thầy/Cô có cần tinh chỉnh thêm phần nào không?";
 
       setMessages((prev) => [
         ...prev,
@@ -76,14 +81,85 @@ export default function TeacherAITutorPage() {
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
+    } catch (err: any) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `ai_err_${Date.now()}`,
+          sender: "ai",
+          text: "Xin lỗi Thầy/Cô, kết nối tới máy chủ AI đang gặp gián đoạn. Xin vui lòng thử lại sau ít giây.",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
+  };
+
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const samplePrompts = [
+    "Soạn 3 cặp câu hỏi JSON pairs về vòng lặp for trong Python",
+    "Gợi ý thiết kế lộ trình 4 bài học về Khoa học máy tính cho trẻ",
+    "Cách gửi điểm từ Game tự viết lên hệ thống bằng EVEGameSDK?",
+  ];
+
+  // Markdown & Code block renderer
+  const renderMessageContent = (text: string) => {
+    const parts = text.split(/(```[\s\S]*?```)/g);
+
+    return parts.map((part, index) => {
+      if (part.startsWith("```") && part.endsWith("```")) {
+        const lines = part.slice(3, -3).trim().split("\n");
+        const lang = lines[0].trim();
+        const codeContent = lang ? lines.slice(1).join("\n") : lines.join("\n");
+
+        return (
+          <div key={index} className="my-3 rounded-xl bg-[#090d18] border border-emerald-500/20 overflow-hidden font-mono text-xs">
+            <div className="px-3.5 py-1.5 bg-[#141b2c] border-b border-slate-800 text-slate-400 flex items-center justify-between text-[11px]">
+              <span>{lang || "json"}</span>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(codeContent)}
+                className="hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+              >
+                <Copy className="w-3 h-3" /> Sao chép code
+              </button>
+            </div>
+            <pre className="p-3.5 overflow-x-auto text-emerald-200">
+              <code>{codeContent}</code>
+            </pre>
+          </div>
+        );
+      }
+
+      const formattedLines = part.split("\n").map((line, lIdx) => {
+        const boldParts = line.split(/(\*\*.*?\*\*)/g).map((bChunk, bIdx) => {
+          if (bChunk.startsWith("**") && bChunk.endsWith("**")) {
+            return <strong key={bIdx} className="text-white font-bold">{bChunk.slice(2, -2)}</strong>;
+          }
+          return bChunk;
+        });
+
+        return (
+          <p key={lIdx} className="min-h-[1rem]">
+            {formattedLines ? boldParts : <br />}
+          </p>
+        );
+      });
+
+      return <div key={index} className="space-y-1">{formattedLines}</div>;
+    });
   };
 
   return (
-    <div className="h-[calc(100vh-6rem)] flex flex-col space-y-4 animate-fade-in font-sans">
+    <div className="h-[calc(100vh-6.5rem)] flex flex-col space-y-4 animate-fade-in font-sans">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-[#7bd1fa]/15 shrink-0">
+      <div className="flex items-center justify-between pb-3 border-b border-[#7bd1fa]/15 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-[2px] shadow-[0_0_15px_rgba(16,185,129,0.4)]">
             <div className="w-full h-full bg-[#0a0e1a] rounded-[10px] flex items-center justify-center">
@@ -91,83 +167,129 @@ export default function TeacherAITutorPage() {
             </div>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              E-V-E AI Educator Assistant <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">Trợ Giảng AI</span>
+            <h1 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+              Trợ Giảng Sư Phạm AI E-V-E <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">Dành Cho Giáo Viên</span>
             </h1>
-            <p className="text-xs text-[#8e9bb4]">Hỗ trợ giáo viên sinh câu hỏi trắc nghiệm, thiết kế lộ trình & tích hợp Game API</p>
+            <p className="text-xs text-[#8e9bb4]">Tự động sinh câu hỏi trắc nghiệm, thiết kế cấu trúc lộ trình & gợi ý bài giảng</p>
           </div>
         </div>
 
         <button
-          onClick={() => setMessages([messages[0]])}
-          className="p-2 rounded-xl bg-[#151b2c] hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs font-mono flex items-center gap-1.5 cursor-pointer transition-all"
+          onClick={() => {
+            setMessages([
+              {
+                id: "m_init",
+                sender: "ai",
+                text: `Cuộc hội thoại đã được làm mới. Thầy/Cô cần hỗ trợ soạn nội dung gì hôm nay? 👋`,
+                timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              },
+            ]);
+          }}
+          className="p-2 rounded-xl bg-[#151b2c] hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs font-mono"
         >
-          <RotateCcw className="w-3.5 h-3.5" /> Xóa hội thoại
+          <RotateCcw className="w-3.5 h-3.5" /> Làm mới
         </button>
       </div>
 
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 rounded-2xl bg-[#0f1524]/80 border border-[#7bd1fa]/15 space-y-4 shadow-inner">
-        {messages.map((m) => (
+      {/* Main Chat Stream Viewport */}
+      <div className="flex-1 bg-[#0b0f1a] rounded-2xl border border-slate-800 p-4 md:p-6 overflow-y-auto space-y-4">
+        {messages.map((msg) => (
           <div
-            key={m.id}
-            className={`flex items-start gap-3 ${m.sender === "user" ? "flex-row-reverse" : "flex-row"}`}
+            key={msg.id}
+            className={`flex gap-3 max-w-3xl ${
+              msg.sender === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
+            }`}
           >
+            {/* Avatar */}
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                m.sender === "user"
-                  ? "bg-emerald-600 text-white"
-                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+              className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center border ${
+                msg.sender === "user"
+                  ? "bg-emerald-500 text-black border-emerald-400"
+                  : "bg-[#151b2c] text-emerald-400 border-emerald-500/30"
               }`}
             >
-              {m.sender === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+              {msg.sender === "user" ? <User className="w-4 h-4" /> : <GraduationCap className="w-4 h-4" />}
             </div>
 
-            <div
-              className={`max-w-[75%] p-4 rounded-2xl text-sm leading-relaxed ${
-                m.sender === "user"
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-tr-none"
-                  : "bg-[#151b2c] border border-slate-800 text-slate-200 rounded-tl-none"
-              }`}
-            >
-              <p className="whitespace-pre-wrap">{m.text}</p>
+            {/* Message Bubble */}
+            <div className="space-y-1 max-w-[85%]">
               <div
-                className={`text-[10px] mt-1.5 font-mono ${
-                  m.sender === "user" ? "text-emerald-200 text-right" : "text-slate-400"
+                className={`p-4 rounded-2xl text-xs md:text-sm leading-relaxed ${
+                  msg.sender === "user"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-tr-none shadow-md"
+                    : "bg-[#13192a] border border-slate-800 text-slate-200 rounded-tl-none shadow-lg"
                 }`}
               >
-                {m.timestamp}
+                {renderMessageContent(msg.text)}
+              </div>
+
+              <div
+                className={`flex items-center gap-2 text-[10px] font-mono text-slate-500 ${
+                  msg.sender === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <span>{msg.timestamp}</span>
+                {msg.sender === "ai" && (
+                  <button
+                    onClick={() => handleCopy(msg.text, msg.id)}
+                    className="hover:text-emerald-400 flex items-center gap-0.5 cursor-pointer ml-1"
+                  >
+                    {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedId === msg.id ? "Đã chép" : "Chép"}</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
         ))}
 
+        {/* AI Typing Indicator */}
         {isTyping && (
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center justify-center">
-              <Bot className="w-4 h-4" />
+          <div className="flex gap-3 max-w-xl mr-auto animate-pulse">
+            <div className="w-8 h-8 rounded-xl shrink-0 bg-[#151b2c] text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+              <GraduationCap className="w-4 h-4" />
             </div>
-            <div className="p-3.5 rounded-2xl bg-[#151b2c] border border-slate-800 text-emerald-300 text-xs font-mono flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 animate-spin" /> AI đang soạn cấu trúc giáo án...
+            <div className="p-4 rounded-2xl bg-[#13192a] border border-slate-800 text-xs text-emerald-300 rounded-tl-none flex items-center gap-2">
+              <Sparkles className="w-4 h-4 animate-spin text-emerald-400" />
+              <span>Trợ giảng AI đang soạn dữ liệu bài học...</span>
             </div>
           </div>
         )}
+
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSend} className="flex items-center gap-3 shrink-0">
+      {/* Suggested Prompts Pill Container */}
+      <div className="flex items-center gap-2 overflow-x-auto py-1 shrink-0">
+        <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1 whitespace-nowrap">
+          <Lightbulb className="w-3.5 h-3.5 text-amber-400" /> Mẫu yêu cầu nhanh:
+        </span>
+        {samplePrompts.map((p, idx) => (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => handleSend(p)}
+            className="px-3 py-1 rounded-full bg-[#13192a] hover:bg-[#1c243c] border border-slate-800 hover:border-emerald-500/40 text-slate-300 hover:text-emerald-300 text-xs font-sans whitespace-nowrap transition-all cursor-pointer"
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
+      {/* Input Form */}
+      <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2 shrink-0">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Yêu cầu AI soạn 3 cặp câu hỏi Vật lý hoặc hướng dẫn Game API..."
-          className="flex-1 bg-[#151b2c] border border-emerald-500/20 focus:border-emerald-400 rounded-2xl px-5 py-3.5 text-sm text-white placeholder-slate-500 focus:outline-none transition-all font-sans"
+          placeholder="Yêu cầu AI soạn câu hỏi JSON pairs, gợi ý cấu trúc bài giảng hoặc hướng dẫn tích hợp game..."
+          className="flex-1 bg-[#0e1422] border border-emerald-500/30 focus:border-emerald-400 rounded-2xl px-5 py-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 placeholder-slate-500 transition-all shadow-inner"
         />
+
         <button
           type="submit"
           disabled={!input.trim() || isTyping}
-          className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.35)] transition-all disabled:opacity-50 cursor-pointer"
+          className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(16,185,129,0.35)] cursor-pointer shrink-0"
         >
           <Send className="w-5 h-5" />
         </button>
