@@ -1,109 +1,34 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useAITutorAdapter } from "@/hooks/useAITutorAdapter";
 import {
   Bot,
   Send,
-  Sparkles,
   User,
-  RotateCcw,
-  Lightbulb,
-  Code,
-  Cpu,
-  Layers,
-  HelpCircle,
+  Paperclip,
+  Mic,
   Copy,
   Check,
+  RotateCcw,
+  Sparkles,
 } from "lucide-react";
-import { useAuthAdapter } from "@/hooks/useAuthAdapter";
-
-interface ChatMessage {
-  id: string;
-  sender: "user" | "ai";
-  text: string;
-  timestamp: string;
-}
-
-const TOPICS = [
-  { id: "all", name: "Toàn Bộ", icon: Sparkles },
-  { id: "python", name: "Python Căn Bản", icon: Code },
-  { id: "logic", name: "Tư Duy & Thuật Toán", icon: Layers },
-  { id: "hardware", name: "Phần Cứng Máy Tính 3D", icon: Cpu },
-];
 
 export default function StudentAITutorPage() {
-  const { currentUser, profile } = useAuthAdapter();
-  const displayName = currentUser?.name || profile?.fullName || "Học Sinh";
-
-  const [activeTopic, setActiveTopic] = useState("all");
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "m_init",
-      sender: "ai",
-      text: `Xin chào **${displayName}**! 👋\n\nTôi là **Trợ Lý AI E-V-E** đồng hành cùng bạn trong hành trình học lập trình & khoa học máy tính.\n\nBạn có thể hỏi tôi bất kỳ thắc mắc nào: từ **cách viết code Python**, **giải thích lỗi SyntaxError**, **cách hoạt động của vòng lặp/hàm** đến **cấu tạo phần cứng máy tính** nhé!`,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const { messages, loading, isSending, sendMessage } = useAITutorAdapter();
+  const [inputMessage, setInputMessage] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages, isSending]);
 
-  const handleSend = async (customPrompt?: string) => {
-    const questionText = customPrompt || input.trim();
-    if (!questionText || isTyping) return;
-
-    const userMsg: ChatMessage = {
-      id: `usr_${Date.now()}`,
-      sender: "user",
-      text: questionText,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    if (!customPrompt) setInput("");
-    setIsTyping(true);
-
-    try {
-      const res = await fetch("/api/tutor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: questionText,
-          role: "student",
-          subjectId: activeTopic,
-        }),
-      });
-
-      const data = await res.json();
-      const aiReply = data.reply || "Tôi đã nhận được câu hỏi, bạn có thể hỏi chi tiết hơn được không?";
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `ai_${Date.now()}`,
-          sender: "ai",
-          text: aiReply,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        },
-      ]);
-    } catch (err: any) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `ai_err_${Date.now()}`,
-          sender: "ai",
-          text: "Xin lỗi bạn, kết nối tới máy chủ AI đang gặp gián đoạn. Bạn thử đặt lại câu hỏi sau ít giây nhé!",
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        },
-      ]);
-    } finally {
-      setIsTyping(false);
-    }
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isSending) return;
+    const currentMsg = inputMessage.trim();
+    setInputMessage("");
+    await sendMessage(currentMsg);
   };
 
   const handleCopy = (text: string, id: string) => {
@@ -112,14 +37,7 @@ export default function StudentAITutorPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const samplePrompts = [
-    "Biến số (Variable) trong Python là gì và cách dùng?",
-    "Vòng lặp for và while khác nhau như thế nào?",
-    "CPU, RAM và ổ cứng SSD trong máy tính có nhiệm vụ gì?",
-    "Làm thế nào để viết câu lệnh điều kiện if-else?",
-  ];
-
-  // Simple Markdown text renderer with Code Block support
+  // Markdown & Code block renderer
   const renderMessageContent = (text: string) => {
     const parts = text.split(/(```[\s\S]*?```)/g);
 
@@ -130,7 +48,7 @@ export default function StudentAITutorPage() {
         const codeContent = lang ? lines.slice(1).join("\n") : lines.join("\n");
 
         return (
-          <div key={index} className="my-3 rounded-xl bg-[#090d18] border border-cyan-500/20 overflow-hidden font-mono text-xs">
+          <div key={index} className="my-2.5 rounded-xl bg-[#090d18] border border-cyan-500/20 overflow-hidden font-mono text-xs">
             <div className="px-3.5 py-1.5 bg-[#141b2c] border-b border-slate-800 text-slate-400 flex items-center justify-between text-[11px]">
               <span>{lang || "code"}</span>
               <button
@@ -148,9 +66,7 @@ export default function StudentAITutorPage() {
         );
       }
 
-      // Regular text with bold & line breaks
       const renderedLines = part.split("\n").map((line, lIdx) => {
-        // Simple bold parser
         const boldParts = line.split(/(\*\*.*?\*\*)/g).map((bChunk, bIdx) => {
           if (bChunk.startsWith("**") && bChunk.endsWith("**")) {
             return <strong key={bIdx} className="text-white font-bold">{bChunk.slice(2, -2)}</strong>;
@@ -159,7 +75,7 @@ export default function StudentAITutorPage() {
         });
 
         return (
-          <p key={lIdx} className="min-h-[1rem]">
+          <p key={lIdx} className="min-h-[1.2rem]">
             {line.trim() ? boldParts : <br />}
           </p>
         );
@@ -170,63 +86,37 @@ export default function StudentAITutorPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-6.5rem)] flex flex-col space-y-4 animate-fade-in font-sans">
+    <div className="h-[calc(100vh-6.5rem)] flex flex-col font-sans bg-[#0a0e1a] rounded-2xl border border-[#7bd1fa]/15 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#7bd1fa]/15 shrink-0">
+      <header className="p-4 bg-[#0f1524]/80 border-b border-[#7bd1fa]/15 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-400 to-blue-600 p-[2px] shadow-[0_0_15px_rgba(6,182,212,0.35)]">
-            <div className="w-full h-full bg-[#0a0e1a] rounded-[10px] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-400 to-blue-600 p-[1px] shadow-[0_0_15px_rgba(6,182,212,0.35)]">
+            <div className="w-full h-full bg-[#0a0e1a] rounded-[11px] flex items-center justify-center">
               <Bot className="w-5 h-5 text-cyan-300" />
             </div>
           </div>
           <div>
-            <h1 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+            <h1 className="font-bold text-base text-white flex items-center gap-2">
               Trợ Lý Học Tập AI E-V-E <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             </h1>
-            <p className="text-xs text-[#8e9bb4]">Giải đáp thắc mắc lập trình, hướng dẫn thuật toán & hỗ trợ bài học 24/7</p>
+            <p className="text-xs text-[#8e9bb4]">Đồng hành 24/7 cùng lộ trình học tập của bạn</p>
           </div>
         </div>
+      </header>
 
-        <button
-          onClick={() => {
-            setMessages([
-              {
-                id: "m_init",
-                sender: "ai",
-                text: `Cuộc trò chuyện đã được làm mới. Hãy đặt câu hỏi bất kỳ nhé ${displayName}! 👋`,
-                timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-              },
-            ]);
-          }}
-          className="p-2 rounded-xl bg-[#151b2c] hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs font-mono"
-          title="Bắt đầu hội thoại mới"
-        >
-          <RotateCcw className="w-3.5 h-3.5" /> Làm mới
-        </button>
-      </div>
+      {/* Message Stream */}
+      <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-6">
+        {messages.length === 0 && !loading && (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="w-16 h-16 rounded-full bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center mb-4">
+              <Bot className="w-8 h-8 text-cyan-300" />
+            </div>
+            <h2 className="text-xl font-semibold text-white">Xin chào 👋</h2>
+            <p className="text-gray-400 mt-2 text-sm">Tôi là AI Tutor của E-V-E.</p>
+            <p className="text-gray-500 text-xs mt-1">Bạn có thể hỏi tôi bất kỳ câu hỏi học tập nào.</p>
+          </div>
+        )}
 
-      {/* Topics Filter Bar */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 shrink-0">
-        {TOPICS.map((topic) => {
-          const Icon = topic.icon;
-          return (
-            <button
-              key={topic.id}
-              onClick={() => setActiveTopic(topic.id)}
-              className={`px-3 py-1.5 rounded-xl font-mono text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap border ${
-                activeTopic === topic.id
-                  ? "bg-cyan-500/20 text-cyan-300 border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
-                  : "bg-[#0f1524] text-slate-400 border-slate-800 hover:border-slate-700"
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" /> {topic.name}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Main Chat Stream Viewport */}
-      <div className="flex-1 bg-[#0b0f1a] rounded-2xl border border-slate-800 p-4 md:p-6 overflow-y-auto space-y-4">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -236,37 +126,38 @@ export default function StudentAITutorPage() {
           >
             {/* Avatar */}
             <div
-              className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center border ${
-                msg.sender === "user"
-                  ? "bg-cyan-500 text-black border-cyan-400"
-                  : "bg-[#151b2c] text-cyan-400 border-cyan-500/30"
+              className={`w-9 h-9 rounded-full shrink-0 flex items-center justify-center border ${
+                msg.sender === "ai"
+                  ? "bg-cyan-500/20 border-cyan-400/40 text-cyan-300"
+                  : "bg-blue-600/30 border-blue-400/40 text-white"
               }`}
             >
-              {msg.sender === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+              {msg.sender === "ai" ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
             </div>
 
             {/* Message Bubble */}
-            <div className="space-y-1 max-w-[85%]">
+            <div>
               <div
-                className={`p-4 rounded-2xl text-xs md:text-sm leading-relaxed ${
-                  msg.sender === "user"
-                    ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-tr-none shadow-md"
-                    : "bg-[#13192a] border border-slate-800 text-slate-200 rounded-tl-none shadow-lg"
+                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                  msg.sender === "ai"
+                    ? "bg-[#0f1524] border border-cyan-400/15 text-slate-200"
+                    : "bg-blue-600 text-white"
                 }`}
               >
                 {renderMessageContent(msg.text)}
               </div>
 
               <div
-                className={`flex items-center gap-2 text-[10px] font-mono text-slate-500 ${
+                className={`flex items-center gap-2 text-xs text-gray-500 mt-1 ${
                   msg.sender === "user" ? "justify-end" : "justify-start"
                 }`}
               >
                 <span>{msg.timestamp}</span>
                 {msg.sender === "ai" && (
                   <button
+                    type="button"
                     onClick={() => handleCopy(msg.text, msg.id)}
-                    className="hover:text-cyan-400 flex items-center gap-0.5 cursor-pointer ml-1"
+                    className="hover:text-cyan-400 flex items-center gap-0.5 cursor-pointer ml-1 text-[11px]"
                   >
                     {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                     <span>{copiedId === msg.id ? "Đã chép" : "Chép"}</span>
@@ -277,15 +168,16 @@ export default function StudentAITutorPage() {
           </div>
         ))}
 
-        {/* AI Typing Indicator */}
-        {isTyping && (
-          <div className="flex gap-3 max-w-xl mr-auto animate-pulse">
-            <div className="w-8 h-8 rounded-xl shrink-0 bg-[#151b2c] text-cyan-400 border border-cyan-500/30 flex items-center justify-center">
-              <Bot className="w-4 h-4" />
+        {/* AI Loading Indicator */}
+        {isSending && (
+          <div className="flex gap-3 mr-auto animate-pulse">
+            <div className="w-9 h-9 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center">
+              <Bot className="w-5 h-5 text-cyan-300" />
             </div>
-            <div className="p-4 rounded-2xl bg-[#13192a] border border-slate-800 text-xs text-cyan-300 rounded-tl-none flex items-center gap-2">
-              <Sparkles className="w-4 h-4 animate-spin text-cyan-400" />
-              <span>AI Tutor đang suy nghĩ và chuẩn bị câu trả lời...</span>
+            <div className="rounded-2xl bg-[#0f1524] border border-cyan-400/15 px-4 py-3">
+              <p className="text-gray-400 text-sm flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-cyan-400 animate-spin" /> AI Tutor đang suy nghĩ...
+              </p>
             </div>
           </div>
         )}
@@ -293,41 +185,54 @@ export default function StudentAITutorPage() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Suggested Prompts Pill Container */}
-      <div className="flex items-center gap-2 overflow-x-auto py-1 shrink-0">
-        <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1 whitespace-nowrap">
-          <Lightbulb className="w-3.5 h-3.5 text-amber-400" /> Gợi ý câu hỏi:
-        </span>
-        {samplePrompts.map((p, idx) => (
+      {/* Input Bar */}
+      <div className="p-4 bg-[#0f1524]/90 border-t border-[#7bd1fa]/15 shrink-0">
+        <div className="max-w-4xl mx-auto flex items-center gap-2">
+          {/* Attachment */}
           <button
-            key={idx}
             type="button"
-            onClick={() => handleSend(p)}
-            className="px-3 py-1 rounded-full bg-[#13192a] hover:bg-[#1c243c] border border-slate-800 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-300 text-xs font-sans whitespace-nowrap transition-all cursor-pointer"
+            className="p-2.5 rounded-xl bg-[#151b2c] border border-[#7bd1fa]/20 text-[#8e9bb4] hover:text-white transition-all cursor-pointer"
+            title="Đính kèm tệp"
           >
-            {p}
+            <Paperclip className="w-4 h-4" />
           </button>
-        ))}
+
+          {/* Input */}
+          <input
+            type="text"
+            placeholder="Đặt câu hỏi cho AI E-V-E (toán học, lập trình Python, bài tập...)"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+            disabled={isSending}
+            className="flex-1 bg-[#151b2c] border border-[#7bd1fa]/20 rounded-xl px-4 py-3 text-sm text-white placeholder-[#8e9bb4] focus:outline-none focus:border-cyan-400 transition-all disabled:opacity-50"
+          />
+
+          {/* Microphone */}
+          <button
+            type="button"
+            className="p-2.5 rounded-xl bg-[#151b2c] border border-[#7bd1fa]/20 text-[#8e9bb4] hover:text-white transition-all cursor-pointer"
+            title="Nhập bằng giọng nói"
+          >
+            <Mic className="w-4 h-4" />
+          </button>
+
+          {/* Send */}
+          <button
+            type="button"
+            onClick={handleSendMessage}
+            disabled={isSending || !inputMessage.trim()}
+            className="p-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
       </div>
-
-      {/* Input Form */}
-      <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2 shrink-0">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Hỏi AI về Python, giải thích thuật toán, sửa lỗi code hoặc hỏi về bài học..."
-          className="flex-1 bg-[#0e1422] border border-cyan-500/30 focus:border-cyan-400 rounded-2xl px-5 py-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-400 placeholder-slate-500 transition-all shadow-inner"
-        />
-
-        <button
-          type="submit"
-          disabled={!input.trim() || isTyping}
-          className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(6,182,212,0.35)] cursor-pointer shrink-0"
-        >
-          <Send className="w-5 h-5" />
-        </button>
-      </form>
     </div>
   );
 }
