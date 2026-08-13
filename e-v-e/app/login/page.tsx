@@ -241,7 +241,7 @@ export default function LoginPage() {
               href="/register"
               className="text-xs font-mono text-cyan-400 hover:text-cyan-300 hover:underline inline-flex items-center gap-1"
             >
-              Chưa có tài khoản? Khởi tạo hồ sơ mới →
+              Chưa có tài khoản? Đăng ký ngay →
             </Link>
           </div>
         </div>
@@ -249,7 +249,7 @@ export default function LoginPage() {
 
       {/* Footer */}
       <footer className="text-center font-mono text-[11px] text-slate-500 z-10 py-4">
-        © 2026 E-V-E COSMIC PLATFORM • CLEAN ARCHITECTURE & ROLE-BASED ACCESS
+        © 2026 E-V-E • NỀN TẢNG HỌC TẬP & CÔNG NGHỆ TƯƠNG TÁC
       </footer>
     </div>
   );

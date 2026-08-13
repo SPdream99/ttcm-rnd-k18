@@ -39,16 +39,19 @@ export default function Navbar() {
 
   const getDashboardUrl = () => {
     if (user?.role === "teacher") {
-      return (user as any)?.status === "pending" ? "/public/pending" : "/dashbroad/teacher";
+      return (user as any)?.status === "pending" ? "/pending" : "/teacher/dashboard";
     }
-    return "/dashbroad/student";
+    if (user?.role === "admin" || user?.role === "school") {
+      return "/admin/dashboard";
+    }
+    return "/student/dashboard";
   };
 
   const getProfileUrl = () => {
     if (user?.role === "teacher") {
-      return "/dashbroad/teacher/profile";
+      return "/teacher/profile";
     }
-    return "/dashbroad/student/profile";
+    return "/student/profile";
   };
 
   return (
@@ -63,7 +66,7 @@ export default function Navbar() {
             className="material-symbols-outlined text-cyan-400 text-2xl"
             style={{ fontVariationSettings: "'FILL' 1" }}
           >
-            public
+            school
           </span>
           <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">E-V-E</span>
         </Link>
@@ -72,7 +75,7 @@ export default function Navbar() {
         <nav className="hidden md:flex items-center gap-6 font-mono text-sm">
           <Link href="/">
             <span className="text-cyan-400 border-b-2 border-cyan-400 pb-0.5 hover:text-white transition-colors cursor-pointer">
-              Home
+              Trang Chủ
             </span>
           </Link>
         </nav>
@@ -117,7 +120,7 @@ export default function Navbar() {
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all"
                     >
-                      <LayoutDashboard className="w-4 h-4 text-cyan-400" /> Bàn Làm Việc Dashboard
+                      <LayoutDashboard className="w-4 h-4 text-cyan-400" /> Bảng Điều Khiển
                     </Link>
 
                     <Link
@@ -143,12 +146,12 @@ export default function Navbar() {
           ) : (
             /* Logged Out Actions */
             <div className="flex items-center gap-3">
-              <Link href="/public/login">
+              <Link href="/login">
                 <button className="text-slate-300 hover:text-white font-mono text-xs px-4 py-2 rounded-xl transition-all cursor-pointer">
                   Đăng Nhập
                 </button>
               </Link>
-              <Link href="/public/register">
+              <Link href="/register">
                 <button className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold font-mono text-xs shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all cursor-pointer">
                   Đăng Ký
                 </button>

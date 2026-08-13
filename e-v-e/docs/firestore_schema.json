@@ -10,7 +10,7 @@
         "_id": "String (UID người dùng trùng khớp với Document Key)",
         "uid": "String (UID Firebase Authentication trùng khớp với Document Key)",
         "name": "String (Họ và tên)",
-        "email": "String (Email chỉ huy)",
+        "email": "String (Email người dùng)",
         "role": "String ('student' | 'teacher' | 'admin')",
         "status": "String ('pending' | 'active' | 'banned')",
         "coins": "Number (Số coin tích lũy)",

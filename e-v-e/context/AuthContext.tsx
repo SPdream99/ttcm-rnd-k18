@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (_) {}
 
     // 4. Hard redirect để xóa toàn bộ state React
-    window.location.href = "/public/login";
+    window.location.href = "/login";
   };
 
   return (
@@ -138,9 +138,9 @@ export function useAuth() {
 /** Helper: redirect về dashboard theo role */
 export function getDashboardPath(role: string, status?: string): string {
   if (role === "teacher") {
-    if (status === "pending") return "/public/pending";
-    return "/dashbroad/teacher";
+    if (status === "pending") return "/pending";
+    return "/teacher/dashboard";
   }
-  if (role === "admin" || role === "school") return "/dashbroad/school";
-  return "/dashbroad/student";
+  if (role === "admin" || role === "school") return "/admin/dashboard";
+  return "/student/dashboard";
 }

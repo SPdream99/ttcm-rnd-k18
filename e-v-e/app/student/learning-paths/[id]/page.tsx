@@ -49,13 +49,13 @@ interface PathCourseNode {
   }[];
 }
 
-export default function LearningPathTreasureMapPage({ params }: PathDetailPageProps) {
+export default function LearningPathDetailPage({ params }: PathDetailPageProps) {
   const resolvedParams = use(params);
   const pathId = resolvedParams.id;
 
   const [pathInfo] = useState({
     id: pathId,
-    title: "Lộ Trình: Lập Trình & Khoa Học Máy Tính Cho Trẻ Em 🚀",
+    title: "Lộ Trình: Lập Trình & Khoa Học Máy Tính Tương Tác",
     description: "Lộ trình học tập trực quan từng bước: Học lý thuyết qua tài liệu, hoàn thành các trò chơi thực hành để mở khóa bài học tiếp theo và nhận phần thưởng hoàn thành lộ trình!",
     authorName: "ThS. Phạm Hoàng Nam",
     rewardCoins: 150,
@@ -111,7 +111,7 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
         { title: "Kho Code Mẫu Python Game Mini", url: "https://github.com", type: "code" },
       ],
       compatibleGames: [
-        { id: "game_space_quiz_3d", title: "Space Flight Quantum Quiz 3D", type: "Action Quiz", reward: "+50 Coins" },
+        { id: "game_space_quiz_3d", title: "Quiz Runner 3D - Trắc Nghiệm Tốc Độ", type: "Action Quiz", reward: "+50 Coins" },
       ],
     },
     {
@@ -124,10 +124,10 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
       isUnlocked: false,
       isCompleted: false,
       resources: [
-        { title: "Giáo Trình AI Cho Thiếu Nhi", url: "https://github.com", type: "pdf" },
+        { title: "Giáo Trình AI & Ứng Dụng", url: "https://github.com", type: "pdf" },
       ],
       compatibleGames: [
-        { id: "game_space_quiz_3d", title: "Space Flight Quantum Quiz 3D", type: "Action Quiz", reward: "+50 Coins" },
+        { id: "game_space_quiz_3d", title: "Quiz Runner 3D - Trắc Nghiệm Tốc Độ", type: "Action Quiz", reward: "+50 Coins" },
       ],
     },
   ]);

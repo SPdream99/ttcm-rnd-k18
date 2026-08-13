@@ -75,7 +75,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           <div className="px-3 py-3 rounded-xl bg-[#151b2c] border border-cyan-500/20 flex items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="text-xs font-bold text-white truncate" suppressHydrationWarning>{displayName}</div>
-              <div className="text-[10px] font-mono text-cyan-400 uppercase">Học Sinh Explorer</div>
+              <div className="text-[10px] font-mono text-cyan-400 uppercase">Học Viên</div>
             </div>
             <div className="flex items-center gap-1 shrink-0 px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30">
               <Coins className="w-3.5 h-3.5 text-amber-400" />

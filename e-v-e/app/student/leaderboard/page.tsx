@@ -18,15 +18,15 @@ export default function StudentLeaderboardPage() {
   const [activeTab, setActiveTab] = useState<"students" | "teachers" | "game_space" | "game_memory">("students");
 
   const topStudents = [
-    { rank: 1, name: "Trần Minh Quân", score: 1450, coins: 420, courses: 8, badge: "Vũ Trụ Huyền Thoại" },
-    { rank: 2, name: "Đạt Student", score: 1280, coins: 250, courses: 6, badge: "Nhà Thám Hiểm Lượng Tử" },
-    { rank: 3, name: "Nguyễn Hương Giang", score: 1120, coins: 310, courses: 5, badge: "Phi Công Không Gian" },
-    { rank: 4, name: "Phạm Hải Đăng", score: 980, coins: 180, courses: 4, badge: "Tân Binh Vũ Trụ" },
-    { rank: 5, name: "Lê Bảo Ngọc", score: 850, coins: 140, courses: 3, badge: "Tân Binh Vũ Trụ" },
+    { rank: 1, name: "Trần Minh Quân", score: 1450, coins: 420, courses: 8, badge: "Thủ Khoa Xuất Sắc" },
+    { rank: 2, name: "Đạt Student", score: 1280, coins: 250, courses: 6, badge: "Chuyên Gia Thuật Toán" },
+    { rank: 3, name: "Nguyễn Hương Giang", score: 1120, coins: 310, courses: 5, badge: "Chiến Binh Logic" },
+    { rank: 4, name: "Phạm Hải Đăng", score: 980, coins: 180, courses: 4, badge: "Học Viên Tiềm Năng" },
+    { rank: 5, name: "Lê Bảo Ngọc", score: 850, coins: 140, courses: 3, badge: "Học Viên Chăm Chỉ" },
   ];
 
   const topTeachers = [
-    { rank: 1, name: "GS. Nguyễn Văn An", courses: 8, playsCount: 520, badge: "Giảng Viên Xuất Sắc Tháng" },
+    { rank: 1, name: "GS. Nguyễn Văn An", courses: 8, playsCount: 520, badge: "Giảng Viên Tiêu Biểu Tháng" },
     { rank: 2, name: "ThS. Phạm Hoàng Nam", courses: 5, playsCount: 340, badge: "Giảng Viên Sáng Tạo AI" },
     { rank: 3, name: "TS. Lê Thị Mai", courses: 4, playsCount: 210, badge: "Giảng Viên Tiên Phong" },
   ];
@@ -46,7 +46,7 @@ export default function StudentLeaderboardPage() {
             <Trophy className="w-7 h-7 text-amber-400" /> Bảng Vinh Danh & Xếp Hạng E-V-E
           </h1>
           <p className="text-sm text-[#8e9bb4] mt-1">
-            Tôn vinh các học sinh đạt thành tích cao nhất trong tháng, giảng viên tích cực và cao thủ từng Game Engine.
+            Tôn vinh các học viên đạt thành tích cao nhất trong tháng, giáo viên tích cực và học sinh hoàn thành xuất sắc thử thách minigame.
           </p>
         </div>
       </div>
@@ -61,7 +61,7 @@ export default function StudentLeaderboardPage() {
               : "bg-[#151b2c] text-slate-400 border-slate-800"
           }`}
         >
-          <Crown className="w-4 h-4 text-amber-400" /> Học Sinh Nổi Bật Tháng
+          <Crown className="w-4 h-4 text-amber-400" /> Học Viên Nổi Bật Tháng
         </button>
 
         <button
@@ -72,7 +72,7 @@ export default function StudentLeaderboardPage() {
               : "bg-[#151b2c] text-slate-400 border-slate-800"
           }`}
         >
-          <GraduationCap className="w-4 h-4 text-emerald-400" /> Giảng Viên Tiêu Biểu Tháng
+          <GraduationCap className="w-4 h-4 text-emerald-400" /> Giáo Viên Tiêu Biểu Tháng
         </button>
 
         <button
@@ -83,7 +83,7 @@ export default function StudentLeaderboardPage() {
               : "bg-[#151b2c] text-slate-400 border-slate-800"
           }`}
         >
-          <Gamepad2 className="w-4 h-4 text-purple-400" /> Top Space Quiz 3D
+          <Gamepad2 className="w-4 h-4 text-purple-400" /> Top Quiz Runner 3D
         </button>
       </div>
 

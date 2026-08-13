@@ -660,14 +660,14 @@ export default function TeacherUploadCenterPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setGameTitle("Space Flight Quantum Runner 3D");
-                  setGameDesc("Lái tàu vũ trụ không gian 3D vượt chướng ngại vật bằng cách chọn đúng cổng đáp án.");
+                  setGameTitle("Quiz Runner 3D - Trắc Nghiệm Tốc Độ");
+                  setGameDesc("Điều khiển nhân vật vượt chướng ngại vật bằng cách chọn đúng cổng đáp án tương ứng với nội dung câu hỏi.");
                   setNeedExtraData(true);
                 }}
                 className="p-4 rounded-xl bg-[#151b2c] hover:bg-emerald-950/30 border border-emerald-500/30 hover:border-emerald-400 text-left transition-all cursor-pointer space-y-1.5"
               >
-                <div className="text-xs font-bold text-emerald-300 font-mono">🚀 Mẫu 3: Space Flight 3D Quiz</div>
-                <div className="text-[11px] text-slate-400">Trò chơi hành động không gian tích hợp ngân hàng câu hỏi đa dạng.</div>
+                <div className="text-xs font-bold text-emerald-300 font-mono">🏃 Mẫu 3: Quiz Runner 3D</div>
+                <div className="text-[11px] text-slate-400">Trò chơi phản xạ vượt chướng ngại vật tích hợp ngân hàng câu hỏi đa dạng.</div>
               </button>
             </div>
           </div>
@@ -729,14 +729,14 @@ export default function TeacherUploadCenterPage() {
           </div>
 
           {/* Config Whitelist & Extra Data */}
-          <div className="p-6 rounded-2xl bg-[#0f1524]/90 border border-purple-500/20 space-y-4">
+          <div className="p-6 rounded-2xl bg-[#0f1524]/90 border border-purple-500/20 space-y-5">
             <h3 className="font-bold text-base text-white flex items-center gap-2">
-              <Info className="w-5 h-5 text-purple-400" /> Cấu Hình Dữ Liệu (Extra Data & Whitelist)
+              <Info className="w-5 h-5 text-purple-400" /> Cấu Hình Dữ Liệu & Danh Sách Khóa Học Tương Thích (Whitelist)
             </h3>
 
             <div className="space-y-4">
               {/* Need extra data checkbox */}
-              <label className="p-4 rounded-xl bg-[#151b2c] border border-slate-800 flex items-start gap-3 cursor-pointer">
+              <label className="p-4 rounded-xl bg-[#151b2c] border border-slate-800 flex items-start gap-3 cursor-pointer hover:border-purple-500/40 transition-colors">
                 <input
                   type="checkbox"
                   checked={needExtraData}
@@ -746,65 +746,72 @@ export default function TeacherUploadCenterPage() {
                 <div>
                   <div className="font-bold text-sm text-white">Yêu cầu dữ liệu câu hỏi từ Course (need_extra_data)</div>
                   <div className="text-xs text-[#8e9bb4] mt-0.5">
-                    Hệ thống sẽ tự động inject danh sách JSON pairs của khóa học vào Game thông qua <code className="text-purple-300">window.postMessage()</code>.
+                    Hệ thống sẽ tự động inject danh sách JSON pairs của khóa học vào Game thông qua <code className="text-purple-300">window.postMessage()</code> hoặc <code className="text-purple-300">window.EveSDK</code>.
                   </div>
                 </div>
               </label>
 
-              {/* Whitelist mode */}
-              {needExtraData && (
-                <div className="space-y-2 pt-2 border-t border-slate-800">
-                  <label className="block text-xs font-mono text-slate-300 mb-1">
-                    Danh Sách Khóa Học Tương Thích (Whitelist):
+              {/* Whitelist course configuration: Always displayed and asked */}
+              <div className="space-y-3 pt-3 border-t border-slate-800">
+                <div>
+                  <label className="block text-xs font-mono text-slate-300 font-bold mb-1">
+                    Danh Sách Khóa Học Được Phép Sử Dụng (Whitelist Courses):
                   </label>
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <button
-                      type="button"
-                      onClick={() => setWhitelistMode("all")}
-                      className={`p-3 rounded-xl border font-mono text-xs font-bold transition-all cursor-pointer ${
-                        whitelistMode === "all"
-                          ? "bg-purple-500/20 text-purple-300 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)]"
-                          : "bg-[#151b2c] text-slate-400 border-slate-800"
-                      }`}
-                    >
-                      Hỗ trợ tất cả Course (all)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWhitelistMode("custom")}
-                      className={`p-3 rounded-xl border font-mono text-xs font-bold transition-all cursor-pointer ${
-                        whitelistMode === "custom"
-                          ? "bg-purple-500/20 text-purple-300 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)]"
-                          : "bg-[#151b2c] text-slate-400 border-slate-800"
-                      }`}
-                    >
-                      Chọn Course cụ thể
-                    </button>
-                  </div>
-
-                  {whitelistMode === "custom" && (
-                    <div className="space-y-2 p-3 rounded-xl bg-[#151b2c] border border-slate-800">
-                      {availableCourses.map((c) => (
-                        <label key={c.id} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={allowedCourses.includes(c.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setAllowedCourses((prev) => [...prev, c.id]);
-                              } else {
-                                setAllowedCourses((prev) => prev.filter((id) => id !== c.id));
-                              }
-                            }}
-                            className="w-3.5 h-3.5 accent-purple-500"
-                          />
-                          <span>{c.title} ({c.id})</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
+                  <p className="text-[11px] text-[#8e9bb4]">
+                    Áp dụng cho tất cả trò chơi (kể cả trò chơi độc lập hay trò chơi cần nạp dữ liệu động từ khóa học).
+                  </p>
                 </div>
-              )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setWhitelistMode("all")}
+                    className={`p-3 rounded-xl border font-mono text-xs font-bold transition-all cursor-pointer ${
+                      whitelistMode === "all"
+                        ? "bg-purple-500/20 text-purple-300 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)]"
+                        : "bg-[#151b2c] text-slate-400 border-slate-800 hover:text-white"
+                    }`}
+                  >
+                    Hỗ trợ tất cả Khóa Học (all)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWhitelistMode("custom")}
+                    className={`p-3 rounded-xl border font-mono text-xs font-bold transition-all cursor-pointer ${
+                      whitelistMode === "custom"
+                        ? "bg-purple-500/20 text-purple-300 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.25)]"
+                        : "bg-[#151b2c] text-slate-400 border-slate-800 hover:text-white"
+                    }`}
+                  >
+                    Chọn Khóa Học cụ thể (Custom)
+                  </button>
+                </div>
+
+                {whitelistMode === "custom" && (
+                  <div className="space-y-2 p-3.5 rounded-xl bg-[#151b2c] border border-slate-800">
+                    <div className="text-[11px] font-mono text-purple-300 mb-2">
+                      Chọn các khóa học cho phép chạy trò chơi này:
+                    </div>
+                    {availableCourses.map((c) => (
+                      <label key={c.id} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer hover:text-white transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={allowedCourses.includes(c.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setAllowedCourses((prev) => [...prev, c.id]);
+                            } else {
+                              setAllowedCourses((prev) => prev.filter((id) => id !== c.id));
+                            }
+                          }}
+                          className="w-3.5 h-3.5 accent-purple-500 rounded"
+                        />
+                        <span>{c.title} <strong className="text-slate-500 font-mono">({c.id})</strong></span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

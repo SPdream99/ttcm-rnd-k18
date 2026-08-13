@@ -22,14 +22,15 @@ export default function StudentShopPage() {
   const [coins, setCoins] = useState(currentUser?.coins ?? profile?.coins ?? 250);
   const [ownedItems, setOwnedItems] = useState<string[]>([
     "frame_cosmic_cyan",
-    "badge_quantum_explorer",
+    "frame_neon_blue",
+    "badge_logic_expert",
   ]);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   const shopItems = [
     {
       id: "frame_supernova_gold",
-      name: "Khung Avatar Siêu Tân Tinh (Gold)",
+      name: "Khung Avatar Hoàng Kim (Gold Edition)",
       category: "Khung Avatar",
       price: 150,
       icon: Crown,
@@ -38,16 +39,16 @@ export default function StudentShopPage() {
     },
     {
       id: "frame_quantum_neon",
-      name: "Khung Avatar Lượng Tử (Neon Cyber)",
+      name: "Khung Avatar Công Nghệ (Neon Blue)",
       category: "Khung Avatar",
       price: 120,
       icon: Sparkles,
       color: "from-cyan-400 to-blue-600",
-      description: "Viền xanh neon chuyển động phong cách tương lai Cyberpunk.",
+      description: "Viền xanh neon phong cách công nghệ hiện đại.",
     },
     {
       id: "badge_cosmic_legend",
-      name: "Huy Hiệu Huyền Thoại Không Gian",
+      name: "Huy Hiệu Thủ Khoa Xuất Sắc",
       category: "Huy Hiệu",
       price: 200,
       icon: Award,
@@ -56,12 +57,12 @@ export default function StudentShopPage() {
     },
     {
       id: "badge_flame_streak",
-      name: "Huy Hiệu Ngọn Lửa Bất Diệt",
+      name: "Huy Hiệu Chuyên Cần & Bứt Phá",
       category: "Huy Hiệu",
       price: 80,
       icon: Flame,
       color: "from-rose-500 to-orange-500",
-      description: "Dành cho học sinh duy trì chuỗi học tập liên tục.",
+      description: "Dành cho học sinh duy trì chuỗi học tập liên tục hàng ngày.",
     },
   ];
 
@@ -94,10 +95,10 @@ export default function StudentShopPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <ShoppingBag className="w-7 h-7 text-amber-400" /> Cửa Hàng Vũ Trụ E-V-E
+            <ShoppingBag className="w-7 h-7 text-amber-400" /> Cửa Hàng Quà Tặng & Vật Phẩm E-V-E
           </h1>
           <p className="text-sm text-[#8e9bb4] mt-1">
-            Đổi số Coins tích lũy từ các màn chơi Quiz để sở hữu Khung Avatar và Huy hiệu độc quyền.
+            Đổi số Coins tích lũy từ các bài học & minigame để sở hữu Khung Avatar và Huy hiệu độc quyền.
           </p>
         </div>
 

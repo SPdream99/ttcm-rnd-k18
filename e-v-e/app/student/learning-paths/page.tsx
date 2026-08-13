@@ -77,13 +77,13 @@ export default function StudentLearningPathsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-mono mb-2">
-            <Compass className="w-3.5 h-3.5 text-cyan-400" /> Bản Đồ Học Tập Tự Do
+            <Compass className="w-3.5 h-3.5 text-cyan-400" /> Khám Phá Lộ Trình Học Tập
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <Layers className="w-7 h-7 text-cyan-400" /> Thư Viện Lộ Trình Tri Thức
+            <Layers className="w-7 h-7 text-cyan-400" /> Danh Sách Lộ Trình Học Tập
           </h1>
           <p className="text-sm text-[#8e9bb4] mt-1">
-            Bạn có thể đăng ký số lượng lộ trình tùy ý! Mỗi lộ trình là một Bản Đồ Kho Báu gồm chuỗi các trạm Course cần vượt qua bằng Game.
+            Bạn có thể đăng ký các lộ trình học tập phù hợp. Mỗi lộ trình gồm chuỗi các bài học và thử thách minigame tương tác thực tế.
           </p>
         </div>
 
@@ -130,10 +130,10 @@ export default function StudentLearningPathsPage() {
               <div className="space-y-3 relative z-10">
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-mono text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                    {path.coursesCount} Trạm Khóa Học
+                    {path.coursesCount} Bài Học
                   </span>
                   <span className="font-mono text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">
-                    +{path.rewardCoins} Coins Phá Đảo
+                    +{path.rewardCoins} Coins Thưởng
                   </span>
                 </div>
 
@@ -164,7 +164,7 @@ export default function StudentLearningPathsPage() {
 
                 <Link href={`/student/learning-paths/${path.id}`} className="w-full sm:w-auto">
                   <button className="w-full px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:from-blue-500 hover:to-cyan-300 text-white font-mono text-xs font-bold shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.02]">
-                    <Map className="w-4 h-4" /> Mở Bản Đồ Kho Báu →
+                    <Compass className="w-4 h-4" /> Xem Chi Tiết Lộ Trình →
                   </button>
                 </Link>
               </div>

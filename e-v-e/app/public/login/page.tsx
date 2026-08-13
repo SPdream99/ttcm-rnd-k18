@@ -55,22 +55,21 @@ export default function LoginPage() {
     if (role === "teacher" && status === "pending") {
       setMessage("Tài khoản đang chờ phê duyệt. Đang chuyển hướng...");
       setTimeout(() => {
-        window.location.href = "/public/pending";
+        window.location.href = "/pending";
       }, 1000);
       return;
     }
 
-    setMessage("Đăng nhập thành công! Đang vào trung tâm điều hành...");
+    setMessage("Đăng nhập thành công! Đang vào hệ thống...");
     setTimeout(() => {
       if (role === "student") {
-        window.location.href = "/dashbroad/student";
+        window.location.href = "/student/dashboard";
       } else if (role === "teacher") {
-        window.location.href = "/dashbroad/teacher";
+        window.location.href = "/teacher/dashboard";
       } else if (role === "school" || role === "admin") {
-        // Redirect to school (Admin dashboard route)
-        window.location.href = "/dashbroad/school";
+        window.location.href = "/admin/dashboard";
       } else {
-        window.location.href = "/dashbroad/student";
+        window.location.href = "/student/dashboard";
       }
     }, 1000);
   };
@@ -119,7 +118,7 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-xs font-mono text-slate-300 mb-1.5">
-                Email Chỉ Huy
+                Email Đăng Nhập
               </label>
               <input
                 type="email"
@@ -185,7 +184,7 @@ export default function LoginPage() {
           <form onSubmit={handleForgotPassword} className="space-y-6">
             <div>
               <label className="block text-xs font-mono text-slate-300 mb-1.5">
-                Email Chỉ Huy
+                Email Đăng Nhập
               </label>
               <input
                 type="email"

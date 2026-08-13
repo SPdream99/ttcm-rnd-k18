@@ -61,13 +61,13 @@ export default function StudentDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-mono mb-2">
-            <Rocket className="w-3.5 h-3.5 text-cyan-400" /> Bàn Học Tập Vũ Trụ E-V-E
+            <BookOpen className="w-3.5 h-3.5 text-cyan-400" /> Bảng Điều Khiển Học Viên E-V-E
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
             Chào mừng trở lại, {displayName} 🌟
           </h1>
           <p className="text-sm text-[#8e9bb4] mt-1">
-            Tiếp tục hành trình học tập, vượt thử thách Game Quiz để tích lũy Coins và vinh danh trên BXH.
+            Tiếp tục hành trình học tập, hoàn thành các bài học & minigame tương tác để tích lũy Coins và vinh danh trên BXH.
           </p>
         </div>
 

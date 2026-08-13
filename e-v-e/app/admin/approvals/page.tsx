@@ -78,8 +78,8 @@ const MOCK_PENDING_COURSES: Course[] = [
 const MOCK_PENDING_GAMES: Game[] = [
   {
     id: "game_space_quiz_3d",
-    title: "Space Flight Quiz 3D",
-    description: "Lái tàu không gian qua các cổng lượng tử bằng cách chọn đúng đáp án cặp câu hỏi.",
+    title: "Quiz Runner 3D - Trắc Nghiệm Tốc Độ",
+    description: "Minigame tương tác vượt chướng ngại vật bằng cách chọn đúng đáp án tương ứng với nội dung bài học.",
     authorName: "GS. Nguyễn Văn An",
     gameUrl: "/games/space_quiz_3d/index.html",
     downloadSourceUrl: "https://github.com/SPdream99/ttcm-rnd-k18/raw/main/games/space_quiz_3d_source.zip",

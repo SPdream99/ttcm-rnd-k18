@@ -1,6 +1,6 @@
 # 🎮 HƯỚNG DẪN TÍCH HỢP GAME ENGINE & BỘ REST API DÀNH CHO GIÁO VIÊN (E-V-E PLATFORM)
 
-Tài liệu này hướng dẫn cách kết nối bất kỳ Game Engine nào (HTML5 / Canvas / Phaser / Unity WebGL / React) với hệ thống **E-V-E** để tự động nhận dữ liệu câu hỏi (JSON Pairs), báo cáo tiến độ thời gian thực, cập nhật điểm số, thưởng Coins và mở khóa các trạm trên **Bản Đồ Kho Báu (Learning Path)**.
+Tài liệu này hướng dẫn cách kết nối bất kỳ Game Engine nào (HTML5 / Canvas / Phaser / Unity WebGL / React) với hệ thống **E-V-E** để tự động nhận dữ liệu câu hỏi (JSON Pairs), báo cáo tiến độ thời gian thực, cập nhật điểm số, thưởng Coins và mở khóa các bài học trên **Lộ Trình Học Tập (Learning Path)**.
 
 ---
 
@@ -67,7 +67,7 @@ E-V-E hỗ trợ 2 phương thức giao tiếp song song:
 
 ### 🔹 API 3: Hoàn Thành Màn Chơi, Thưởng Coins & Mở Khóa Lộ Trình
 - **URL**: `POST /api/games/finish`
-- **Mục đích**: Ghi nhận kết quả chung cuộc, tính toán Coins thưởng, cập nhật tiến độ `x/y trò` của trạm trên Bản đồ kho báu và mở khóa trạm tiếp theo nếu hoàn thành đủ.
+- **Mục đích**: Ghi nhận kết quả chung cuộc, tính toán Coins thưởng, cập nhật tiến độ `x/y trò` của bài học trên Lộ trình học tập và mở khóa bài học tiếp theo nếu hoàn thành đủ.
 - **Request Body**:
   ```json
   {

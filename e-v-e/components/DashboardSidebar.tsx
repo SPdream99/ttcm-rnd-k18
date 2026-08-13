@@ -30,20 +30,20 @@ interface SidebarProps {
 // ─── Nav Configs ──────────────────────────────────────────────────────────────
 
 const STUDENT_NAV = [
-  { id: "paths",       label: "Lộ Trình Học Tập",    icon: BookOpen,     href: null },
-  { id: "games",       label: "Game Engine Quiz",      icon: Gamepad2,     href: null },
-  { id: "leaderboard", label: "Bảng Xếp Hạng",        icon: Trophy,       href: null },
-  { id: "shop",        label: "Cửa Hàng Đổi Coin",    icon: ShoppingBag,  href: null },
-  { id: "ai_tutor",    label: "Trợ Lý AI Tutor",      icon: Bot,          href: "/dashbroad/student/AITutor" },
-  { id: "profile",     label: "Trang Cá Nhân",         icon: UserCheck,    href: "/dashbroad/student/profile" },
+  { id: "paths",       label: "Lộ Trình Học Tập",    icon: BookOpen,     href: "/student/learning-paths" },
+  { id: "games",       label: "Trò Chơi Học Tập",     icon: Gamepad2,     href: "/student/learning-paths" },
+  { id: "leaderboard", label: "Bảng Xếp Hạng",        icon: Trophy,       href: "/student/leaderboard" },
+  { id: "shop",        label: "Cửa Hàng Đổi Thưởng",  icon: ShoppingBag,  href: "/student/shop" },
+  { id: "ai_tutor",    label: "Trợ Lý AI Tutor",      icon: Bot,          href: "/student/ai-tutor" },
+  { id: "profile",     label: "Trang Cá Nhân",         icon: UserCheck,    href: "/student/profile" },
 ];
 
 const TEACHER_NAV = [
-  { id: "overview",     label: "Bàn Làm Việc",         icon: GraduationCap, href: null },
-  { id: "create_path",  label: "Tạo Lộ Trình Mới",     icon: BookOpen,      href: null },
-  { id: "upload_game",  label: "Nộp Game Engine",       icon: Gamepad2,      href: null },
-  { id: "ai_tutor",     label: "Trợ Lý AI Tutor",       icon: Bot,           href: "/dashbroad/teacher/AITutor" },
-  { id: "profile",      label: "Trang Cá Nhân",          icon: UserCheck,     href: "/dashbroad/teacher/profile" },
+  { id: "overview",     label: "Bảng Điều Khiển",      icon: GraduationCap, href: "/teacher/dashboard" },
+  { id: "create_path",  label: "Soạn Bài & Lộ Trình",  icon: BookOpen,      href: "/teacher/upload-center" },
+  { id: "upload_game",  label: "Nộp Game Engine",       icon: Gamepad2,      href: "/teacher/upload-center" },
+  { id: "ai_tutor",     label: "Trợ Lý AI Tutor",       icon: Bot,           href: "/teacher/ai-tutor" },
+  { id: "profile",      label: "Trang Cá Nhân",          icon: UserCheck,     href: "/teacher/profile" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ export default function DashboardSidebar({ role }: SidebarProps) {
 
   const isStudent = role === "student";
   const navItems = isStudent ? STUDENT_NAV : TEACHER_NAV;
-  const baseDashboardUrl = isStudent ? "/dashbroad/student" : "/dashbroad/teacher";
+  const baseDashboardUrl = isStudent ? "/student/dashboard" : "/teacher/dashboard";
   const isAtBaseDashboard = pathname === baseDashboardUrl;
 
   // Read tab state from the appropriate context

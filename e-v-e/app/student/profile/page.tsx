@@ -30,7 +30,7 @@ import {
 
 export default function StudentProfilePage() {
   const { currentUser, profile } = useAuthAdapter();
-  const displayName = currentUser?.name || profile?.fullName || "Học Sinh Explorer";
+  const displayName = currentUser?.name || profile?.fullName || "Học Viên";
   const displayEmail = currentUser?.email || "student@eve.edu.vn";
   const displayCoins = currentUser?.coins ?? profile?.coins ?? 250;
 
@@ -53,19 +53,19 @@ export default function StudentProfilePage() {
   }, []);
 
   const ownedFrames = [
-    { id: "frame_supernova_gold", name: "Khung Siêu Tân Tinh (Gold)", ringClass: "ring-4 ring-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.5)]" },
-    { id: "frame_quantum_neon", name: "Khung Lượng Tử Neon", ringClass: "ring-4 ring-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.5)]" },
+    { id: "frame_supernova_gold", name: "Khung Hoàng Kim (Gold)", ringClass: "ring-4 ring-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.5)]" },
+    { id: "frame_quantum_neon", name: "Khung Công Nghệ (Neon Blue)", ringClass: "ring-4 ring-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.5)]" },
     { id: "frame_default", name: "Mặc Định", ringClass: "ring-2 ring-slate-700" },
   ];
 
   const ownedBadges = [
-    { id: "badge_cosmic_legend", name: "Huyền Thoại Không Gian 🌟" },
-    { id: "badge_quantum_explorer", name: "Nhà Thám Hiểm Lượng Tử ⚛️" },
-    { id: "badge_flame_streak", name: "Ngọn Lửa Bất Diệt 🔥" },
+    { id: "badge_cosmic_legend", name: "Thủ Khoa Xuất Sắc 🌟" },
+    { id: "badge_quantum_explorer", name: "Chuyên Gia Thuật Toán 💡" },
+    { id: "badge_flame_streak", name: "Chuyên Cần & Bứt Phá 🔥" },
   ];
 
   const handleSaveEquipment = () => {
-    setSavedMsg("✅ Đã lưu cấu hình trang phục và huy hiệu thành công!");
+    setSavedMsg("✅ Đã lưu cấu hình khung avatar và huy hiệu thành công!");
     setTimeout(() => setSavedMsg(""), 3000);
   };
 

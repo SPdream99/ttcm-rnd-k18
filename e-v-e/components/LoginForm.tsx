@@ -31,13 +31,13 @@ export default function LoginForm() {
 
     setTimeout(() => {
       if (role === "student") {
-        window.location.href = "/dashbroad/student";
+        window.location.href = "/student/dashboard";
       } else if (role === "teacher") {
-        window.location.href = "/dashbroad/teacher";
+        window.location.href = res.user?.status === "pending" ? "/pending" : "/teacher/dashboard";
       } else if (role === "school" || role === "admin") {
-        window.location.href = "/dashbroad/school";
+        window.location.href = "/admin/dashboard";
       } else {
-        window.location.href = "/dashbroad/student";
+        window.location.href = "/student/dashboard";
       }
     }, 1000);
   };

@@ -55,7 +55,7 @@ const FALLBACK_USERS: AdminUserItem[] = [
     email: "an.nguyen@eve.edu.vn",
     role: "teacher",
     status: "active",
-    departmentOrClass: "Khoa Học Vũ Trụ",
+    departmentOrClass: "Khoa Học Tự Nhiên & Công Nghệ",
     createdAt: "10/08/2026",
   },
   {
