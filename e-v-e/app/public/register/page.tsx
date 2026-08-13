@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { setAuthCookie } from "@/lib/cookies";
 
 export default function RegisterPage() {
   const [role, setRole] = useState<"student" | "teacher">("student");
@@ -63,6 +64,8 @@ export default function RegisterPage() {
       setMessage(res.error || "Đăng ký thất bại.");
       return;
     }
+
+    setAuthCookie(res.user, true);
 
     if (role === "teacher") {
       setMessage("Đăng ký thành công! Đang chuyển hướng sang trang chờ duyệt...");

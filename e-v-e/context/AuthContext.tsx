@@ -11,6 +11,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import { setAuthCookie, removeAuthCookie } from "@/lib/cookies";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,7 +20,7 @@ export interface AuthUser {
   email: string;
   name: string;
   role: "student" | "teacher" | "admin" | "school";
-  status: string;
+  status: "pending" | "active" | "banned" | string;
   coins: number;
   profileDecorations: string[];
 }
@@ -47,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Set persistence dựa vào remember_me đã lưu khi login
-    const rememberMe = localStorage.getItem("eve_remember_me") === "true";
+    const rememberMe = typeof window !== "undefined" && localStorage.getItem("eve_remember_me") === "true";
     setPersistence(
       auth,
       rememberMe ? browserLocalPersistence : browserSessionPersistence
@@ -62,9 +63,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const snap = await getDoc(doc(db, "users", fbUser.uid));
+        let currentUserData: AuthUser;
         if (snap.exists()) {
           const data = snap.data();
-          setUser({
+          currentUserData = {
             uid: fbUser.uid,
             email: fbUser.email || "",
             name: data.name || data.fullName || "User",
@@ -72,10 +74,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             status: data.status || "active",
             coins: Number(data.coins) || 0,
             profileDecorations: data.profile_decorations || [],
-          });
+          };
         } else {
           // User tồn tại trong Auth nhưng chưa có Firestore document
-          setUser({
+          currentUserData = {
             uid: fbUser.uid,
             email: fbUser.email || "",
             name: fbUser.displayName || "User",
@@ -83,8 +85,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             status: "active",
             coins: 0,
             profileDecorations: [],
-          });
+          };
         }
+        setUser(currentUserData);
+        // Synchronize to cookie
+        setAuthCookie(currentUserData, rememberMe);
       } catch (err) {
         // Firestore error (thường do sign-out race condition) → treat as signed out
         setUser(null);
@@ -97,10 +102,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    // 1. Xóa localStorage trước
-    localStorage.removeItem("eve_remember_me");
-    localStorage.removeItem("eve_remembered_email");
-    localStorage.removeItem("eve_user");
+    // 1. Xóa cookie và localStorage trước
+    removeAuthCookie();
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("eve_remember_me");
+      localStorage.removeItem("eve_remembered_email");
+      localStorage.removeItem("eve_user");
+    }
 
     // 2. Clear state trước để các listener ngừng đọc Firestore
     setUser(null);

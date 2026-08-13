@@ -87,8 +87,8 @@ export default function Navbar() {
                   </div>
                 </div>
                 <div className="hidden sm:block text-left">
-                  <div className="text-xs font-bold text-white leading-tight">{displayName}</div>
-                  <div className="text-[10px] font-mono text-cyan-400">{displayRole}</div>
+                  <div className="text-xs font-bold text-white leading-tight" suppressHydrationWarning>{displayName}</div>
+                  <div className="text-[10px] font-mono text-cyan-400" suppressHydrationWarning>{displayRole}</div>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
               </button>
@@ -97,9 +97,9 @@ export default function Navbar() {
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#0f1524] border border-cyan-500/30 shadow-2xl p-3 space-y-2 z-50 animate-fade-in backdrop-blur-xl">
                   <div className="p-3 rounded-xl bg-[#151b2c] border border-slate-800 space-y-1">
-                    <div className="font-bold text-sm text-white truncate">{displayName}</div>
-                    <div className="text-xs text-slate-400 truncate">{displayEmail}</div>
-                    <span className="inline-block px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono border border-cyan-500/30 mt-1">
+                    <div className="font-bold text-sm text-white truncate" suppressHydrationWarning>{displayName}</div>
+                    <div className="text-xs text-slate-400 truncate" suppressHydrationWarning>{displayEmail}</div>
+                    <span className="inline-block px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono border border-cyan-500/30 mt-1" suppressHydrationWarning>
                       {displayRole}
                     </span>
                   </div>

@@ -137,12 +137,12 @@ export default function DashboardSidebar({ role }: SidebarProps) {
         {/* User Quick Info */}
         <div className="px-1 py-3 rounded-xl bg-[#151b2c] border border-[#7bd1fa]/10 flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <div className="text-xs font-bold text-white truncate">{displayName}</div>
+            <div className="text-xs font-bold text-white truncate" suppressHydrationWarning>{displayName}</div>
             <div className="text-[10px] font-mono text-slate-400 uppercase">{role}</div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <Coins className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-xs font-mono font-bold text-amber-300">{displayCoins}</span>
+            <span className="text-xs font-mono font-bold text-amber-300" suppressHydrationWarning>{displayCoins}</span>
           </div>
         </div>
 

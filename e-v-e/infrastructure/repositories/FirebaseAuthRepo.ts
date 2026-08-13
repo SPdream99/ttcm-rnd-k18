@@ -9,6 +9,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
+import { setAuthCookie } from "@/lib/cookies";
 
 export class FirebaseAuthRepo implements AuthPort {
   async login(credentials: LoginCredentials): Promise<{ success: boolean; user?: User; error?: string }> {
@@ -53,20 +54,24 @@ export class FirebaseAuthRepo implements AuthPort {
         userData = userDoc.data();
       }
 
+      const returnUser: User = {
+        id: user.uid,
+        uid: user.uid,
+        email: user.email || credentials.email,
+        name: userData.name || userData.fullName || "User",
+        displayName: userData.name || userData.fullName || "User",
+        role: userData.role || "student",
+        status: userData.status || "active",
+        coins: Number(userData.coins) || 0,
+        profileDecorations: userData.profile_decorations || [],
+        activeDecorations: userData.active_decorations || {},
+      };
+
+      setAuthCookie(returnUser, credentials.rememberMe);
+
       return {
         success: true,
-        user: {
-          id: user.uid,
-          uid: user.uid,
-          email: user.email || credentials.email,
-          name: userData.name || userData.fullName || "User",
-          displayName: userData.name || userData.fullName || "User",
-          role: userData.role || "student",
-          status: userData.status || "active",
-          coins: Number(userData.coins) || 0,
-          profileDecorations: userData.profile_decorations || [],
-          activeDecorations: userData.active_decorations || {},
-        },
+        user: returnUser,
       };
     } catch (error: any) {
       console.warn("Firebase Auth Login Error, attempting Firestore email lookup fallback...", error.message);
@@ -77,20 +82,24 @@ export class FirebaseAuthRepo implements AuthPort {
         if (!qSnap.empty) {
           const d = qSnap.docs[0];
           const userData = d.data();
+          const returnUser: User = {
+            id: d.id,
+            uid: userData.uid || userData._id || userData.id || d.id,
+            email: userData.email,
+            name: userData.name || userData.fullName || "User",
+            displayName: userData.name || userData.fullName || "User",
+            role: userData.role || "student",
+            status: userData.status || "active",
+            coins: Number(userData.coins) || 0,
+            profileDecorations: userData.profile_decorations || [],
+            activeDecorations: userData.active_decorations || {},
+          };
+
+          setAuthCookie(returnUser, credentials.rememberMe);
+
           return {
             success: true,
-            user: {
-              id: d.id,
-              uid: userData.uid || userData._id || userData.id || d.id,
-              email: userData.email,
-              name: userData.name || userData.fullName || "User",
-              displayName: userData.name || userData.fullName || "User",
-              role: userData.role || "student",
-              status: userData.status || "active",
-              coins: Number(userData.coins) || 0,
-              profileDecorations: userData.profile_decorations || [],
-              activeDecorations: userData.active_decorations || {},
-            },
+            user: returnUser,
           };
         }
       } catch (fallbackErr) {
@@ -131,20 +140,24 @@ export class FirebaseAuthRepo implements AuthPort {
 
       await setDoc(doc(db, "users", user.uid), payload);
 
+      const returnUser: User = {
+        id: user.uid,
+        uid: user.uid,
+        email: credentials.email,
+        name: credentials.fullName,
+        displayName: credentials.fullName,
+        role: credentials.role,
+        status: initialStatus,
+        coins: 0,
+        profileDecorations: [],
+        activeDecorations: { avatarFrame: "", badge: "" },
+      };
+
+      setAuthCookie(returnUser, true);
+
       return {
         success: true,
-        user: {
-          id: user.uid,
-          uid: user.uid,
-          email: credentials.email,
-          name: credentials.fullName,
-          displayName: credentials.fullName,
-          role: credentials.role,
-          status: initialStatus,
-          coins: 0,
-          profileDecorations: [],
-          activeDecorations: { avatarFrame: "", badge: "" },
-        },
+        user: returnUser,
       };
     } catch (error: any) {
       console.error("Firebase Register Error:", error);

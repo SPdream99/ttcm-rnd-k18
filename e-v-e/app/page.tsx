@@ -6,22 +6,25 @@ import Link from "next/link";
 import HeaderEffect from "@/components/HeaderEffect";
 import Navbar from "@/components/Navbar";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { getAuthCookie } from "@/lib/cookies";
 
 export default function Home() {
   const router = useRouter();
   const { currentUser, profile } = useAuthAdapter();
 
   useEffect(() => {
-    const user = currentUser || profile;
+    const user = currentUser || profile || getAuthCookie();
     if (user && user.email) {
       if (user.role === "teacher") {
         if ((user as any).status === "pending") {
-          router.push("/public/pending");
+          router.replace("/public/pending");
         } else {
-          router.push("/dashbroad/teacher");
+          router.replace("/dashbroad/teacher");
         }
+      } else if (user.role === "school" || user.role === "admin") {
+        router.replace("/dashbroad/school");
       } else {
-        router.push("/dashbroad/student");
+        router.replace("/dashbroad/student");
       }
     }
   }, [currentUser, profile, router]);

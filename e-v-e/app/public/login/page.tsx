@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { setAuthCookie } from "@/lib/cookies";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -40,6 +41,9 @@ export default function LoginPage() {
       setMessage(res.error || "Email hoặc mật khẩu không đúng.");
       return;
     }
+
+    // Ensure auth cookie is saved
+    setAuthCookie(res.user, rememberMe);
 
     const { role, status } = res.user;
 

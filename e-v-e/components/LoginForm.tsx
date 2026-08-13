@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { setAuthCookie } from "@/lib/cookies";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -22,6 +23,8 @@ export default function LoginForm() {
       setMessage(res.error || "Email hoặc mật khẩu không đúng.");
       return;
     }
+
+    setAuthCookie(res.user, true);
 
     setMessage("Đăng nhập thành công!");
     const role = res.user.role;

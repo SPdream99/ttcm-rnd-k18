@@ -8,6 +8,7 @@ import {
   UpdateUserProfileUseCase,
 } from "@/core/use-cases/AuthUseCases";
 import { User, UserProfile, LoginCredentials, RegisterCredentials } from "@/core/entities/User";
+import { getAuthCookie, setAuthCookie } from "@/lib/cookies";
 
 export function useAuthAdapter(userId?: string, customRepo?: AuthPort) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -22,7 +23,34 @@ export function useAuthAdapter(userId?: string, customRepo?: AuthPort) {
   const updateProfileUseCase = useMemo(() => new UpdateUserProfileUseCase(authRepo), [authRepo]);
 
   useEffect(() => {
-    authRepo.getCurrentUser().then(setCurrentUser).catch(() => {});
+    // 1. First populate immediately from cookie on client mount
+    const cached = getAuthCookie();
+    if (cached) {
+      setCurrentUser({
+        id: cached.uid || cached.id || "",
+        uid: cached.uid || cached.id || "",
+        email: cached.email,
+        name: cached.name || cached.fullName || "User",
+        displayName: cached.name || cached.fullName || "User",
+        role: cached.role,
+        status: (cached.status as "pending" | "active" | "banned") || "active",
+        coins: cached.coins || 0,
+        profileDecorations: cached.profileDecorations || [],
+        activeDecorations: cached.activeDecorations || {},
+      });
+    }
+
+    // 2. Fetch fresh user data from Firebase / repository
+    authRepo
+      .getCurrentUser()
+      .then((user) => {
+        if (user) {
+          setCurrentUser(user);
+          setAuthCookie(user);
+        }
+      })
+      .catch(() => {});
+
     if (userId) {
       getProfileUseCase.execute(userId).then(setProfile).catch(() => {});
     }
