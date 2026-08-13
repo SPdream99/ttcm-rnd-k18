@@ -10,11 +10,16 @@ export class MockAuthRepo implements AuthPort {
         email: credentials.email,
         name: "Người Dùng E-V-E",
         role: credentials.role || "student",
+        status: "active",
+        coins: 100,
+        profileDecorations: [],
+        activeDecorations: { avatarFrame: "", badge: "" },
       },
     };
   }
 
   async register(credentials: RegisterCredentials): Promise<{ success: boolean; user?: User; error?: string }> {
+    const initialStatus = credentials.role === "teacher" ? "pending" : "active";
     return {
       success: true,
       user: {
@@ -22,6 +27,10 @@ export class MockAuthRepo implements AuthPort {
         email: credentials.email,
         name: credentials.fullName,
         role: credentials.role,
+        status: initialStatus,
+        coins: 0,
+        profileDecorations: [],
+        activeDecorations: { avatarFrame: "", badge: "" },
       },
     };
   }
@@ -32,6 +41,10 @@ export class MockAuthRepo implements AuthPort {
       email: "user@eve-cosmic.edu.vn",
       name: "Trần Minh Đức",
       role: "student",
+      status: "active",
+      coins: 120,
+      profileDecorations: ["frame_star_01", "badge_rookie"],
+      activeDecorations: { avatarFrame: "frame_star_01", badge: "badge_rookie" },
     };
   }
 
@@ -46,6 +59,10 @@ export class MockAuthRepo implements AuthPort {
       bio: "Đam mê nghiên cứu Trí Tuệ Nhân Tạo & Vật Lý Lượng Tử.",
       departmentOrClass: "Lớp 12A1 - Chuyên Khoa Học Tự Nhiên",
       joinDate: "Tháng 9, 2024",
+      status: "active",
+      coins: 120,
+      profileDecorations: ["frame_star_01", "badge_rookie"],
+      activeDecorations: { avatarFrame: "frame_star_01", badge: "badge_rookie" },
     };
   }
 

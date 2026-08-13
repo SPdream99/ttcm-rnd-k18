@@ -19,117 +19,16 @@ import {
 
 
 export default function StudentAITutorPage() {
-  type Message = {
-    id: number;
-    sender: "user" | "ai";
-    text: string;
-    time: string;
-  };
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, isSending, sendMessage } = useAITutorAdapter();
   const [inputMessage, setInputMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const handleSendMessage = async () => {
 
-    // Không cho gửi message rỗng
+  const handleSendMessage = async () => {
     if (!inputMessage.trim()) {
       return;
     }
-
-    // Lưu lại câu hỏi trước khi clear input
-    const currentMessage = inputMessage;
-
-    // Tạo message của user
-    const userMessage: Message = {
-      id: Date.now(),
-      sender: "user",
-      text: currentMessage,
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-
-    // Hiển thị câu hỏi user
-    setMessages((prev) => [
-      ...prev,
-      userMessage,
-    ]);
-
-    // Xóa input
+    const msg = inputMessage;
     setInputMessage("");
-
-    // Loading
-    setLoading(true);
-
-    try {
-
-      // Gọi API Next.js
-      const response = await fetch("/api/tutor", {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-          message: currentMessage,
-        }),
-      });
-
-      const data = await response.json();
-console.log("API response:", data);
-      // Nếu API lỗi
-      if (!response.ok) {
-        throw new Error(
-          data.error || "AI Tutor error"
-        );
-      }
-
-      // Tạo message AI
-      const aiMessage: Message = {
-        id: Date.now() + 1,
-        sender: "ai",
-        text: data.reply,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-
-      // Hiển thị câu trả lời AI
-      setMessages((prev) => [
-        ...prev,
-        aiMessage,
-      ]);
-
-    } catch (error) {
-
-      console.error(
-        "AI Tutor error:",
-        error
-      );
-
-      // Hiển thị lỗi
-      const errorMessage: Message = {
-        id: Date.now() + 1,
-        sender: "ai",
-        text: "Xin lỗi, AI Tutor đang gặp lỗi. Vui lòng thử lại.",
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-
-      setMessages((prev) => [
-        ...prev,
-        errorMessage,
-      ]);
-
-    } finally {
-
-      setLoading(false);
-
-    }
+    await sendMessage(msg);
   };
 
 
@@ -239,7 +138,7 @@ console.log("API response:", data);
                 </div>
 
                 <p className="text-xs text-gray-500 mt-1">
-                  {msg.time}
+                  {msg.timestamp}
                 </p>
 
               </div>
@@ -251,7 +150,7 @@ console.log("API response:", data);
 
           {/* AI Loading */}
 
-          {loading && (
+          {isSending && (
 
             <div className="flex gap-3">
 
@@ -305,7 +204,7 @@ console.log("API response:", data);
                 }
 
               }}
-              disabled={loading}
+              disabled={isSending}
               className="flex-1 bg-[#151b2c] border border-[#7bd1fa]/20 rounded-xl px-4 py-3 text-sm text-white placeholder-[#8e9bb4] focus:outline-none focus:border-cyan-400 transition-all disabled:opacity-50"
             />
 
@@ -324,7 +223,7 @@ console.log("API response:", data);
               type="button"
               onClick={handleSendMessage}
               disabled={
-                loading ||
+                isSending ||
                 !inputMessage.trim()
               }
               className="p-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"

@@ -2,13 +2,23 @@
 
 import GetUserData from "@/components/GetUserData";
 import { useState } from "react";
-import { User, Award, Flame, Bell, Save,  } from "lucide-react";
+import { User, Award, Flame, Bell, Save } from "lucide-react";
 import Logout from "@/components/LogoutForm";
+import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 
 export default function StudentProfilePage() {
-  const { profile, updateProfile, loading } = useAuthAdapter("usr_student");
+  const { profile, updateProfile, loading: authLoading } = useAuthAdapter("usr_student");
   const [emailNotifications, setEmailNotifications] = useState(true);
-const { userData, loading } = GetUserData();
+  const { userData, loading: userLoading } = GetUserData();
+
+  const handleSave = () => {
+    if (profile) {
+      updateProfile(profile);
+    }
+  };
+
+  const loading = authLoading || userLoading;
+
   if (loading) {
     return <header>Loading...</header>;
   }

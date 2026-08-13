@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { MockAITutorRepo } from "@/infrastructure/repositories/MockAITutorRepo";
+import { ApiAITutorRepo } from "@/infrastructure/repositories/ApiAITutorRepo";
 import { InteractWithAITutorUseCase } from "@/core/use-cases/AITutorUseCases";
 import { ChatMessage, AITutorSubject } from "@/core/entities/AITutor";
 
@@ -9,7 +9,7 @@ export function useAITutorAdapter() {
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
 
-  const aiTutorRepo = useMemo(() => new MockAITutorRepo(), []);
+  const aiTutorRepo = useMemo(() => new ApiAITutorRepo(), []);
   const tutorUseCase = useMemo(() => new InteractWithAITutorUseCase(aiTutorRepo), [aiTutorRepo]);
 
   useEffect(() => {

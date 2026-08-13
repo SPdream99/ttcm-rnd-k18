@@ -1,139 +1,94 @@
-import Link from "next/link";
-import HeaderEffect from "@/components/HeaderEffect";
+import Link from 'next/link';
 
 export default function AboutPage() {
   return (
-    <>
-      <HeaderEffect />
-      {/* TopNavBar */}
-      <header
-        className="fixed top-0 w-full z-50 bg-surface-glass backdrop-blur-md border-b border-ice shadow-glow-primary transition-all duration-300"
-        id="main-header"
-      >
-        <div className="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-4 max-w-7xl mx-auto">
-          <Link
-            className="font-headline-md text-headline-md text-primary tracking-widest flex items-center gap-2"
-            href="/"
-          >
-            <span
-              className="material-symbols-outlined text-secondary"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              public
+    <div className="min-h-screen bg-[#0a0e1a] text-white p-6 md:p-12 font-sans selection:bg-sky-500 selection:text-black">
+      {/* Header */}
+      <header className="max-w-6xl mx-auto flex justify-between items-center pb-8 border-b border-sky-500/20 mb-12">
+        <div className="flex items-center gap-3">
+          <Link href="/public/demo" className="flex items-center gap-2 group">
+            <span className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-400/30 flex items-center justify-center text-sky-400 font-bold group-hover:scale-105 transition-transform">
+              ⚡
             </span>
-            E-V-E
+            <span className="font-mono text-2xl font-bold tracking-widest text-sky-400">E-V-E</span>
           </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="/"
-              className="text-on-surface-variant font-label-md hover:text-secondary transition-colors"
-            >
-              Home
-            </Link>
-            <Link
-              href="/#audiences"
-              className="text-on-surface-variant font-label-md hover:text-secondary transition-colors"
-            >
-              Đối Tượng
-            </Link>
-            <Link
-              href="/#features"
-              className="text-on-surface-variant font-label-md hover:text-secondary transition-colors"
-            >
-              Tính Năng
-            </Link>
-            <Link
-              href="/public/about"
-              className="text-primary border-b-2 border-primary pb-1 font-label-md hover:text-secondary transition-colors"
-            >
-              About
-            </Link>
-          </nav>
-          <div className="hidden md:flex items-center gap-4">
-            <Link href="/public/login">
-              <button className="text-on-surface-variant font-label-md hover:text-primary transition-colors px-4 py-2">
-                Login
-              </button>
-            </Link>
-            <Link href="/public/register">
-              <button className="btn-primary font-label-md rounded px-6 py-2">
-                Register
-              </button>
-            </Link>
-          </div>
+          <span className="text-slate-600 font-mono">/</span>
+          <span className="font-mono text-sm text-sky-300 tracking-wider">GIỚI THIỆU HỆ THỐNG</span>
         </div>
+
+        <Link
+          href="/public/demo"
+          className="px-5 py-2 rounded-full border border-slate-700 hover:border-sky-400 bg-slate-900/80 text-slate-300 hover:text-white font-mono text-xs transition-all"
+        >
+          ← Trang Chủ Demo
+        </Link>
       </header>
 
-      <main className="pt-32 pb-20 max-w-5xl mx-auto px-margin-mobile md:px-margin-desktop">
-        <section className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-ice bg-surface-glass mb-6">
-            <span className="material-symbols-outlined text-secondary text-sm">
-              info
-            </span>
-            <span className="font-label-sm text-secondary">
-              Về Hệ Sinh Thái E-V-E
-            </span>
+      {/* Main Content */}
+      <main className="max-w-5xl mx-auto space-y-12">
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-sky-500/10 border border-sky-400/30 text-sky-300 font-mono text-xs">
+            GLACIER GLASSMORPHISM • FROZEN LIGHT
           </div>
-          <h1 className="font-headline-lg text-4xl md:text-6xl stellar-text mb-6">
-            Sứ Mệnh Khai Phóng Tri Thức
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
+            Nền Tảng Giáo Dục Số Thế Hệ Mới E-V-E
           </h1>
-          <p className="font-body-lg text-on-surface-variant max-w-3xl mx-auto leading-relaxed">
-            E-V-E (Cosmic Knowledge Platform) được xây dựng với mục tiêu định hình
-            tương lai giáo dục số. Chúng tôi kết hợp trí tuệ nhân tạo (AI) tiên
-            tiến và trải nghiệm người dùng hiện đại để mang đến hành trình học tập
-            cá nhân hóa, khơi gợi trí tò mò và niềm yêu thích khám phá tri thức.
+          <p className="text-slate-400 max-w-3xl mx-auto text-base md:text-lg leading-relaxed font-light">
+            E-V-E kết nối chặt chẽ giữa 3 phân hệ chính: <strong className="text-purple-400">Nhà Trường (School Admin)</strong>, <strong className="text-emerald-400">Giảng Viên (Teacher)</strong>, và <strong className="text-sky-400">Học Sinh / Phụ Huynh (Student & Parents)</strong>.
           </p>
-        </section>
+        </div>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          <div className="glass-card rounded-2xl p-6 text-center">
-            <span className="material-symbols-outlined text-secondary text-4xl mb-4">
-              psychology
-            </span>
-            <h3 className="font-headline-md text-lg text-primary mb-2">
-              AI Cá Nhân Hóa
-            </h3>
-            <p className="font-body-sm text-on-surface-variant">
-              Tự động phân tích năng lực và xây dựng lộ trình học tập tối ưu cho
-              từng học sinh.
+        {/* Feature Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-8 rounded-3xl bg-[#0f1524]/60 border border-purple-500/30 backdrop-blur-xl space-y-4 shadow-xl">
+            <div className="w-14 h-14 rounded-2xl bg-purple-500/20 border border-purple-400 flex items-center justify-center text-purple-300 text-2xl font-bold">
+              🏫
+            </div>
+            <h3 className="text-xl font-bold text-white">Phân Hệ Nhà Trường</h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Nhà trường trực tiếp quản lý và cấp tài khoản riêng cho tất cả giáo viên và học sinh, giám sát toàn bộ hoạt động giảng dạy.
             </p>
+            <Link
+              href="/public/dashboard/school"
+              className="inline-block pt-2 text-xs font-mono text-purple-400 hover:underline"
+            >
+              Xem Dashboard Nhà Trường →
+            </Link>
           </div>
 
-          <div className="glass-card rounded-2xl p-6 text-center">
-            <span className="material-symbols-outlined text-secondary text-4xl mb-4">
-              hub
-            </span>
-            <h3 className="font-headline-md text-lg text-primary mb-2">
-              Hệ Sinh Thái Tích Hợp
-            </h3>
-            <p className="font-body-sm text-on-surface-variant">
-              Gắn kết Nhà trường, Giáo viên, Học sinh và Phụ huynh trên một nền
-              tảng dữ liệu thống nhất.
+          <div className="p-8 rounded-3xl bg-[#0f1524]/60 border border-emerald-500/30 backdrop-blur-xl space-y-4 shadow-xl">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-300 text-2xl font-bold">
+              👨‍🏫
+            </div>
+            <h3 className="text-xl font-bold text-white">Phân Hệ Giảng Viên</h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Soạn giáo án 4K, giao bài tập tự luận/trắc nghiệm, đăng thông báo lớp học và quản lý danh sách học sinh theo từng lớp.
             </p>
+            <Link
+              href="/public/dashboard/teacher"
+              className="inline-block pt-2 text-xs font-mono text-emerald-400 hover:underline"
+            >
+              Xem Dashboard Giảng Viên →
+            </Link>
           </div>
 
-          <div className="glass-card rounded-2xl p-6 text-center">
-            <span className="material-symbols-outlined text-secondary text-4xl mb-4">
-              auto_awesome
-            </span>
-            <h3 className="font-headline-md text-lg text-primary mb-2">
-              Giao Diện Tương Lai
-            </h3>
-            <p className="font-body-sm text-on-surface-variant">
-              Thiết kế trực quan, mượt mà giúp duy trì sự tập trung tối đa trong
-              quá trình tiếp thu tri thức.
+          <div className="p-8 rounded-3xl bg-[#0f1524]/60 border border-sky-500/30 backdrop-blur-xl space-y-4 shadow-xl">
+            <div className="w-14 h-14 rounded-2xl bg-sky-500/20 border border-sky-400 flex items-center justify-center text-sky-300 text-2xl font-bold">
+              🎓
+            </div>
+            <h3 className="text-xl font-bold text-white">Học Sinh & Phụ Huynh</h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Theo dõi lộ trình học cá nhân hóa (Learning Path), làm bài tập, chat tương tác với Trợ lý AI Tutor 24/7.
             </p>
+            <Link
+              href="/public/dashboard/student"
+              className="inline-block pt-2 text-xs font-mono text-sky-400 hover:underline"
+            >
+              Xem Dashboard Học Sinh →
+            </Link>
           </div>
-        </section>
-
-        <div className="text-center">
-          <Link href="/">
-            <button className="btn-primary rounded-lg px-8 py-3 font-headline-sm">
-              Trở Về Trang Chủ
-            </button>
-          </Link>
         </div>
       </main>
-    </>
+    </div>
   );
 }
