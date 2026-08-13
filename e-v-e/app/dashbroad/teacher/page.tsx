@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { useTeacherAdapter } from "@/hooks/useTeacherAdapter";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { useLearningPathAdapter } from "@/hooks/useLearningPathAdapter";
@@ -14,9 +13,8 @@ import {
   BookOpen,
   Gamepad2,
   Sparkles,
-  LogOut,
-  UserCheck,
 } from "lucide-react";
+import DashboardSidebar from "@/components/DashboardSidebar";
 
 export default function TeacherDashboard() {
   const { currentUser, profile } = useAuthAdapter();
@@ -110,74 +108,13 @@ export default function TeacherDashboard() {
         <div className="absolute bottom-10 left-10 w-96 h-96 bg-blue-600/10 rounded-full blur-[130px]" />
       </div>
 
-      {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-[#0f1524]/80 backdrop-blur-xl border-r border-[#7bd1fa]/15 z-40 p-5 flex flex-col justify-between">
-        <div className="space-y-8">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-500 p-[1px] shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-              <div className="w-full h-full bg-[#0a0e1a] rounded-[11px] flex items-center justify-center">
-                <GraduationCap className="w-5 h-5 text-emerald-400 animate-pulse" />
-              </div>
-            </div>
-            <div>
-              <h1 className="font-bold text-xl tracking-tight text-white flex items-center gap-1.5">
-                E-V-E <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">TEACHER</span>
-              </h1>
-              <p className="text-xs text-[#8e9bb4]">Educator Studio</p>
-            </div>
-          </div>
+      {/* Shared Sidebar */}
+      <DashboardSidebar
+        role="teacher"
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
+      />
 
-          <nav className="space-y-1.5">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all cursor-pointer ${
-                activeTab === "overview"
-                  ? "bg-gradient-to-r from-emerald-600/25 to-teal-500/15 text-emerald-300 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]"
-                  : "text-[#8e9bb4] hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <GraduationCap className="w-5 h-5 text-emerald-400" /> Bàn Làm Việc
-            </button>
-
-            <button
-              onClick={() => setActiveTab("create_path")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all cursor-pointer ${
-                activeTab === "create_path"
-                  ? "bg-gradient-to-r from-emerald-600/25 to-teal-500/15 text-emerald-300 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]"
-                  : "text-[#8e9bb4] hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <BookOpen className="w-5 h-5 text-emerald-400" /> Tạo Lộ Trình Mới
-            </button>
-
-            <button
-              onClick={() => setActiveTab("upload_game")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all cursor-pointer ${
-                activeTab === "upload_game"
-                  ? "bg-gradient-to-r from-emerald-600/25 to-teal-500/15 text-emerald-300 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.25)]"
-                  : "text-[#8e9bb4] hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Gamepad2 className="w-5 h-5 text-emerald-400" /> Nộp Game Engine
-            </button>
-
-            <Link
-              href="/dashbroad/student/profile"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-[#8e9bb4] hover:text-white hover:bg-white/5 transition-all"
-            >
-              <UserCheck className="w-5 h-5" /> Trang Cá Nhân
-            </Link>
-          </nav>
-        </div>
-
-        <div className="pt-6 border-t border-[#7bd1fa]/10 space-y-4">
-          <Link href="/public/login">
-            <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-mono transition-all cursor-pointer">
-              <LogOut className="w-3.5 h-3.5" /> Đăng Xuất Giảng Viên
-            </button>
-          </Link>
-        </div>
-      </aside>
 
       {/* Main Educator Workspace */}
       <main className="flex-1 p-4 md:p-8 z-10 space-y-8 overflow-y-auto">

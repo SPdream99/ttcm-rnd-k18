@@ -1,18 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import {
-  Rocket,
   BookOpen,
   Gamepad2,
   Trophy,
   ShoppingBag,
-  UserCheck,
   Coins,
   Flame,
   Award,
-  LogOut,
   Play,
   CheckCircle,
   Sparkles,
@@ -22,6 +18,7 @@ import { useLearningPathAdapter } from "@/hooks/useLearningPathAdapter";
 import { useGameAdapter } from "@/hooks/useGameAdapter";
 import { useGameResultAdapter } from "@/hooks/useGameResultAdapter";
 import { useShopAdapter } from "@/hooks/useShopAdapter";
+import DashboardSidebar from "@/components/DashboardSidebar";
 
 export default function StudentDashboard() {
   const { currentUser, profile } = useAuthAdapter();
@@ -88,96 +85,13 @@ export default function StudentDashboard() {
         }}
       />
 
-      {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-[#0f1524]/80 backdrop-blur-xl border-r border-[#7bd1fa]/15 p-6 flex flex-col justify-between z-10">
-        <div className="space-y-8">
-          {/* Brand */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 p-[1px] flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.4)]">
-              <div className="w-full h-full rounded-xl bg-[#0a0e1a] flex items-center justify-center">
-                <Rocket className="w-5 h-5 text-cyan-300" />
-              </div>
-            </div>
-            <div>
-              <span className="font-extrabold text-lg text-white tracking-widest block">E-V-E</span>
-              <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">Student Hub</span>
-            </div>
-          </div>
+      {/* Shared Sidebar */}
+      <DashboardSidebar
+        role="student"
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
+      />
 
-          {/* Navigation Items */}
-          <nav className="space-y-2 font-medium text-sm">
-            <button
-              onClick={() => setActiveTab("paths")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${
-                activeTab === "paths"
-                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-                  : "text-[#8e9bb4] hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <BookOpen className="w-4 h-4" /> Lộ Trình Học Tập
-            </button>
-
-            <button
-              onClick={() => setActiveTab("games")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${
-                activeTab === "games"
-                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-                  : "text-[#8e9bb4] hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Gamepad2 className="w-4 h-4" /> Game Engine Quiz
-            </button>
-
-            <button
-              onClick={() => setActiveTab("leaderboard")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${
-                activeTab === "leaderboard"
-                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-                  : "text-[#8e9bb4] hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Trophy className="w-4 h-4" /> Bảng Xếp Hạng Tháng
-            </button>
-
-            <button
-              onClick={() => setActiveTab("shop")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${
-                activeTab === "shop"
-                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-                  : "text-[#8e9bb4] hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <ShoppingBag className="w-4 h-4" /> Cửa Hàng Đổi Coin
-            </button>
-
-            <Link
-              href="/dashbroad/student/profile"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#8e9bb4] hover:text-white hover:bg-white/5 transition-all"
-            >
-              <UserCheck className="w-4 h-4" /> Trang Cá Nhân
-            </Link>
-          </nav>
-        </div>
-
-        {/* User Quick Info */}
-        <div className="pt-6 border-t border-[#7bd1fa]/10 space-y-4">
-          <div className="p-3 rounded-xl bg-[#151b2c] border border-[#7bd1fa]/15 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Coins className="w-4 h-4 text-amber-400" />
-              <span className="text-xs font-mono font-bold text-amber-300">{currentCoins} Coins</span>
-            </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-              {currentUser?.role || profile?.role || "STUDENT"}
-            </span>
-          </div>
-
-          <Link href="/public/login">
-            <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-mono transition-all cursor-pointer">
-              <LogOut className="w-3.5 h-3.5" /> Đăng Xuất
-            </button>
-          </Link>
-        </div>
-      </aside>
 
       {/* Main Workspace */}
       <main className="flex-1 p-4 md:p-8 z-10 space-y-8 overflow-y-auto">
