@@ -1,5 +1,5 @@
 import Link from "next/link";
-import HeaderEffect from "../../components/HeaderEffect";
+import HeaderEffect from "@/components/HeaderEffect";
 
 export default function AboutPage() {
   return (

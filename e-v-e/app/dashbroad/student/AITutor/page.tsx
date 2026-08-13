@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
+import { useAITutorAdapter } from "@/hooks/useAITutorAdapter";
 import {
   Bot,
   Send,
@@ -8,6 +9,7 @@ import {
   Mic,
   ThumbsUp,
   Copy,
+  Plus,
   MessageSquare,
   ChevronRight,
   Zap,
@@ -143,7 +145,6 @@ console.log("API response:", data);
 
       {/* Main Chat Interface */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[#0a0e1a]">
-        {/* Header */}
         <header className="p-4 bg-[#0f1524]/60 border-b border-[#7bd1fa]/15 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-400 to-blue-600 p-[1px]">
@@ -155,7 +156,7 @@ console.log("API response:", data);
               <h1 className="font-bold text-base text-white flex items-center gap-2">
                 Trợ Lý Học Tập AI E-V-E <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               </h1>
-              <p className="text-xs text-[#8e9bb4]">Được tối ưu hóa theo chương trình học của bạn</p>
+              <p className="text-xs text-[#8e9bb4]">Đồng hành 24/7 cùng lộ trình tri thức của bạn</p>
             </div>
           </div>
         </header>

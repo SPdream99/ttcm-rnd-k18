@@ -6,6 +6,7 @@ import { User, Award, Flame, Bell, Save,  } from "lucide-react";
 import Logout from "@/components/LogoutForm";
 
 export default function StudentProfilePage() {
+  const { profile, updateProfile, loading } = useAuthAdapter("usr_student");
   const [emailNotifications, setEmailNotifications] = useState(true);
 const { userData, loading } = GetUserData();
   if (loading) {
@@ -35,7 +36,7 @@ const { userData, loading } = GetUserData();
           <h2 className="text-xl font-bold text-white flex items-center justify-center sm:justify-start gap-2">
             {userData?.full_name} <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-xs border border-cyan-500/30"> {userData?.role}</span>
           </h2>
-          <p className="text-xs text-[#8e9bb4]">Mã SV: EVE-2026-8890 • Lớp: 12A1 Chuyên Lý</p>
+          <p className="text-xs text-[#8e9bb4]">{profile?.departmentOrClass || "Lớp 12A1 - Chuyên Khoa Học Tự Nhiên"}</p>
           <div className="flex items-center justify-center sm:justify-start gap-3 pt-1 text-xs text-amber-400 font-semibold">
             <span className="flex items-center gap-1"><Flame className="w-3.5 h-3.5" /> Chuỗi 7 ngày</span>
             <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-cyan-400" /> GPA 3.85/4.0</span>
@@ -78,10 +79,18 @@ const { userData, loading } = GetUserData();
               <div className="text-xs text-[#8e9bb4]">Nhắc nhở lịch học và hạn nộp bài tập</div>
             </div>
           </div>
-          <input type="checkbox" checked={emailNotifications} onChange={(e) => setEmailNotifications(e.target.checked)} className="w-5 h-5 accent-blue-600 cursor-pointer" />
+          <input
+            type="checkbox"
+            checked={emailNotifications}
+            onChange={(e) => setEmailNotifications(e.target.checked)}
+            className="w-5 h-5 accent-blue-600 cursor-pointer"
+          />
         </div>
 
-        <button className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium text-sm shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all flex items-center gap-2">
+        <button
+          onClick={handleSave}
+          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium text-sm shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all flex items-center gap-2"
+        >
           <Save className="w-4 h-4" /> Lưu Thay Đổi
         </button>
       </div>
