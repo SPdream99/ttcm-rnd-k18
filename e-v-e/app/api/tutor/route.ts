@@ -1,11 +1,65 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 
-// ── Smart Educator Knowledge Engine for Programming & Tech (Fallback & Offline Intelligence) ──
+// ── Smart Conversational & Computational Intelligence Engine ──
+function solveMathExpression(text: string): string | null {
+  const cleaned = text.replace(/=/g, "").replace(/\?/g, "").trim();
+  // Match patterns like "1+1", "25 * 4", "100 / 2", "5 - 3", "2^3", "sqrt(16)", "10 + 20 - 5"
+  const mathRegex = /^([0-9\.\s\+\-\*\/\(\)\^\%]+)$/;
+  if (mathRegex.test(cleaned) && /[0-9]/.test(cleaned) && /[\+\-\*\/\^\%]/.test(cleaned)) {
+    try {
+      // Safe sanitized eval for basic math only
+      const safeExpr = cleaned.replace(/\^/g, "**");
+      // Only allow numbers and basic math operators
+      if (/^[0-9\.\s\+\-\*\/\(\)\%]+$/.test(safeExpr)) {
+        // eslint-disable-next-line no-eval
+        const result = Function(`'use strict'; return (${safeExpr})`)();
+        if (typeof result === "number" && !isNaN(result) && isFinite(result)) {
+          return `### 🧮 Kết quả phép tính:
+
+$$\\mathbf{${cleaned} = ${result}}$$
+
+**Giải thích:**
+- Thực hiện phép toán: \`${cleaned}\`
+- Kết quả chính xác là: **${result}**
+
+👉 Trong lập trình Python, bạn có thể tính trực tiếp bằng lệnh: \`print(${cleaned})\` nhé!`;
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
 function getIntelligentEducationalResponse(question: string, role: string = "student"): string {
   const q = question.toLowerCase().trim();
 
-  // 1. Python Variables & Data Types
+  // 1. Check math expressions first (e.g. "1+1", "1+1=", "50 * 2", "10 / 3")
+  const mathAnswer = solveMathExpression(question);
+  if (mathAnswer) return mathAnswer;
+
+  // 2. Greetings & Introductions
+  if (q === "hi" || q === "hello" || q === "chào" || q === "chào bạn" || q === "xin chào" || q === "hey") {
+    return `Chào bạn! 👋 Rất vui được đồng hành cùng bạn hôm nay.
+
+Tôi là **Trợ Lý AI E-V-E**, sẵn sàng giúp bạn:
+1. 🐍 **Học lập trình Python, Scratch & Tư duy thuật toán**
+2. 🖥️ **Khám phá phần cứng máy tính 3D & Công nghệ**
+3. 🧮 **Giải đáp toán học & logic vui nhộn**
+4. 🐞 **Tìm và sửa lỗi code (Debug)**
+
+Bạn muốn cùng tôi khám phá chủ đề nào trước?`;
+  }
+
+  // 3. Who are you? / Bạn là ai?
+  if (q.includes("bạn là ai") || q.includes("tên là gì") || q.includes("ai tutor")) {
+    return `Tôi là **E-V-E AI Tutor** - Người bạn trợ lý học tập thông minh được thiết kế riêng cho nền tảng giáo dục công nghệ E-V-E! 🤖
+
+Nhiệm vụ của tôi là giúp học sinh học lập trình dễ dàng, vui nhộn hơn thông qua các ví dụ trực quan, trò chơi và giải thích từng bước cặn kẽ.`;
+  }
+
+  // 4. Python Variables & Data Types
   if (q.includes("biến") || q.includes("variable") || q.includes("kiểu dữ liệu")) {
     return `### 💡 Khái niệm Biến số (Variables) trong Lập trình:
 
@@ -24,7 +78,7 @@ print("Xin chào", ten_hoc_sinh, "- Điểm của bạn là:", diem_so)
 👉 **Gợi ý thực hành:** Hãy thử tạo 2 biến \`a = 5\` và \`b = 10\`, sau đó in ra tổng \`a + b\` nhé!`;
   }
 
-  // 2. Loops (for / while)
+  // 5. Loops (for / while)
   if (q.includes("vòng lặp") || q.includes("loop") || q.includes("for") || q.includes("while")) {
     return `### 🔁 Vòng Lặp (Loops) trong Lập trình:
 
@@ -49,11 +103,11 @@ print("Đã hết năng lượng!")
 👉 **Ứng dụng trong Game:** Vòng lặp dùng để kiểm tra va chạm, cập nhật chuyển động nhân vật liên tục!`;
   }
 
-  // 3. Conditional statements (if-else)
+  // 6. Conditional statements (if-else)
   if (q.includes("điều kiện") || q.includes("if") || q.includes("else") || q.includes("so sánh")) {
     return `### 🔀 Câu Lệnh Điều Kiện (If - Else):
 
-Câu lệnh điều kiện giúp chương trình đưa ra **quyết định** dựa trên tình huống cụ thể (giống như "Nếu trời mưa thì mang ô, ngược lại thì đội mũ").
+Câu lệnh điều kiện giúp chương trình đưa ra **quyết định** dựa trên tình huống cụ thể (giống như *"Nếu trời mưa thì mang ô, ngược lại thì đội mũ"*).
 
 \`\`\`python
 diem_kiem_tra = 85
@@ -66,11 +120,11 @@ else:
     print("Cần cố gắng thêm ở bài sau nhé! 💪")
 \`\`\`
 
-👉 **Mẹo nhỏ:** Đừng quên thụt lề (indentation) 4 dấu cách sau dấu hai chấm \`:\` trong Python nhé!`;
+👉 **Mẹo nhỏ:** Đừng quên thụt lề 4 dấu cách sau dấu hai chấm \`:\` trong Python nhé!`;
   }
 
-  // 4. Computer Hardware & Components
-  if (q.includes("phần cứng") || q.includes("cpu") || q.includes("ram") || q.includes("gpu") || q.includes("ssd")) {
+  // 7. Computer Hardware & Components
+  if (q.includes("phần cứng") || q.includes("cpu") || q.includes("ram") || q.includes("gpu") || q.includes("ssd") || q.includes("máy tính")) {
     return `### 🖥️ Các Linh Kiện Phần Cứng Máy Tính Cơ Bản:
 
 1. **CPU (Bộ vi xử lý):** "Bộ não" của máy tính, chịu trách nhiệm tính toán và thực thi mọi câu lệnh.
@@ -82,7 +136,7 @@ else:
 👉 Bạn có thể vào phòng thí nghiệm **3D Hardware Assembly Lab** trong Lộ trình để tự tay lắp ráp các linh kiện này!`;
   }
 
-  // 5. Functions & Methods
+  // 8. Functions & Methods
   if (q.includes("hàm") || q.includes("function") || q.includes("def")) {
     return `### 📦 Hàm (Functions) - Tái Sử Dụng Mã Nguồn:
 
@@ -100,7 +154,19 @@ print("Tổng điểm thưởng nhận được là:", ket_qua) # In ra: 50
 \`\`\``;
   }
 
-  // 6. Teacher Assistance (Soạn bài, JSON pairs)
+  // 9. Debugging & Syntax Errors
+  if (q.includes("lỗi") || q.includes("error") || q.includes("debug") || q.includes("syntax")) {
+    return `### 🐞 Các Lỗi Thường Gặp Khi Học Lập Trình & Cách Sửa:
+
+1. **SyntaxError (Lỗi cú pháp):** Quên dấu hai chấm \`:\`, đóng mở ngoặc \`()\` không đủ hoặc viết sai từ khóa.
+2. **IndentationError (Lỗi thụt lề):** Thụt lề không đều giữa các dòng lệnh con trong hàm, if hoặc vòng lặp.
+3. **NameError (Biến chưa khai báo):** Dùng một biến trước khi gán giá trị cho nó hoặc gõ sai chính tả tên biến.
+4. **ZeroDivisionError (Chia cho 0):** Thực hiện phép chia cho số 0.
+
+👉 **Mẹo debug:** Hãy đọc kỹ thông báo lỗi ở dòng cuối cùng trong màn hình Console để biết chính xác lỗi xảy ra ở dòng nào nhé!`;
+  }
+
+  // 10. Teacher Assistance (Soạn bài, JSON pairs)
   if (role === "teacher" || q.includes("soạn") || q.includes("json pair") || q.includes("đề thi")) {
     return `### 📋 Gợi Ý Cặp Dữ Liệu (JSON Pairs) Cho Bài Giảng:
 
@@ -129,14 +195,21 @@ Thầy/Cô có thể tham khảo mẫu cặp câu hỏi dưới đây để nh�
 👉 Thầy/Cô chỉ cần dán các cặp này vào Tab 1 ở mục **Soạn Bài & Học Liệu** để hệ thống tự động bốc vào Game Quiz và Card Matching!`;
   }
 
-  // Default intelligent educational reply
-  return `Chào bạn! Tôi là Trợ Lý AI của E-V-E. 
+  // 11. General Questions with Helpful Step-by-Step Reasoning
+  return `### 💡 Trả Lời Về "${question}":
 
-Về câu hỏi **"${question}"**:
-- Trong khoa học máy tính và lập trình, đây là một chủ đề rất thú vị để rèn luyện tư duy logic.
-- Bạn có thể đặt các câu hỏi cụ thể hơn như: *"Cách viết vòng lặp for trong Python"*, *"Giải thích cấu tạo CPU"*, *"Sửa lỗi cú pháp SyntaxError"* hoặc *"Cách tạo một game mini"*.
+1. **Khái niệm & Ý nghĩa:**
+   - Trong học tập và tư duy máy tính, câu hỏi **"${question}"** giúp chúng ta hiểu sâu hơn về cách giải quyết vấn đề logic theo từng bước (Step-by-step).
 
-Bạn muốn tôi giải thích bằng ví dụ mã nguồn (code) hay hình ảnh trực quan nào? 🚀`;
+2. **Cách tiếp cận từng bước:**
+   - **Bước 1:** Xác định thông tin đầu vào (Input).
+   - **Bước 2:** Xử lý và tính toán theo quy tắc/thuật toán (Process).
+   - **Bước 3:** Đưa ra kết quả chính xác (Output).
+
+3. **Ví dụ thực tế:**
+   - Nếu áp dụng vào lập trình, bạn có thể dùng Python để mô phỏng và kiểm tra nhanh kết quả!
+
+👉 Bạn muốn tôi làm rõ thêm chi tiết nào hay viết code mẫu minh họa không?`;
 }
 
 export async function POST(req: Request) {
@@ -150,19 +223,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Không có câu hỏi được gửi" }, { status: 400 });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    // Check for math evaluation immediately
+    const directMath = solveMathExpression(message);
+    if (directMath) {
+      return NextResponse.json({
+        success: true,
+        reply: directMath,
+        source: "math-engine",
+      });
+    }
 
-    // If Gemini API Key is configured, attempt real Gemini API call
-    if (apiKey) {
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+
+    // 1. Try Gemini AI if key exists
+    if (geminiKey) {
       try {
-        const ai = new GoogleGenAI({ apiKey });
-        const systemPrompt = `Bạn là E-V-E AI Tutor - Trợ lý giáo dục dạy lập trình và khoa học máy tính cho học sinh & giáo viên tại Việt Nam.
-Hãy trả lời thân thiện, dễ hiểu, có ví dụ code ngắn gọn, định dạng Markdown đẹp, giải thích rõ ràng và khích lệ tư duy học tập.
+        const ai = new GoogleGenAI({ apiKey: geminiKey });
+        const systemInstruction = `Bạn là E-V-E AI Tutor - Trợ lý giáo dục dạy lập trình, toán học và khoa học máy tính cho học sinh & giáo viên tại Việt Nam.
+Hãy trả lời thân thiện, chính xác mọi câu hỏi (toán học, lập trình, khoa học, logic), có ví dụ code ngắn gọn, định dạng Markdown đẹp, giải thích rõ ràng và khích lệ tư duy học tập.
 Vai trò người dùng: ${role}.`;
 
         const response = await ai.models.generateContent({
           model: "gemini-2.5-flash",
-          contents: `${systemPrompt}\n\nCâu hỏi: ${message}`,
+          contents: `${systemInstruction}\n\nCâu hỏi của người dùng: ${message}`,
         });
 
         const replyText = response.text;
@@ -174,11 +258,38 @@ Vai trò người dùng: ${role}.`;
           });
         }
       } catch (geminiErr: any) {
-        console.warn("⚠️ Gemini API returned error, falling back to Education Knowledge Engine:", geminiErr.message);
+        console.warn("⚠️ Gemini API error, falling back:", geminiErr.message);
       }
     }
 
-    // Comprehensive Fallback / Offline Educator Response
+    // 2. Try OpenAI if key exists
+    if (openaiKey) {
+      try {
+        const openai = new OpenAI({ apiKey: openaiKey });
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: `Bạn là E-V-E AI Tutor dạy lập trình và khoa học cho trẻ em tại Việt Nam. Trả lời thân thiện, chính xác, định dạng Markdown đẹp.`,
+            },
+            { role: "user", content: message },
+          ],
+        });
+        const replyText = completion.choices[0]?.message?.content;
+        if (replyText) {
+          return NextResponse.json({
+            success: true,
+            reply: replyText,
+            source: "openai-api",
+          });
+        }
+      } catch (openAiErr: any) {
+        console.warn("⚠️ OpenAI error, falling back:", openAiErr.message);
+      }
+    }
+
+    // 3. Fallback to Comprehensive Local Intelligence Engine
     const fallbackReply = getIntelligentEducationalResponse(message, role);
 
     return NextResponse.json({
