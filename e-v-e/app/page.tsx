@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import HeaderEffect from '@/components/HeaderEffect';
 
 export default function Home() {
     return (

@@ -20,7 +20,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="bg-background text-on-surface min-h-screen flex items-center justify-center bg-nebula p-margin-mobile md:p-margin-desktop overflow-hidden">
+    <div className="bg-background text-on-surface min-h-screen flex flex-col items-center justify-center bg-nebula p-margin-mobile md:p-margin-desktop overflow-hidden relative">
       {/* Background Stars Effect */}
       <div
         className="absolute inset-0 z-0 opacity-30"
@@ -32,8 +32,7 @@ export default function LoginPage() {
       />
 
       {/* Login Container */}
-      <main className="w-full max-w-md relative z-10">
-
+      <main className="w-full max-w-md relative z-10 my-auto">
         {/* Brand Header */}
         <div className="text-center mb-stack-lg">
           <h1 className="font-headline-lg text-headline-lg text-primary tracking-widest uppercase mb-stack-sm drop-shadow-[0_0_15px_rgba(173,198,255,0.3)]">
@@ -56,24 +55,27 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setRole('student')}
-                className={`py-2 rounded-lg font-mono text-xs transition-all ${role === 'student' ? 'bg-sky-500 text-black font-bold shadow-md' : 'text-slate-400 hover:text-white'
-                  }`}
+                className={`py-2 rounded-lg font-mono text-xs transition-all ${
+                  role === 'student' ? 'bg-sky-500 text-black font-bold shadow-md' : 'text-slate-400 hover:text-white'
+                }`}
               >
                 🎓 Học Sinh
               </button>
               <button
                 type="button"
                 onClick={() => setRole('teacher')}
-                className={`py-2 rounded-lg font-mono text-xs transition-all ${role === 'teacher' ? 'bg-emerald-400 text-black font-bold shadow-md' : 'text-slate-400 hover:text-white'
-                  }`}
+                className={`py-2 rounded-lg font-mono text-xs transition-all ${
+                  role === 'teacher' ? 'bg-emerald-400 text-black font-bold shadow-md' : 'text-slate-400 hover:text-white'
+                }`}
               >
                 👨‍🏫 Giảng Viên
               </button>
               <button
                 type="button"
                 onClick={() => setRole('school')}
-                className={`py-2 rounded-lg font-mono text-xs transition-all ${role === 'school' ? 'bg-purple-400 text-black font-bold shadow-md' : 'text-slate-400 hover:text-white'
-                  }`}
+                className={`py-2 rounded-lg font-mono text-xs transition-all ${
+                  role === 'school' ? 'bg-purple-400 text-black font-bold shadow-md' : 'text-slate-400 hover:text-white'
+                }`}
               >
                 🏫 Nhà Trường
               </button>
@@ -111,23 +113,12 @@ export default function LoginPage() {
             🚀 Đăng Nhập Vào Dashboard
           </button>
         </form>
+      </main>
 
-        <div className="pt-4 border-t border-slate-800/80 text-center">
-          <Link
-            href="/public/demo"
-            className="text-xs font-mono text-sky-400 hover:underline"
-          >
-            Chưa có tài khoản? Xem Luồng Demo Người Dùng →
-          </Link>
-        </div>
-
-      </div>
-    </main>
-
-      {/* Footer */ }
-  <footer className="text-center font-mono text-xs text-slate-500 z-10 py-4">
-    © 2026 E-V-E EDUCATION PLATFORM • GLACIER GLASSMORPHISM
-  </footer>
-    </div >
+      {/* Footer */}
+      <footer className="text-center font-mono text-xs text-slate-500 z-10 py-4">
+        © 2026 E-V-E EDUCATION PLATFORM • GLACIER GLASSMORPHISM
+      </footer>
+    </div>
   );
 }

@@ -2,20 +2,18 @@
  * ENTITY: User
  *
  * Khớp với schema Firestore collection "users"
- * và security rules (role: 'student' | 'instructor' | 'admin')
+ * và security rules (role: 'student' | 'instructor' | 'admin' | 'school' | 'teacher')
  */
 
-export type UserRole = 'student' | 'instructor' | 'admin';
+export type UserRole = 'student' | 'instructor' | 'admin' | 'school' | 'teacher' | string;
 
 export interface User {
   id: string;
   email: string;
-  displayName: string;
+  displayName?: string;
+  name?: string;
   role: UserRole;
   avatarUrl?: string;
-<<<<<<< dev-anh
-  createdAt: Date;
-=======
   status?: "pending" | "active" | "banned";
   coins?: number;
   profileDecorations?: string[];
@@ -23,6 +21,7 @@ export interface User {
     avatarFrame?: string;
     badge?: string;
   };
+  createdAt?: Date | string;
 }
 
 export interface UserProfile {
@@ -57,5 +56,4 @@ export interface RegisterCredentials {
   confirmPass: string;
   role: "school" | "teacher" | "student";
   schoolCode?: string;
->>>>>>> local
 }
