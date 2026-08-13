@@ -22,11 +22,21 @@ const ADMIN_NAV = [
   { id: "approvals", label: "Duyệt Bài Học, Lộ Trình & Game", icon: CheckSquare,   href: "/admin/approvals" },
 ];
 
+import { useEffect } from "react";
+import { getAuthCookie } from "@/lib/cookies";
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { signOut } = useAuth();
   const { currentUser, profile } = useAuthAdapter();
+
+  useEffect(() => {
+    const cookieUser = getAuthCookie();
+    if (!cookieUser && !currentUser && !profile) {
+      router.replace("/login");
+    }
+  }, [currentUser, profile, router]);
 
   const displayName = currentUser?.name || (currentUser as any)?.fullName || profile?.fullName || "Quản Trị Viên";
   const displayEmail = currentUser?.email || "admin@eve.edu.vn";

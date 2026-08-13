@@ -37,7 +37,37 @@ export function middleware(request: NextRequest) {
     return "/student/dashboard";
   };
 
-  // 1. Backward compatibility redirects
+  // 1. Backward compatibility & generic dashboard redirects
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.redirect(new URL(getRoleDashboard(role, status), request.url));
+  }
+  if (pathname === "/dashbroad" || pathname === "/dashbroad/") {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.redirect(new URL(getRoleDashboard(role, status), request.url));
+  }
+  if (pathname.startsWith("/dashbroad/student")) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.redirect(new URL("/student/dashboard", request.url));
+  }
+  if (pathname.startsWith("/dashbroad/teacher")) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.redirect(new URL("/teacher/dashboard", request.url));
+  }
+  if (pathname.startsWith("/dashbroad/school") || pathname.startsWith("/dashbroad/admin")) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+  }
   if (pathname === "/public/login") {
     return NextResponse.redirect(new URL("/login", request.url));
   }
@@ -46,15 +76,6 @@ export function middleware(request: NextRequest) {
   }
   if (pathname === "/public/pending") {
     return NextResponse.redirect(new URL("/pending", request.url));
-  }
-  if (pathname.startsWith("/dashbroad/student")) {
-    return NextResponse.redirect(new URL("/student/dashboard", request.url));
-  }
-  if (pathname.startsWith("/dashbroad/teacher")) {
-    return NextResponse.redirect(new URL("/teacher/dashboard", request.url));
-  }
-  if (pathname.startsWith("/dashbroad/school")) {
-    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
   }
 
   // 2. Root path ('/') redirect for authenticated users
@@ -127,10 +148,13 @@ export const config = {
     "/login",
     "/register",
     "/pending",
+    "/dashboard",
+    "/dashboard/:path*",
+    "/dashbroad",
+    "/dashbroad/:path*",
     "/admin/:path*",
     "/teacher/:path*",
     "/student/:path*",
     "/public/:path*",
-    "/dashbroad/:path*",
   ],
 };

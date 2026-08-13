@@ -23,10 +23,22 @@ const TEACHER_NAV = [
   { id: "ai-tutor",       label: "Trợ Lý Giảng Dạy AI", icon: Bot,             href: "/teacher/ai-tutor" },
 ];
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { getAuthCookie } from "@/lib/cookies";
+
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { signOut } = useAuth();
   const { currentUser, profile } = useAuthAdapter();
+
+  useEffect(() => {
+    const cookieUser = getAuthCookie();
+    if (!cookieUser && !currentUser && !profile) {
+      router.replace("/login");
+    }
+  }, [currentUser, profile, router]);
 
   const displayName = currentUser?.name || (currentUser as any)?.fullName || profile?.fullName || "Giáo Viên";
   const displayEmail = currentUser?.email || "teacher@eve.edu.vn";

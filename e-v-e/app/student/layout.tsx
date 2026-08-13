@@ -27,10 +27,22 @@ const STUDENT_NAV = [
   { id: "profile",        label: "Hồ Sơ Cá Nhân",      icon: UserCheck,       href: "/student/profile" },
 ];
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { getAuthCookie } from "@/lib/cookies";
+
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { signOut } = useAuth();
   const { currentUser, profile } = useAuthAdapter();
+
+  useEffect(() => {
+    const cookieUser = getAuthCookie();
+    if (!cookieUser && !currentUser && !profile) {
+      router.replace("/login");
+    }
+  }, [currentUser, profile, router]);
 
   const displayName = currentUser?.name || (currentUser as any)?.fullName || profile?.fullName || "Học Sinh";
   const displayEmail = currentUser?.email || "student@eve.edu.vn";
