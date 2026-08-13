@@ -1,22 +1,54 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React, { useState } from "react";
+import Link from "next/link";
+import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'student' | 'teacher' | 'school'>('student');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const { login, loading } = useAuthAdapter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (role === 'school') {
-      window.location.href = '/public/dashboard/school';
-    } else if (role === 'teacher') {
-      window.location.href = '/public/dashboard/teacher';
-    } else {
-      window.location.href = '/public/dashboard/student';
+    setMessage("");
+
+    const res = await login({ email, pass: password });
+
+    if (!res.success || !res.user) {
+      setMessage(res.error || "Email hoặc mật khẩu không đúng.");
+      return;
     }
+
+    const { role, status } = res.user;
+
+    if (status === "banned") {
+      setMessage("Tài khoản của bạn đã bị ban hoặc khóa bởi Admin.");
+      return;
+    }
+
+    if (role === "teacher" && status === "pending") {
+      setMessage("Tài khoản đang chờ phê duyệt. Đang chuyển hướng...");
+      setTimeout(() => {
+        window.location.href = "/public/pending";
+      }, 1000);
+      return;
+    }
+
+    setMessage("Đăng nhập thành công! Đang vào trung tâm điều hành...");
+    setTimeout(() => {
+      if (role === "student") {
+        window.location.href = "/dashbroad/student";
+      } else if (role === "teacher") {
+        window.location.href = "/dashbroad/teacher";
+      } else if (role === "school" || role === "admin") {
+        // Redirect to school (Admin dashboard route)
+        window.location.href = "/dashbroad/school";
+      } else {
+        window.location.href = "/dashbroad/student";
+      }
+    }, 1000);
   };
 
   return (
@@ -25,8 +57,7 @@ export default function LoginPage() {
       <div
         className="absolute inset-0 z-0 opacity-30"
         style={{
-          backgroundImage:
-            "radial-gradient(white 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(white 1px, transparent 1px)",
           backgroundSize: "50px 50px",
         }}
       />
@@ -48,42 +79,11 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-xs font-mono text-slate-300 mb-1.5">Chọn Phân Hệ Đăng Nhập</label>
-            <div className="grid grid-cols-3 gap-2 p-1 rounded-xl bg-slate-950/80 border border-slate-800">
-              <button
-                type="button"
-                onClick={() => setRole('student')}
-                className={`py-2 rounded-lg font-mono text-xs transition-all ${
-                  role === 'student' ? 'bg-sky-500 text-black font-bold shadow-md' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                🎓 Học Sinh
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('teacher')}
-                className={`py-2 rounded-lg font-mono text-xs transition-all ${
-                  role === 'teacher' ? 'bg-emerald-400 text-black font-bold shadow-md' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                👨‍🏫 Giảng Viên
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('school')}
-                className={`py-2 rounded-lg font-mono text-xs transition-all ${
-                  role === 'school' ? 'bg-purple-400 text-black font-bold shadow-md' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                🏫 Nhà Trường
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-mono text-slate-300 mb-1.5">Email Được Cấp</label>
+            <label className="block text-xs font-mono text-slate-300 mb-1.5">
+              Email Chỉ Huy
+            </label>
             <input
               type="email"
               value={email}
@@ -95,7 +95,9 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-mono text-slate-300 mb-1.5">Mật Khẩu</label>
+            <label className="block text-xs font-mono text-slate-300 mb-1.5">
+              Mật Khẩu
+            </label>
             <input
               type="password"
               value={password}
@@ -108,11 +110,27 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full py-3.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold font-mono text-sm shadow-[0_0_25px_rgba(125,211,252,0.4)] transition-all hover:scale-[1.02]"
+            disabled={loading}
+            className="w-full py-3.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold font-mono text-sm shadow-[0_0_25px_rgba(125,211,252,0.4)] transition-all hover:scale-[1.02] disabled:opacity-50"
           >
-            🚀 Đăng Nhập Vào Dashboard
+            {loading ? "Đang xử lý..." : "🚀 Đăng Nhập"}
           </button>
         </form>
+
+        {message && (
+          <p className="text-center text-sm font-medium text-cyan-300 mt-4">
+            {message}
+          </p>
+        )}
+
+        <div className="pt-6 mt-6 border-t border-slate-800/80 text-center">
+          <Link
+            href="/public/register"
+            className="text-xs font-mono text-sky-400 hover:underline"
+          >
+            Chưa có tài khoản? Khởi tạo hồ sơ mới →
+          </Link>
+        </div>
       </main>
 
       {/* Footer */}
