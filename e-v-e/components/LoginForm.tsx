@@ -1,177 +1,35 @@
-"use client";
+  <aside className="w-full md:w-80 bg-[#0f1524]/80 backdrop-blur-xl border-r border-[#7bd1fa]/15 p-4 flex flex-col justify-between space-y-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-2">
+          <Bot className="w-6 h-6 text-cyan-400 animate-pulse" />
+          <h2 className="font-bold text-lg text-white">E-V-E AI Tutor</h2>
+        </div>
+        <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-bold border border-cyan-500/30">
+          v2.5 PRO
+        </span>
+      </div>
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
 
-export default function LoginForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [message, setMessage] = useState("");
-  const router = useRouter();
-  
-  const handleLogin = async (e: React.SyntheticEvent) => {
-    e.preventDefault();
-    setMessage("");
-    setLoading(true);
-//1 Check if the user exists in Firestore
-    try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-    const user = userCredential.user;
-    const userDoc = await getDoc(
-      doc(db, "users", user.uid)
-    );
-    
-    console.log("Document exists:", userDoc.exists());
-
-    if (!userDoc.exists()) {
-        setMessage(
-          "Tài khoản đăng nhập được nhưng chưa có thông tin người dùng."
-        );
-
-        setLoading(false);
-
-        return;
-      }
-
-    const userData = userDoc.data();
-    console.log("User Data:", userData);
-
-    const role = userData.role;
-    console.log("Role:", role);
-    if (!role) {
-        setMessage(
-          "Tài khoản chưa được cấu hình role."
-        );
-
-        setLoading(false);
-
-        return;
-      }
-
-// 7. Login successful
-    setMessage("Đăng nhập thành công!");
-
-// 8. Redirect based on role after a short delay
-    setTimeout(() => {
-      if (role === "student") {
-        window.location.href = "/dashbroad/student";
-      } else if (role === "teacher") {
-        window.location.href = "/dashbroad/teacher";
-      } else if (role === "parent") {
-        window.location.href = "/dashbroad/parent";
-      } else if (role === "admin") {
-        window.location.href = "/dashbroad/school";
-      } else {
-        setMessage("Role không hợp lệ!");
-      }
-    }, 1000);
-
-  } catch (error)  {
-      console.error("Login error:", error);
-
-      setMessage(
-        "Email hoặc mật khẩu không đúng."
-      );
-
-      setLoading(false);
-    }
-  };
-
-  return (
-          <div className="glass-card rounded-xl p-gutter lg:p-margin-desktop">
-            <form className="flex flex-col gap-stack-md" onSubmit={handleLogin}>
-              {/* Email */}
-              <div>
-                <label
-                  className="block font-label-md text-label-md text-on-surface-variant mb-stack-sm"
-                  htmlFor="email"
-                >
-                  Email
-                </label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-                    </svg>
-                  </span>
-                  <input
-                    className="glass-input w-full rounded-lg py-3 pl-10 pr-4 font-body-md text-body-md text-on-surface placeholder:text-outline-variant focus:ring-0"
-                    id="email"
-                    name="email"
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="navigator@eve.edu"
-                    required
-                    type="email"
-                  />
-                </div>
-              </div>
-              {/* Password */}
-              <div>
-                <div className="flex justify-between items-center mb-stack-sm">
-                  <label
-                    className="block font-label-md text-label-md text-on-surface-variant"
-                    htmlFor="password"
-                  >
-                    Mật khẩu
-                  </label>
-                  <Link
-                    href="/forgot-password"
-                    className="font-label-sm text-label-sm text-primary hover:text-secondary transition-colors duration-200"
-                  >
-                    Quên mật khẩu?
-                  </Link>
-                </div>
-                <div className="relative">
-
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                    </svg>
-                  </span>
-
-                  <input
-                    className="glass-input w-full rounded-lg py-3 pl-10 pr-10 font-body-md text-body-md text-on-surface placeholder:text-outline-variant focus:ring-0"
-                    id="password"
-                    name="password"
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    type={showPassword ? "text" : "password"}
-                  />
-
-                  <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors"
-                    onClick={() => setShowPassword(!showPassword)}
-                    type="button"
-                  >
-                    <span className="material-symbols-outlined">
-                      {showPassword ? "visibility" : "visibility_off"}
-                    </span>
-                  </button>
-
-                </div>
-              </div>
-
-              {/* Login Button */}
-              <button
-                className="w-full bg-[#005ac2] hover:bg-[#4d8eff] text-white font-label-md text-label-md py-3 rounded-lg mt-stack-sm transition-all duration-300 btn-glow border border-transparent hover:border-[#7dd3fc]"
-                type="submit"
-              >
-                {loading ? "Logging in..." : "Login"}
-              </button>
-                    {message && <p>{message}</p>}
-            </form>
+      {/* History Items */}
+      <div className="space-y-1.5 pt-2">
+        <div className="text-xs font-semibold text-[#8e9bb4] uppercase tracking-wider px-2 mb-2">Lịch sử hỏi đáp</div>
+        {historySessions.map((session) => (
+          <div
+            key={session.id}
+            onClick={() => setActiveSession(session.id)}
+            className={`p-3 rounded-xl cursor-pointer transition-all flex items-center justify-between gap-2 border ${activeSession === session.id
+              ? "bg-blue-600/20 border-cyan-400/40 text-white shadow-[0_0_15px_rgba(125,211,252,0.1)]"
+              : "border-transparent text-[#8e9bb4] hover:bg-white/5 hover:text-white"
+              }`}
+          >
+            <div className="flex items-center gap-2.5 truncate">
+              <MessageSquare className="w-4 h-4 shrink-0 text-cyan-400" />
+              <span className="text-xs font-medium truncate">{session.title}</span>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-50" />
           </div>
-  );
-}
+        ))}
+      </div>
+    </div>
+  </aside>
