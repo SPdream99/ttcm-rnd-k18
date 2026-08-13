@@ -3,7 +3,6 @@ import path from "path";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
-// 1. Parse .env.local manually to get FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY
 function loadEnvLocal() {
   const envPath = path.resolve(process.cwd(), ".env.local");
   if (fs.existsSync(envPath)) {
@@ -51,7 +50,6 @@ if (!getApps().length) {
   });
 }
 
-// Specify the named databaseId 'default'
 const db = getFirestore("default");
 
 const COLLECTIONS = [
@@ -65,13 +63,15 @@ const COLLECTIONS = [
   "enrollments",
 ];
 
-// Seed Data with uid included
+// Seed Data with document key matching internal id, _id & uid fields
 const SEED_DATA = {
   users: [
     {
+      id: "usr_admin_001",
       _id: "usr_admin_001",
       uid: "usr_admin_001",
       name: "Admin E-V-E",
+      fullName: "Admin E-V-E",
       email: "admin@eve.edu.vn",
       role: "admin",
       status: "active",
@@ -79,9 +79,11 @@ const SEED_DATA = {
       profile_decorations: ["item_frame_gold", "item_title_admin"],
     },
     {
+      id: "usr_teacher_001",
       _id: "usr_teacher_001",
       uid: "usr_teacher_001",
       name: "GS. Nguyễn Văn An",
+      fullName: "GS. Nguyễn Văn An",
       email: "teacher@eve.edu.vn",
       role: "teacher",
       status: "active",
@@ -89,9 +91,11 @@ const SEED_DATA = {
       profile_decorations: ["item_title_master"],
     },
     {
+      id: "usr_teacher_pending",
       _id: "usr_teacher_pending",
       uid: "usr_teacher_pending",
       name: "Thầy Trần Văn Bình",
+      fullName: "Thầy Trần Văn Bình",
       email: "teacher_pending@eve.edu.vn",
       role: "teacher",
       status: "pending",
@@ -99,9 +103,11 @@ const SEED_DATA = {
       profile_decorations: [],
     },
     {
+      id: "usr_student_001",
       _id: "usr_student_001",
       uid: "usr_student_001",
       name: "Học Sinh Explorer",
+      fullName: "Học Sinh Explorer",
       email: "student@eve.edu.vn",
       role: "student",
       status: "active",
@@ -111,6 +117,8 @@ const SEED_DATA = {
   ],
   shop_items: [
     {
+      id: "item_frame_cosmic_01",
+      _id: "item_frame_cosmic_01",
       item_id: "item_frame_cosmic_01",
       name: "Khung Vũ Trụ Lấp Lánh",
       price: 100,
@@ -118,6 +126,8 @@ const SEED_DATA = {
       image_url: "/assets/shop/frames/cosmic_glow.png",
     },
     {
+      id: "item_frame_gold",
+      _id: "item_frame_gold",
       item_id: "item_frame_gold",
       name: "Khung Hoàng Gia Vàng",
       price: 300,
@@ -125,6 +135,8 @@ const SEED_DATA = {
       image_url: "/assets/shop/frames/royal_gold.png",
     },
     {
+      id: "item_title_explorer",
+      _id: "item_title_explorer",
       item_id: "item_title_explorer",
       name: "Danh hiệu: Nhà Khám Phá Vũ Trụ",
       price: 50,
@@ -132,6 +144,8 @@ const SEED_DATA = {
       image_url: "/assets/shop/titles/explorer.png",
     },
     {
+      id: "item_title_master",
+      _id: "item_title_master",
       item_id: "item_title_master",
       name: "Danh hiệu: Bậc Thầy Lượng Tử",
       price: 200,
@@ -142,6 +156,7 @@ const SEED_DATA = {
   courses: [
     {
       id: "crs_quantum_101",
+      _id: "crs_quantum_101",
       course_id: "crs_quantum_101",
       title: "Vật Lý Lượng Tử Cơ Bản",
       author_id: "usr_teacher_001",
@@ -176,6 +191,7 @@ const SEED_DATA = {
     },
     {
       id: "crs_astrophysics",
+      _id: "crs_astrophysics",
       course_id: "crs_astrophysics",
       title: "Vật Lý Thiên Văn & Hố Đen",
       author_id: "usr_teacher_001",
@@ -200,6 +216,8 @@ const SEED_DATA = {
   ],
   learning_path: [
     {
+      id: "lpath_quantum_physics",
+      _id: "lpath_quantum_physics",
       lpath_id: "lpath_quantum_physics",
       title: "Lộ Trình Nhập Môn Vật Lý Lượng Tử",
       description: "Hành trình từ Cơ học cổ điển đến các khái niệm Vướng víu Lượng tử và Máy tính Lượng tử.",
@@ -211,6 +229,7 @@ const SEED_DATA = {
   resources: [
     {
       id: "res_quantum_pdf_01",
+      _id: "res_quantum_pdf_01",
       courseId: "crs_quantum_101",
       title: "Slide Bài Giảng Vật Lý Lượng Tử Chapter 1",
       description: "Tài liệu tổng hợp công thức và bài tập mẫu.",
@@ -223,6 +242,8 @@ const SEED_DATA = {
   ],
   game_info: [
     {
+      id: "game_space_quiz_3d",
+      _id: "game_space_quiz_3d",
       game_id: "game_space_quiz_3d",
       authors: ["GS. Nguyễn Văn An", "Nhóm Dev EVE"],
       title: "Bắn Tháp Vũ Trụ Quiz 3D",
@@ -237,6 +258,8 @@ const SEED_DATA = {
   ],
   game_results: [
     {
+      id: "res_student_001",
+      _id: "res_student_001",
       uid: "usr_student_001",
       cid: "crs_quantum_101",
       gid: "game_space_quiz_3d",
@@ -247,6 +270,8 @@ const SEED_DATA = {
   ],
   enrollments: [
     {
+      id: "enr_student_001",
+      _id: "enr_student_001",
       uid: "usr_student_001",
       lpath_id: "lpath_quantum_physics",
       enrollment_date: new Date().toISOString(),
@@ -271,28 +296,19 @@ async function deleteCollection(collectionName) {
 async function resetAndSeedFirestore() {
   console.log("🚀 Đang khởi động quá trình Reset & Seed Firestore Database...");
 
-  // Step 1: Clear all collections
   for (const col of COLLECTIONS) {
     await deleteCollection(col);
   }
 
-  // Step 2: Seed new documents
   console.log("\n🌱 Đang nạp dữ liệu mẫu cấu hình mới vào Firestore...");
 
   for (const [colName, docs] of Object.entries(SEED_DATA)) {
     for (const data of docs) {
-      let docId;
-      if (colName === "users") docId = data._id || data.uid;
-      else if (colName === "shop_items") docId = data.item_id;
-      else if (colName === "courses") docId = data.id || data.course_id;
-      else if (colName === "learning_path") docId = data.lpath_id;
-      else if (colName === "resources") docId = data.id;
-      else if (colName === "game_info") docId = data.game_id;
-      else docId = `${colName}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      let docId = data.id || data._id || data.uid || data.course_id || data.lpath_id || data.game_id || data.item_id;
 
       await db.collection(colName).doc(docId).set(data);
     }
-    console.log(`✅ Collection '${colName}': Nạp thành công ${docs.length} tài liệu mới.`);
+    console.log(`✅ Collection '${colName}': Nạp thành công ${docs.length} tài liệu mới với Document Key = ID.`);
   }
 
   console.log("\n🎉 HOÀN TẤT! Firestore Database đã được Reset & Cấu hình theo đúng schema mới.");

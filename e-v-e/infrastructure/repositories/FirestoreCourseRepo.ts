@@ -2,7 +2,6 @@ import {
   doc,
   getDoc,
   setDoc,
-  addDoc,
   updateDoc,
   deleteDoc,
   getDocs,
@@ -18,7 +17,7 @@ import { CoursePort } from "@/core/ports/CoursePort";
 function mapDocToCourse(docId: string, data: any): Course {
   return {
     id: docId,
-    courseId: data.course_id || "",
+    courseId: data.course_id || data.id || docId,
     title: data.title || "",
     japaneseTitle: data.japanese_title || "",
     subtitle: data.subtitle || "",
@@ -52,8 +51,11 @@ function mapCourseToDoc(
     updatedAt?: Date;
   }
 ) {
+  const cid = course.courseId || `crs_${Date.now()}`;
   return {
-    course_id: course.courseId,
+    id: cid,
+    _id: cid,
+    course_id: cid,
     title: course.title,
     japanese_title: course.japaneseTitle || "",
     subtitle: course.subtitle || "",
@@ -92,14 +94,19 @@ export class FirestoreCourseRepo implements CoursePort {
 
   async getCourseByCustomId(courseId: string): Promise<Course | null> {
     try {
+      const docRef = doc(db, "courses", courseId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return mapDocToCourse(docSnap.id, docSnap.data());
+      }
       const q = query(
         collection(db, "courses"),
         where("course_id", "==", courseId)
       );
       const querySnapshot = await getDocs(q);
       if (querySnapshot.empty) return null;
-      const docSnap = querySnapshot.docs[0];
-      return mapDocToCourse(docSnap.id, docSnap.data());
+      const snap = querySnapshot.docs[0];
+      return mapDocToCourse(snap.id, snap.data());
     } catch (error) {
       console.error("Firestore getCourseByCustomId error:", error);
       return null;
@@ -110,15 +117,20 @@ export class FirestoreCourseRepo implements CoursePort {
     course: Omit<Course, "id" | "createdAt" | "updatedAt">
   ): Promise<Course> {
     const docData = mapCourseToDoc(course);
-    const docRef = await addDoc(collection(db, "courses"), docData);
-    const docSnap = await getDoc(docRef);
+    const cid = docData.course_id;
+    await setDoc(doc(db, "courses", cid), docData);
+    const docSnap = await getDoc(doc(db, "courses", cid));
     return mapDocToCourse(docSnap.id, docSnap.data()!);
   }
 
   async updateCourse(id: string, course: Partial<Course>): Promise<Course> {
     const docRef = doc(db, "courses", id);
     const updateData: any = {};
-    if (course.courseId !== undefined) updateData.course_id = course.courseId;
+    if (course.courseId !== undefined) {
+      updateData.course_id = course.courseId;
+      updateData.id = course.courseId;
+      updateData._id = course.courseId;
+    }
     if (course.title !== undefined) updateData.title = course.title;
     if (course.japaneseTitle !== undefined)
       updateData.japanese_title = course.japaneseTitle;

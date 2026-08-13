@@ -36,6 +36,8 @@ export class FirestoreGameResultRepo implements GameResultPort {
     const playedAtStr = new Date().toISOString();
 
     const payload = {
+      id: resultId,
+      _id: resultId,
       uid: input.uid,
       cid: input.cid,
       gid: input.gid,
@@ -46,7 +48,6 @@ export class FirestoreGameResultRepo implements GameResultPort {
 
     await setDoc(newDocRef, payload);
 
-    // Atomically increment student coins in users collection if reward > 0
     if (input.reward > 0) {
       try {
         const userRef = doc(db, "users", input.uid);
@@ -137,11 +138,18 @@ export class FirestoreGameResultRepo implements GameResultPort {
         let name = "Học sinh";
         let email = "";
         try {
-          const uSnap = await getDocs(query(collection(db, "users"), where("_id", "==", uid)));
+          const uSnap = await getDocs(query(collection(db, "users"), where("id", "==", uid)));
           if (!uSnap.empty) {
             const uData = uSnap.docs[0].data();
-            name = uData.name || name;
+            name = uData.name || uData.fullName || name;
             email = uData.email || email;
+          } else {
+            const uSnap2 = await getDocs(query(collection(db, "users"), where("_id", "==", uid)));
+            if (!uSnap2.empty) {
+              const uData2 = uSnap2.docs[0].data();
+              name = uData2.name || uData2.fullName || name;
+              email = uData2.email || email;
+            }
           }
         } catch (_) {}
 

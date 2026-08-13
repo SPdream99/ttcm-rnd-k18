@@ -7,7 +7,6 @@ import { db, auth } from "@/lib/firebase";
 export class FirebaseAuthRepo implements AuthPort {
   async login(credentials: LoginCredentials): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      // 1. Try Firebase Auth sign in
       const userCredential = await signInWithEmailAndPassword(
         auth,
         credentials.email,
@@ -20,17 +19,17 @@ export class FirebaseAuthRepo implements AuthPort {
       let userData: any;
 
       if (!userDoc.exists()) {
-        // Query by uid field or email if doc id is different
         const q = query(collection(db, "users"), where("uid", "==", user.uid));
         const qSnap = await getDocs(q);
         if (!qSnap.empty) {
           userData = qSnap.docs[0].data();
         } else {
-          // If no doc in Firestore yet, create default profile
           userData = {
+            id: user.uid,
             _id: user.uid,
             uid: user.uid,
             name: user.displayName || "User",
+            fullName: user.displayName || "User",
             email: user.email,
             role: credentials.role || "student",
             status: "active",
@@ -61,7 +60,6 @@ export class FirebaseAuthRepo implements AuthPort {
     } catch (error: any) {
       console.warn("Firebase Auth Login Error, attempting Firestore email lookup fallback...", error.message);
       
-      // Fallback: Query Firestore users collection by email for pre-seeded test accounts
       try {
         const q = query(collection(db, "users"), where("email", "==", credentials.email));
         const qSnap = await getDocs(q);
@@ -72,7 +70,7 @@ export class FirebaseAuthRepo implements AuthPort {
             success: true,
             user: {
               id: d.id,
-              uid: userData.uid || userData._id || d.id,
+              uid: userData.uid || userData._id || userData.id || d.id,
               email: userData.email,
               name: userData.name || userData.fullName || "User",
               displayName: userData.name || userData.fullName || "User",
@@ -107,6 +105,7 @@ export class FirebaseAuthRepo implements AuthPort {
       const initialStatus = credentials.role === "teacher" ? "pending" : "active";
 
       const payload = {
+        id: user.uid,
         _id: user.uid,
         uid: user.uid,
         name: credentials.fullName,
@@ -169,7 +168,7 @@ export class FirebaseAuthRepo implements AuthPort {
     const data = userDoc.data() || {};
     return {
       id: userId,
-      uid: data.uid || data._id || userId,
+      uid: data.uid || data._id || data.id || userId,
       fullName: data.name || data.fullName || "User",
       email: data.email || "",
       phone: data.phone || "",
@@ -188,6 +187,9 @@ export class FirebaseAuthRepo implements AuthPort {
   async updateUserProfile(profile: UserProfile): Promise<{ success: boolean; profile: UserProfile }> {
     const dbProfile = {
       ...profile,
+      id: profile.id,
+      _id: profile.id,
+      uid: profile.uid || profile.id,
       profile_decorations: profile.profileDecorations || [],
       active_decorations: profile.activeDecorations || {},
     };
