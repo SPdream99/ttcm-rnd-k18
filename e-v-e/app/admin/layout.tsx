@@ -17,9 +17,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 
 const ADMIN_NAV = [
-  { id: "dashboard", label: "Tổng Quan Quản Trị", icon: LayoutDashboard, href: "/admin/dashboard" },
+  { id: "dashboard", label: "Tổng Quan Hệ Thống", icon: LayoutDashboard, href: "/admin/dashboard" },
   { id: "users",     label: "Quản Lý Người Dùng & Duyệt GV", icon: Users,           href: "/admin/users" },
-  { id: "approvals", label: "Duyệt Course, Path & Game",    icon: CheckSquare,     href: "/admin/approvals" },
+  { id: "approvals", label: "Duyệt Bài Học, Lộ Trình & Game", icon: CheckSquare,   href: "/admin/approvals" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -40,17 +40,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-3 px-1">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 p-[1px] shadow-[0_0_20px_rgba(244,63,94,0.35)]">
               <div className="w-full h-full bg-[#0a0e1a] rounded-[11px] flex items-center justify-center">
-                <Shield className="w-5 h-5 text-rose-400 animate-pulse" />
+                <Shield className="w-5 h-5 text-rose-400" />
               </div>
             </div>
             <div>
               <h2 className="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
                 E-V-E{" "}
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-rose-500/30 bg-rose-500/20 text-rose-300 font-mono">
-                  ADMIN
+                  QUẢN TRỊ
                 </span>
               </h2>
-              <p className="text-[11px] text-[#8e9bb4]">Command & Control</p>
+              <p className="text-[11px] text-[#8e9bb4]">Hệ thống quản trị</p>
             </div>
           </div>
 

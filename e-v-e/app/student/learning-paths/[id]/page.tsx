@@ -3,7 +3,7 @@
 import React, { useState, use } from "react";
 import Link from "next/link";
 import {
-  Map,
+  BookOpen,
   Lock,
   Unlock,
   CheckCircle2,
@@ -15,9 +15,10 @@ import {
   Star,
   Gift,
   Compass,
-  ArrowDown,
-  ArrowRight,
-  ShieldAlert,
+  FileText,
+  ExternalLink,
+  Code,
+  Video,
 } from "lucide-react";
 
 interface PathDetailPageProps {
@@ -35,6 +36,11 @@ interface PathCourseNode {
   completedGamesCount: number; // Số trò chơi đã hoàn thành (x)
   isUnlocked: boolean;         // Đã mở khóa hay chưa
   isCompleted: boolean;        // Đã hoàn thành 100% (x >= y)
+  resources: {
+    title: string;
+    url: string;
+    type: "pdf" | "video" | "code" | "slide" | "link";
+  }[];
   compatibleGames: {
     id: string;
     title: string;
@@ -49,66 +55,79 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
 
   const [pathInfo] = useState({
     id: pathId,
-    title: "Chinh Phục Vật Lý Lượng Tử K18 🌌",
-    description: "Bản đồ thám hiểm không gian: Vượt qua từng trạm kiến thức bằng cách hoàn thành các trò chơi để mở khóa chặng tiếp theo và đoạt Kho Báu Vũ Trụ!",
+    title: "Lộ Trình: Lập Trình & Khoa Học Máy Tính Cho Trẻ Em 🚀",
+    description: "Lộ trình học tập trực quan từng bước: Học lý thuyết qua tài liệu, hoàn thành các trò chơi thực hành để mở khóa bài học tiếp theo và nhận phần thưởng hoàn thành lộ trình!",
     authorName: "ThS. Phạm Hoàng Nam",
     rewardCoins: 150,
   });
 
-  // Course sequence data with unlock status and x/y game progress
-  const [courses, setCourses] = useState<PathCourseNode[]>([
+  // Course sequence data with unlock status, resources, and x/y game progress
+  const [courses] = useState<PathCourseNode[]>([
     {
-      id: "crs_quantum_101",
+      id: "crs_coding_basics",
       order: 1,
-      title: "Trạm 01: Hiện Tượng Quang Điện & Lưỡng Tính Sóng Hạt",
-      description: "Khám phá bản chất hạt của ánh sáng qua hiện tượng quang điện ngoài và công thức Einstein.",
-      requiredGamesCount: 2,
-      completedGamesCount: 2, // Đã hoàn thành 2/2 -> Mở khóa trạm 2
+      title: "Bài 1: Nhập Môn Tư Duy Lập Trình & Thuật Toán",
+      description: "Làm quen với các khái niệm lập trình cơ bản: tuần tự, biến số, câu lệnh điều kiện và cách máy tính suy nghĩ.",
+      requiredGamesCount: 1,
+      completedGamesCount: 1, // Đã hoàn thành 1/1 -> Mở khóa Bài 2
       isUnlocked: true,
       isCompleted: true,
+      resources: [
+        { title: "Slide Bài Giảng: Nhập Môn Thuật Toán", url: "https://docs.google.com/presentation", type: "slide" },
+        { title: "Tài Liệu Đọc: Khái Niệm Biến Số", url: "https://github.com", type: "pdf" },
+      ],
       compatibleGames: [
-        { id: "game_space_quiz_3d", title: "Space Flight Quiz 3D", type: "3D Action Quiz", reward: "+50 Coins" },
-        { id: "game_card_match_vr", title: "Quantum Memory Matrix", type: "Card Match", reward: "+40 Coins" },
+        { id: "game_card_match_vr", title: "Ghép Cặp Thẻ Bài Thuật Toán", type: "Card Matching", reward: "+40 Coins" },
       ],
     },
     {
-      id: "crs_heisenberg",
+      id: "crs_computer_hardware",
       order: 2,
-      title: "Trạm 02: Nguyên Lý Bất Định Heisenberg & Hàm Sóng Schrödinger",
-      description: "Hiểu về mối quan hệ giữa vị trí và xung lượng của hạt vi mô cùng phương trình sóng lượng tử.",
+      title: "Bài 2: Khám Phá Phần Cứng & Kiến Trúc Máy Tính 3D",
+      description: "Tìm hiểu cấu tạo bên trong máy tính: CPU, RAM, Card đồ họa GPU, Ổ cứng SSD và cách các linh kiện phối hợp.",
       requiredGamesCount: 2,
-      completedGamesCount: 1, // Đang học 1/2 -> Chưa đủ 2/2 để mở trạm 3
+      completedGamesCount: 1, // 1/2 trò chơi -> Đang học, chưa mở Bài 3
       isUnlocked: true,
       isCompleted: false,
+      resources: [
+        { title: "Sơ Đồ 3D Kiến Trúc Máy Tính", url: "https://github.com", type: "slide" },
+        { title: "Video Hướng Dẫn: CPU và RAM hoạt động thế nào?", url: "https://youtube.com", type: "video" },
+      ],
       compatibleGames: [
-        { id: "game_space_quiz_3d", title: "Space Flight Quiz 3D", type: "3D Action Quiz", reward: "+50 Coins" },
-        { id: "game_card_match_vr", title: "Quantum Memory Matrix", type: "Card Match", reward: "+40 Coins" },
+        { id: "game_hardware_3d_lab", title: "Phòng Thí Nghiệm Lắp Ráp Máy Tính 3D", type: "3D Spatial Assembly", reward: "+70 Coins" },
+        { id: "game_card_match_vr", title: "Ghép Cặp Linh Kiện Phần Cứng", type: "Card Matching", reward: "+40 Coins" },
       ],
     },
     {
-      id: "crs_entanglement",
+      id: "crs_python_mini_games",
       order: 3,
-      title: "Trạm 03: Vướng Víu Lượng Tử & Viễn Tải Thông Tin",
-      description: "Thí nghiệm tư duy EPR, bất đẳng thức Bell và ứng dụng trong máy tính lượng tử tương lai.",
+      title: "Bài 3: Lập Trình Trò Chơi Mini Với Python",
+      description: "Tự tay viết mã nguồn cho các mini-game tương tác vui nhộn và học cách xử lý lỗi (debug).",
       requiredGamesCount: 2,
-      completedGamesCount: 0, // 0/2 -> Bị khóa vì Trạm 02 chưa xong (1/2)
+      completedGamesCount: 0, // Bị khóa vì Bài 2 chưa xong (1/2)
       isUnlocked: false,
       isCompleted: false,
+      resources: [
+        { title: "Kho Code Mẫu Python Game Mini", url: "https://github.com", type: "code" },
+      ],
       compatibleGames: [
-        { id: "game_space_quiz_3d", title: "Space Flight Quiz 3D", type: "3D Action Quiz", reward: "+50 Coins" },
+        { id: "game_space_quiz_3d", title: "Space Flight Quantum Quiz 3D", type: "Action Quiz", reward: "+50 Coins" },
       ],
     },
     {
-      id: "crs_quantum_teleport",
+      id: "crs_ai_robotics",
       order: 4,
-      title: "Trạm 04: Cổng Dịch Chuyển Lượng Tử Không Gian",
-      description: "Tổng hợp toàn bộ kiến thức để giải mã ma trận dịch chuyển lượng tử tối thượng.",
+      title: "Bài 4: Khám Phá Trí Tuệ Nhân Tạo AI & Tương Lai Số",
+      description: "Ứng dụng AI đơn giản, nhận diện hình ảnh và tạo ra trợ lý thông minh đầu tiên của bạn.",
       requiredGamesCount: 2,
       completedGamesCount: 0, // Bị khóa
       isUnlocked: false,
       isCompleted: false,
+      resources: [
+        { title: "Giáo Trình AI Cho Thiếu Nhi", url: "https://github.com", type: "pdf" },
+      ],
       compatibleGames: [
-        { id: "game_space_quiz_3d", title: "Space Flight Quiz 3D", type: "3D Action Quiz", reward: "+50 Coins" },
+        { id: "game_space_quiz_3d", title: "Space Flight Quantum Quiz 3D", type: "Action Quiz", reward: "+50 Coins" },
       ],
     },
   ]);
@@ -132,7 +151,7 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
             <ArrowLeft className="w-4 h-4" /> Quay Lại Danh Sách Lộ Trình
           </Link>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <Compass className="w-7 h-7 text-amber-400 animate-spin-slow" /> {pathInfo.title}
+            <Compass className="w-7 h-7 text-amber-400" /> {pathInfo.title}
           </h1>
           <p className="text-xs md:text-sm text-[#8e9bb4] mt-1 max-w-3xl">
             {pathInfo.description}
@@ -142,9 +161,9 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
         {/* Path Progress Summary Box */}
         <div className="p-4 rounded-2xl bg-[#0f1524] border border-cyan-500/30 flex items-center gap-4 shrink-0 shadow-lg">
           <div>
-            <div className="text-[11px] font-mono text-slate-400">Tiến Độ Bản Đồ</div>
+            <div className="text-[11px] font-mono text-slate-400">Tiến Độ Lộ Trình</div>
             <div className="text-xl font-bold font-mono text-cyan-300">
-              {completedCoursesCount}/{totalCourses} Trạm ({progressPercent}%)
+              {completedCoursesCount}/{totalCourses} Bài ({progressPercent}%)
             </div>
           </div>
           <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
@@ -153,9 +172,9 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
         </div>
       </div>
 
-      {/* ── TREASURE MAP VIEWPORT ── */}
+      {/* ── LEARNING PATH VIEWPORT ── */}
       <div className="relative rounded-3xl bg-[#080c16] border-2 border-[#7bd1fa]/25 p-6 md:p-12 overflow-hidden shadow-2xl">
-        {/* Cosmic Starfield & Treasure Grid Background */}
+        {/* Subtle Constellation Grid Background */}
         <div
           className="absolute inset-0 z-0 opacity-20 pointer-events-none"
           style={{
@@ -163,16 +182,14 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
             backgroundSize: "36px 36px",
           }}
         />
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-cyan-600/10 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
 
         {/* Map Header Title */}
         <div className="text-center relative z-10 mb-12">
-          <span className="px-4 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold tracking-widest uppercase inline-block mb-2 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-            📜 HẢI TRÌNH KHO BÁU TRI THỨC
+          <span className="px-4 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-mono font-bold tracking-widest uppercase inline-block mb-2 shadow-[0_0_15px_rgba(6,182,212,0.25)]">
+            🎯 LỘ TRÌNH HỌC TẬP TỪNG BƯỚC
           </span>
           <p className="text-xs text-slate-400 font-mono">
-            Quy tắc: Hoàn thành đủ số trò chơi <span className="text-cyan-300 font-bold">"x/y trò"</span> tại mỗi trạm để giải mã ổ khóa sang trạm tiếp theo!
+            Quy tắc: Hoàn thành đủ số trò chơi thực hành <span className="text-cyan-300 font-bold">"x/y trò"</span> tại mỗi bài để mở khóa bài học kế tiếp!
           </p>
         </div>
 
@@ -199,7 +216,7 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
                       : "bg-[#0a0d14]/90 border-slate-800/80 opacity-60 grayscale-[70%] cursor-not-allowed"
                   }`}
                 >
-                  {/* Lock / Unlock Status Icon Ribbon */}
+                  {/* Status Ribbon */}
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <div className="flex items-center gap-2">
                       <span
@@ -224,14 +241,14 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
                         }`}
                       >
                         {course.isCompleted
-                          ? "✓ Trạm Đã Hoàn Thành"
+                          ? "✓ Đã Hoàn Thành Bài Này"
                           : course.isUnlocked
-                          ? "⚡ Đang Mở Khóa - Cần Hoàn Thành"
-                          : "🔒 Bị Khóa (Cần xong trạm trước)"}
+                          ? "⚡ Đang Học - Cần Vượt Thử Thách"
+                          : "🔒 Bị Khóa (Cần hoàn thành bài trước)"}
                       </span>
                     </div>
 
-                    {/* Lock / Check Icon */}
+                    {/* Icon */}
                     <div>
                       {course.isCompleted ? (
                         <div className="flex items-center gap-1 text-emerald-400">
@@ -250,7 +267,7 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
                     </div>
                   </div>
 
-                  {/* Course Title & Description */}
+                  {/* Title & Description */}
                   <h3
                     className={`text-lg md:text-xl font-bold font-sans transition-colors ${
                       course.isCompleted
@@ -307,7 +324,7 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
                     <div>
                       {course.isUnlocked ? (
                         <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-mono text-xs font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all cursor-pointer flex items-center gap-1.5">
-                          <Gamepad2 className="w-4 h-4" /> Chơi Game ({course.compatibleGames.length} Game)
+                          <Play className="w-3.5 h-3.5 fill-white" /> Mở Bài Học & Trò Chơi
                         </button>
                       ) : (
                         <span className="text-[11px] font-mono text-slate-500 flex items-center gap-1">
@@ -321,7 +338,6 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
                 {/* ── DASHED CONNECTING ARROW (MŨI TÊN ĐỨT ĐOẠN) ── */}
                 {!isLast && (
                   <div className="my-2 flex flex-col items-center justify-center">
-                    {/* SVG Dashed Line with Animated Pulse Arrow */}
                     <svg width="40" height="60" viewBox="0 0 40 60" className="overflow-visible">
                       <line
                         x1="20"
@@ -333,7 +349,6 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
                         strokeDasharray="6,6"
                         className="animate-pulse"
                       />
-                      {/* Arrowhead */}
                       <polygon
                         points="14,48 20,60 26,48"
                         fill={course.isCompleted ? "#10b981" : "#38bdf8"}
@@ -345,9 +360,8 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
             );
           })}
 
-          {/* ── FINAL DESTINATION: COSMIC TREASURE CHEST ── */}
+          {/* ── FINAL DESTINATION: REWARD & CERTIFICATE ── */}
           <div className="flex flex-col items-center pt-6">
-            {/* Connecting dashed line to chest */}
             <svg width="40" height="50" viewBox="0 0 40 50" className="overflow-visible mb-2">
               <line
                 x1="20"
@@ -364,7 +378,7 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
               />
             </svg>
 
-            {/* Treasure Chest Card */}
+            {/* Reward Box */}
             <div
               className={`max-w-md w-full p-8 rounded-3xl border-2 text-center space-y-4 relative transition-all ${
                 isTreasureUnlocked
@@ -377,32 +391,33 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
               </div>
 
               <div>
-                <h3 className="text-xl font-bold text-white">Kho Báu Lượng Tử Tối Thượng 👑</h3>
+                <h3 className="text-xl font-bold text-white">Chứng Nhận Hoàn Thành Lộ Trình 🎓</h3>
                 <p className="text-xs text-[#8e9bb4] mt-1">
-                  Hoàn thành đủ tất cả các trạm khóa học trên bản đồ để mở khóa hòm kho báu và nhận thưởng lớn.
+                  Hoàn thành toàn bộ các bài học trong lộ trình để nhận thưởng Coins và Huy hiệu danh giá.
                 </p>
               </div>
 
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-bold text-sm">
-                <Trophy className="w-4 h-4 text-amber-400" /> Phần Thưởng: +{pathInfo.rewardCoins} Coins
+                <Trophy className="w-4 h-4 text-amber-400" /> Thưởng Hoàn Tất: +{pathInfo.rewardCoins} Coins
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── MODAL: CHỌN GAME CHO COURSE ĐÃ MỞ KHÓA ── */}
+      {/* ── MODAL: HỌC LIỆU & DANH SÁCH GAME CHO BÀI HỌC ĐÃ MỞ KHÓA ── */}
       {selectedCourseForModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-3xl bg-[#0f1524] border border-cyan-500/40 p-6 md:p-8 space-y-6 shadow-2xl animate-scale-up">
+          <div className="w-full max-w-xl rounded-3xl bg-[#0f1524] border border-cyan-500/40 p-6 md:p-8 space-y-6 shadow-2xl animate-scale-up max-h-[85vh] overflow-y-auto">
+            {/* Modal Header */}
             <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-800">
               <div>
                 <span className="font-mono text-[10px] uppercase text-cyan-400 font-bold">
-                  Trạm 0{selectedCourseForModal.order} • Danh Sách Game Quiz
+                  Bài 0{selectedCourseForModal.order} • Trung Tâm Bài Học & Thực Hành
                 </span>
                 <h3 className="text-lg font-bold text-white mt-1">{selectedCourseForModal.title}</h3>
                 <div className="text-xs font-mono text-slate-400 mt-1">
-                  Tiến độ trạm này: <strong className="text-cyan-300">{selectedCourseForModal.completedGamesCount}/{selectedCourseForModal.requiredGamesCount} trò chơi</strong>
+                  Tiến độ bài này: <strong className="text-cyan-300">{selectedCourseForModal.completedGamesCount}/{selectedCourseForModal.requiredGamesCount} trò chơi hoàn thành</strong>
                 </div>
               </div>
 
@@ -414,30 +429,64 @@ export default function LearningPathTreasureMapPage({ params }: PathDetailPagePr
               </button>
             </div>
 
+            {/* 1. Resources & Study Materials */}
             <div className="space-y-3">
-              <div className="text-xs font-mono text-slate-300">
-                Chọn một trò chơi để bắt đầu vượt chướng ngại vật:
-              </div>
+              <h4 className="text-xs font-mono uppercase text-emerald-400 font-bold flex items-center gap-1.5">
+                <FileText className="w-4 h-4" /> 1. Tài Liệu & Code Mẫu Do Giáo Viên Cung Cấp
+              </h4>
 
-              {selectedCourseForModal.compatibleGames.map((game) => (
-                <div
-                  key={game.id}
-                  className="p-4 rounded-2xl bg-[#151b2c] border border-slate-800 hover:border-cyan-500/40 transition-all flex items-center justify-between gap-3"
-                >
-                  <div>
-                    <div className="font-bold text-sm text-white">{game.title}</div>
-                    <div className="text-[11px] text-[#8e9bb4] font-mono mt-0.5">
-                      Thể loại: {game.type} • {game.reward}
+              <div className="space-y-2">
+                {(selectedCourseForModal.resources || []).map((res, rIdx) => (
+                  <a
+                    key={rIdx}
+                    href={res.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-3.5 rounded-xl bg-[#151b2c] hover:bg-emerald-950/20 border border-slate-800 hover:border-emerald-500/40 flex items-center justify-between transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:scale-105 transition-transform">
+                        {res.type === "code" ? <Code className="w-4 h-4" /> : res.type === "video" ? <Video className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-emerald-300">{res.title}</div>
+                        <div className="text-[10px] text-slate-400 font-mono capitalize">Loại: {res.type}</div>
+                      </div>
                     </div>
-                  </div>
 
-                  <Link href={`/student/play/${game.id}/${selectedCourseForModal.id}`}>
-                    <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-mono text-xs font-bold shadow-[0_0_15px_rgba(6,182,212,0.35)] transition-all cursor-pointer flex items-center gap-1.5 shrink-0">
-                      <Play className="w-3.5 h-3.5 fill-current" /> Bắt Đầu Chơi
-                    </button>
-                  </Link>
-                </div>
-              ))}
+                    <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Compatible Games */}
+            <div className="space-y-3 pt-3 border-t border-slate-800">
+              <h4 className="text-xs font-mono uppercase text-cyan-400 font-bold flex items-center gap-1.5">
+                <Gamepad2 className="w-4 h-4" /> 2. Trò Chơi Thực Hành Để Mở Khóa Bài Kế Tiếp
+              </h4>
+
+              <div className="space-y-2.5">
+                {selectedCourseForModal.compatibleGames.map((game) => (
+                  <div
+                    key={game.id}
+                    className="p-4 rounded-2xl bg-[#151b2c] border border-slate-800 hover:border-cyan-500/40 transition-all flex items-center justify-between gap-3"
+                  >
+                    <div>
+                      <div className="font-bold text-sm text-white">{game.title}</div>
+                      <div className="text-[11px] text-[#8e9bb4] font-mono mt-0.5">
+                        Thể loại: {game.type} • {game.reward}
+                      </div>
+                    </div>
+
+                    <Link href={`/student/play/${game.id}/${selectedCourseForModal.id}`}>
+                      <button className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-mono text-xs font-bold shadow-[0_0_15px_rgba(6,182,212,0.35)] transition-all cursor-pointer flex items-center gap-1.5 shrink-0">
+                        <Play className="w-3.5 h-3.5 fill-current" /> Bắt Đầu Chơi
+                      </button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="pt-2 text-center">

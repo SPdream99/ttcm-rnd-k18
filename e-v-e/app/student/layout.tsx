@@ -19,12 +19,12 @@ import { useAuth } from "@/context/AuthContext";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 
 const STUDENT_NAV = [
-  { id: "dashboard",      label: "Bàn Học Tập",        icon: LayoutDashboard, href: "/student/dashboard" },
-  { id: "learning-paths", label: "Lộ Trình Tri Thức",   icon: BookOpen,        href: "/student/learning-paths" },
+  { id: "dashboard",      label: "Góc Học Tập",        icon: LayoutDashboard, href: "/student/dashboard" },
+  { id: "learning-paths", label: "Lộ Trình Học Tập",   icon: BookOpen,        href: "/student/learning-paths" },
   { id: "ai-tutor",       label: "Trợ Lý AI Tutor",    icon: Bot,             href: "/student/ai-tutor" },
-  { id: "leaderboard",    label: "Bảng Vinh Danh",      icon: Trophy,          href: "/student/leaderboard" },
-  { id: "shop",           label: "Cửa Hàng Đổi Coin",   icon: ShoppingBag,     href: "/student/shop" },
-  { id: "profile",        label: "Hồ Sơ & Trang Bị",    icon: UserCheck,       href: "/student/profile" },
+  { id: "leaderboard",    label: "Bảng Xếp Hạng",      icon: Trophy,          href: "/student/leaderboard" },
+  { id: "shop",           label: "Cửa Hàng Đổi Thưởng", icon: ShoppingBag,     href: "/student/shop" },
+  { id: "profile",        label: "Hồ Sơ Cá Nhân",      icon: UserCheck,       href: "/student/profile" },
 ];
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
@@ -45,17 +45,17 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           <div className="flex items-center gap-3 px-1">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-400 via-blue-500 to-indigo-600 p-[1px] shadow-[0_0_20px_rgba(6,182,212,0.35)]">
               <div className="w-full h-full bg-[#0a0e1a] rounded-[11px] flex items-center justify-center">
-                <Rocket className="w-5 h-5 text-cyan-300 animate-pulse" />
+                <Rocket className="w-5 h-5 text-cyan-300" />
               </div>
             </div>
             <div>
               <h2 className="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
                 E-V-E{" "}
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-cyan-500/30 bg-cyan-500/20 text-cyan-300 font-mono">
-                  STUDENT
+                  HỌC SINH
                 </span>
               </h2>
-              <p className="text-[11px] text-[#8e9bb4]">Cosmic Student Hub</p>
+              <p className="text-[11px] text-[#8e9bb4]">Không gian học tập</p>
             </div>
           </div>
 

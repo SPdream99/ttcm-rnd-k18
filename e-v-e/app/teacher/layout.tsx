@@ -17,10 +17,10 @@ import { useAuth } from "@/context/AuthContext";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 
 const TEACHER_NAV = [
-  { id: "dashboard",     label: "Bàn Làm Việc",        icon: LayoutDashboard, href: "/teacher/dashboard" },
-  { id: "upload-center", label: "Trung Tâm Tạo Content", icon: UploadCloud,     href: "/teacher/upload-center" },
-  { id: "my-contents",   label: "Nội Dung Đã Tạo",      icon: FolderKanban,    href: "/teacher/my-contents" },
-  { id: "ai-tutor",       label: "Trợ Lý Sư Phạm AI",   icon: Bot,             href: "/teacher/ai-tutor" },
+  { id: "dashboard",     label: "Bảng Điều Khiển",     icon: LayoutDashboard, href: "/teacher/dashboard" },
+  { id: "upload-center", label: "Soạn Bài & Học Liệu", icon: UploadCloud,     href: "/teacher/upload-center" },
+  { id: "my-contents",   label: "Quản Lý Bài Đã Tạo",  icon: FolderKanban,    href: "/teacher/my-contents" },
+  { id: "ai-tutor",       label: "Trợ Lý Giảng Dạy AI", icon: Bot,             href: "/teacher/ai-tutor" },
 ];
 
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
@@ -28,7 +28,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const { signOut } = useAuth();
   const { currentUser, profile } = useAuthAdapter();
 
-  const displayName = currentUser?.name || (currentUser as any)?.fullName || profile?.fullName || "Giảng Viên";
+  const displayName = currentUser?.name || (currentUser as any)?.fullName || profile?.fullName || "Giáo Viên";
   const displayEmail = currentUser?.email || "teacher@eve.edu.vn";
 
   return (
@@ -40,17 +40,17 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <div className="flex items-center gap-3 px-1">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-500 p-[1px] shadow-[0_0_20px_rgba(16,185,129,0.35)]">
               <div className="w-full h-full bg-[#0a0e1a] rounded-[11px] flex items-center justify-center">
-                <GraduationCap className="w-5 h-5 text-emerald-400 animate-pulse" />
+                <GraduationCap className="w-5 h-5 text-emerald-400" />
               </div>
             </div>
             <div>
               <h2 className="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
                 E-V-E{" "}
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/20 text-emerald-300 font-mono">
-                  TEACHER
+                  GIÁO VIÊN
                 </span>
               </h2>
-              <p className="text-[11px] text-[#8e9bb4]">Educator Studio</p>
+              <p className="text-[11px] text-[#8e9bb4]">Không gian giảng dạy</p>
             </div>
           </div>
 

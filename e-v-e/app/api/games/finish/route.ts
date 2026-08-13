@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { doc, updateDoc, increment, addDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { validateGameScore } from "@/lib/antiCheat";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +11,7 @@ export async function POST(req: NextRequest) {
       courseId,
       pathId,
       userId,
+      sessionToken,
       score = 100,
       isWin = true,
       accuracyPercent = 100,
@@ -23,13 +25,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Calculate coins reward
-    let earnedCoins = 0;
-    if (isWin) {
-      earnedCoins = Math.max(30, Math.floor(score * 0.5));
-    } else {
-      earnedCoins = 10; // Consolation coins
+    // 1. Anti-Cheat & Secure Score Validation
+    const validation = validateGameScore(sessionToken, Number(score), Number(playTimeSeconds));
+    if (!validation.isValid) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Gian lận bị phát hiện hoặc phiên chơi không hợp lệ: ${validation.reason}`,
+          cheated: true,
+        },
+        { status: 403 }
+      );
     }
+
+    const finalScore = validation.sanitizedScore;
+    const earnedCoins = validation.earnedCoins;
 
     // 2. Update user coins if userId provided
     if (userId && userId !== "anonymous") {
@@ -42,35 +52,38 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Save game result history record
+    // 3. Save game result history record with anti-cheat verification flag
     try {
       await addDoc(collection(db, "game_results"), {
         gameId,
         courseId,
         pathId: pathId || "default_path",
         userId: userId || "anonymous",
-        score,
+        score: finalScore,
+        rawReportedScore: score,
         isWin,
         accuracyPercent,
         playTimeSeconds,
         earnedCoins,
+        verifiedByAntiCheat: true,
         finishedAt: new Date().toISOString(),
       });
     } catch {}
 
-    // 4. Return success response with next course unlock indication
+    // 4. Return success response
     return NextResponse.json({
       success: true,
-      message: "Kết quả trò chơi đã được ghi nhận và cập nhật điểm lên hệ sinh thái E-V-E!",
+      message: "Kết quả trò chơi đã được kiểm định an toàn và cập nhật điểm thành công!",
       data: {
         gameId,
         courseId,
         pathId,
-        finalScore: score,
+        finalScore,
         isWin,
         earnedCoins,
         courseCompleted: isWin,
         unlockedNextCourse: isWin,
+        verified: true,
         timestamp: new Date().toISOString(),
       },
     });

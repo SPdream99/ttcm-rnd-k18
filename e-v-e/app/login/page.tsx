@@ -129,7 +129,7 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
                 <label className="block text-xs font-mono text-slate-300 mb-1.5 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-cyan-400" /> Email Chỉ Huy
+                  <Mail className="w-3.5 h-3.5 text-cyan-400" /> Email Đăng Nhập
                 </label>
                 <input
                   type="email"

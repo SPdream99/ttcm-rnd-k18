@@ -31,12 +31,15 @@ export default function TeacherUploadCenterPage() {
   // ── 1. Create Course State ──
   const [courseTitle, setCourseTitle] = useState("");
   const [courseDesc, setCourseDesc] = useState("");
+  const [resources, setResources] = useState<{ title: string; url: string; type: "pdf" | "video" | "code" | "slide" | "link" }[]>([
+    { title: "Slide Bài Giảng & Code Mẫu", url: "https://github.com", type: "code" },
+  ]);
   const [pairs, setPairs] = useState<CourseContentPair[]>([
     {
       id: "pair_1",
-      title: "Khái niệm lượng tử ánh sáng được gọi là gì?",
-      description: "Photon",
-      distractions: ["Electron", "Neutron", "Proton"],
+      title: "Lệnh print() trong Python dùng để làm gì?",
+      description: "In văn bản hoặc kết quả ra màn hình",
+      distractions: ["Nhập dữ liệu từ bàn phím", "Tạo một biến số mới", "Dừng chương trình"],
       image_url: "",
     },
   ]);
@@ -124,6 +127,7 @@ export default function TeacherUploadCenterPage() {
       description: courseDesc,
       authorId: teacherUid,
       authorName: teacherName,
+      resources: resources.filter((r) => r.title.trim() && r.url.trim()),
       isAccepted: false,
       is_accepted: false,
       contentData: { pairs },
@@ -134,10 +138,11 @@ export default function TeacherUploadCenterPage() {
       await addDoc(collection(db, "courses"), payload);
     } catch {}
 
-    setActionMsg(`✅ Đã gửi Khóa Học "${courseTitle}" với ${pairs.length} cặp câu hỏi lên Admin để duyệt!`);
+    setActionMsg(`✅ Đã lưu Khóa Học "${courseTitle}" với ${pairs.length} cặp câu hỏi và ${resources.length} tài liệu học tập!`);
     setCourseTitle("");
     setCourseDesc("");
     setPairs([{ id: "pair_1", title: "", description: "", distractions: [""], image_url: "" }]);
+    setResources([]);
     setTimeout(() => setActionMsg(null), 4500);
   };
 
@@ -214,10 +219,10 @@ export default function TeacherUploadCenterPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <UploadCloud className="w-7 h-7 text-emerald-400" /> Trung Tâm Sáng Tạo Nội Dung & Nộp Game
+            <UploadCloud className="w-7 h-7 text-emerald-400" /> Trung Tâm Soạn Bài & Quản Lý Học Liệu
           </h1>
           <p className="text-sm text-[#8e9bb4] mt-1">
-            Soạn khóa học dạng JSON Pairs, gộp Lộ trình học tập hoặc nộp file Source Code Game để nhúng vào hệ thống.
+            Thiết kế bài giảng lập trình, đính kèm tài liệu học tập (PDF/Code/Slide) và tạo các cặp câu hỏi tương tác cho trẻ nhỏ.
           </p>
         </div>
       </div>
@@ -239,7 +244,7 @@ export default function TeacherUploadCenterPage() {
               : "bg-[#151b2c] text-slate-400 border-slate-800 hover:border-slate-700"
           }`}
         >
-          <BookOpen className="w-4 h-4 text-cyan-400" /> Tab 1: Tạo Khóa Học (JSON Pairs)
+          <BookOpen className="w-4 h-4 text-cyan-400" /> Tab 1: Tạo Bài Học & Học Liệu
         </button>
 
         <button
@@ -250,7 +255,7 @@ export default function TeacherUploadCenterPage() {
               : "bg-[#151b2c] text-slate-400 border-slate-800 hover:border-slate-700"
           }`}
         >
-          <Layers className="w-4 h-4 text-emerald-400" /> Tab 2: Tạo Lộ Trình (Learning Path)
+          <Layers className="w-4 h-4 text-emerald-400" /> Tab 2: Tạo Lộ Trình Học Tập
         </button>
 
         <button
@@ -261,41 +266,131 @@ export default function TeacherUploadCenterPage() {
               : "bg-[#151b2c] text-slate-400 border-slate-800 hover:border-slate-700"
           }`}
         >
-          <Gamepad2 className="w-4 h-4 text-purple-400" /> Tab 3: Upload Game Engine (.zip)
+          <Gamepad2 className="w-4 h-4 text-purple-400" /> Tab 3: Nộp Trò Chơi Mới (.zip)
         </button>
       </div>
 
-      {/* ── TAB 1: CREATE COURSE WITH JSON PAIRS ── */}
+      {/* ── TAB 1: CREATE COURSE WITH JSON PAIRS & RESOURCES ── */}
       {activeTab === "course" && (
         <form onSubmit={handleSubmitCourse} className="space-y-6">
           <div className="p-6 rounded-2xl bg-[#0f1524]/90 border border-[#7bd1fa]/15 space-y-4">
             <h3 className="font-bold text-base text-white flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-cyan-400" /> Thông Tin Cơ Bản Khóa Học
+              <BookOpen className="w-5 h-5 text-cyan-400" /> Thông Tin Cơ Bản Bài Học
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-mono text-slate-300 mb-1.5">Tên Khóa Học</label>
+                <label className="block text-xs font-mono text-slate-300 mb-1.5">Tên Bài Học / Khóa Học</label>
                 <input
                   type="text"
                   value={courseTitle}
                   onChange={(e) => setCourseTitle(e.target.value)}
-                  placeholder="VD: Nhập Môn Vật Lý Lượng Tử K18"
+                  placeholder="VD: Lập Trình Python Căn Bản Cho Trẻ Em"
                   className="w-full bg-[#151b2c] border border-cyan-500/20 focus:border-cyan-400 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-slate-300 mb-1.5">Mô Tả Ngắn</label>
+                <label className="block text-xs font-mono text-slate-300 mb-1.5">Mô Tả Bài Học</label>
                 <input
                   type="text"
                   value={courseDesc}
                   onChange={(e) => setCourseDesc(e.target.value)}
-                  placeholder="Khái niệm sóng hạt, photon và các nguyên lý cơ bản"
+                  placeholder="Khái niệm biến số, vòng lặp for/while và câu lệnh điều kiện if-else..."
                   className="w-full bg-[#151b2c] border border-cyan-500/20 focus:border-cyan-400 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Resources & Attachments Section */}
+          <div className="p-6 rounded-2xl bg-[#0f1524]/90 border border-[#7bd1fa]/15 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-base text-white flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-emerald-400" /> Tài Liệu & Học Liệu Đính Kèm (Resources)
+                </h3>
+                <p className="text-xs text-[#8e9bb4] mt-0.5">
+                  Cung cấp link Slide bài giảng, file PDF giáo trình, link video Youtube hoặc kho code mẫu cho học sinh tải về học.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setResources((prev) => [...prev, { title: "", url: "", type: "code" }])}
+                className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" /> Thêm Tài Liệu
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {resources.length === 0 ? (
+                <div className="p-4 rounded-xl bg-[#151b2c] border border-slate-800 text-center text-slate-500 text-xs font-mono">
+                  Chưa có tài liệu đính kèm. Bấm nút "Thêm Tài Liệu" ở trên để bổ sung.
+                </div>
+              ) : (
+                resources.map((res, rIdx) => (
+                  <div key={rIdx} className="p-4 rounded-xl bg-[#151b2c] border border-slate-800 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                    <div className="sm:col-span-4">
+                      <input
+                        type="text"
+                        value={res.title}
+                        onChange={(e) => {
+                          const copy = [...resources];
+                          copy[rIdx].title = e.target.value;
+                          setResources(copy);
+                        }}
+                        placeholder="Tên tài liệu (VD: Slide Bài Giảng Tuần 1)"
+                        className="w-full bg-[#0f1524] border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-5">
+                      <input
+                        type="text"
+                        value={res.url}
+                        onChange={(e) => {
+                          const copy = [...resources];
+                          copy[rIdx].url = e.target.value;
+                          setResources(copy);
+                        }}
+                        placeholder="Đường link URL (https://drive.google.com/... hoặc github)"
+                        className="w-full bg-[#0f1524] border border-slate-700 rounded-lg px-3 py-2 text-xs text-cyan-300 focus:outline-none focus:border-cyan-400 font-mono"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <select
+                        value={res.type}
+                        onChange={(e) => {
+                          const copy = [...resources];
+                          copy[rIdx].type = e.target.value as any;
+                          setResources(copy);
+                        }}
+                        className="w-full bg-[#0f1524] border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+                      >
+                        <option value="code">Code Mẫu</option>
+                        <option value="slide">Slide Bài</option>
+                        <option value="pdf">Tài liệu PDF</option>
+                        <option value="video">Video Clip</option>
+                        <option value="link">Link ngoài</option>
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-1 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setResources((prev) => prev.filter((_, i) => i !== rIdx))}
+                        className="text-slate-500 hover:text-rose-400 cursor-pointer p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

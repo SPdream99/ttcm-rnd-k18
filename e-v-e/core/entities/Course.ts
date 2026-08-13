@@ -16,6 +16,14 @@ export interface CourseContentPair {
   wrongAnswers?: string[];     // Alias tương thích
 }
 
+export interface CourseResource {
+  id?: string;
+  title: string;
+  url: string;
+  type: "pdf" | "video" | "code" | "slide" | "link";
+  description?: string;
+}
+
 export interface Course {
   id: string;
   courseId?: string;          // ID tùy biến hoặc code của khóa học (course_id)
@@ -23,11 +31,13 @@ export interface Course {
   japaneseTitle?: string;
   subtitle?: string;
   description: string;
-  instructorId?: string;
-  authorId: string;           // UID giáo viên tạo
+  authorId?: string;          // ID của Giáo viên tạo ra course
   authorName?: string;
+  instructorId?: string;
+  resources?: CourseResource[]; // Tài liệu & học liệu đính kèm do giáo viên cung cấp
   isPublished?: boolean;
-  isAccepted: boolean;        // Admin đã duyệt hay chưa (is_accepted)
+  isAccepted?: boolean;       // Admin đã duyệt hay chưa (is_accepted)
+  is_accepted?: boolean;
   thumbnailUrl?: string;
   bannerUrl?: string;
   tags?: string[];

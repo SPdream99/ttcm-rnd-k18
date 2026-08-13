@@ -52,6 +52,7 @@
         const result = await response.json();
         if (result.success) {
           this.gameData = result;
+          this.sessionToken = result.sessionToken || null;
           return result;
         }
         throw new Error(result.error || "Failed to load game course data");
@@ -85,6 +86,7 @@
             gameId: this.gameId,
             courseId: this.courseId,
             userId: this.userId,
+            sessionToken: this.sessionToken,
             score,
             currentStreak,
             progressPercent,
@@ -108,6 +110,7 @@
               gameId: this.gameId,
               courseId: this.courseId,
               pathId: this.pathId,
+              sessionToken: this.sessionToken,
               score,
               isWin,
               accuracyPercent,
@@ -126,6 +129,7 @@
             courseId: this.courseId,
             pathId: this.pathId,
             userId: this.userId,
+            sessionToken: this.sessionToken,
             score,
             isWin,
             accuracyPercent,

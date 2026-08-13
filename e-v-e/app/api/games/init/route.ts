@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { generateGameSessionToken } from "@/lib/antiCheat";
 
 const FALLBACK_PAIRS: Record<string, any> = {
   crs_quantum_101: {
@@ -74,6 +75,16 @@ export async function POST(req: NextRequest) {
       pairs = fb.pairs;
     }
 
+    // Generate Anti-Cheat signed session token
+    const maxScore = Math.max(100, pairs.length * 25);
+    const { sessionToken, sessionId } = generateGameSessionToken({
+      gameId: gameId || "eve_game_engine",
+      courseId,
+      userId: userId || "anonymous",
+      maxScore,
+      minPlayTimeSeconds: 5, // Requires at least 5 seconds of gameplay
+    });
+
     return NextResponse.json({
       success: true,
       gameId: gameId || "eve_game_engine",
@@ -82,7 +93,10 @@ export async function POST(req: NextRequest) {
       totalPairs: pairs.length,
       pairs,
       targetScore: 100,
-      protocol: "EVE_GAME_V1",
+      maxScore,
+      sessionToken,
+      sessionId,
+      protocol: "EVE_GAME_V2_SECURE",
     });
   } catch (error: any) {
     return NextResponse.json(
