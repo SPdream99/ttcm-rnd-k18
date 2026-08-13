@@ -4,13 +4,13 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User, LogOut, LayoutDashboard, UserCheck, ChevronDown } from "lucide-react";
-import { auth } from "@/lib/firebase";
-import { signOut } from "firebase/auth";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const router = useRouter();
   const { currentUser, profile, loading } = useAuthAdapter();
+  const { signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -33,25 +33,25 @@ export default function Navbar() {
   const displayEmail = user?.email || "";
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.error("Logout error:", err);
-    }
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("eve_user");
-      localStorage.removeItem("remember_me");
-      localStorage.removeItem("user_email");
-    }
     setDropdownOpen(false);
-    router.push("/public/login");
+    await signOut();
   };
 
   const getDashboardUrl = () => {
     if (user?.role === "teacher") {
-      return (user as any)?.status === "pending" ? "/public/pending" : "/dashbroad/teacher";
+      return (user as any)?.status === "pending" ? "/pending" : "/teacher/dashboard";
     }
-    return "/dashbroad/student";
+    if (user?.role === "admin" || user?.role === "school") {
+      return "/admin/dashboard";
+    }
+    return "/student/dashboard";
+  };
+
+  const getProfileUrl = () => {
+    if (user?.role === "teacher") {
+      return "/teacher/profile";
+    }
+    return "/student/profile";
   };
 
   return (
@@ -66,7 +66,7 @@ export default function Navbar() {
             className="material-symbols-outlined text-cyan-400 text-2xl"
             style={{ fontVariationSettings: "'FILL' 1" }}
           >
-            public
+            school
           </span>
           <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">E-V-E</span>
         </Link>
@@ -75,7 +75,7 @@ export default function Navbar() {
         <nav className="hidden md:flex items-center gap-6 font-mono text-sm">
           <Link href="/">
             <span className="text-cyan-400 border-b-2 border-cyan-400 pb-0.5 hover:text-white transition-colors cursor-pointer">
-              Home
+              Trang Chủ
             </span>
           </Link>
         </nav>
@@ -97,8 +97,8 @@ export default function Navbar() {
                   </div>
                 </div>
                 <div className="hidden sm:block text-left">
-                  <div className="text-xs font-bold text-white leading-tight">{displayName}</div>
-                  <div className="text-[10px] font-mono text-cyan-400">{displayRole}</div>
+                  <div className="text-xs font-bold text-white leading-tight" suppressHydrationWarning>{displayName}</div>
+                  <div className="text-[10px] font-mono text-cyan-400" suppressHydrationWarning>{displayRole}</div>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
               </button>
@@ -107,9 +107,9 @@ export default function Navbar() {
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#0f1524] border border-cyan-500/30 shadow-2xl p-3 space-y-2 z-50 animate-fade-in backdrop-blur-xl">
                   <div className="p-3 rounded-xl bg-[#151b2c] border border-slate-800 space-y-1">
-                    <div className="font-bold text-sm text-white truncate">{displayName}</div>
-                    <div className="text-xs text-slate-400 truncate">{displayEmail}</div>
-                    <span className="inline-block px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono border border-cyan-500/30 mt-1">
+                    <div className="font-bold text-sm text-white truncate" suppressHydrationWarning>{displayName}</div>
+                    <div className="text-xs text-slate-400 truncate" suppressHydrationWarning>{displayEmail}</div>
+                    <span className="inline-block px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono border border-cyan-500/30 mt-1" suppressHydrationWarning>
                       {displayRole}
                     </span>
                   </div>
@@ -120,11 +120,11 @@ export default function Navbar() {
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all"
                     >
-                      <LayoutDashboard className="w-4 h-4 text-cyan-400" /> Bàn Làm Việc Dashboard
+                      <LayoutDashboard className="w-4 h-4 text-cyan-400" /> Bảng Điều Khiển
                     </Link>
 
                     <Link
-                      href="/dashbroad/student/profile"
+                      href={getProfileUrl()}
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all"
                     >
@@ -146,12 +146,12 @@ export default function Navbar() {
           ) : (
             /* Logged Out Actions */
             <div className="flex items-center gap-3">
-              <Link href="/public/login">
+              <Link href="/login">
                 <button className="text-slate-300 hover:text-white font-mono text-xs px-4 py-2 rounded-xl transition-all cursor-pointer">
                   Đăng Nhập
                 </button>
               </Link>
-              <Link href="/public/register">
+              <Link href="/register">
                 <button className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold font-mono text-xs shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all cursor-pointer">
                   Đăng Ký
                 </button>

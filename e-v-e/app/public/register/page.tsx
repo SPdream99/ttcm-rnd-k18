@@ -3,22 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { setAuthCookie } from "@/lib/cookies";
 
-export default function RegisterPage() {
+export default function PublicRegisterPage() {
   const [role, setRole] = useState<"student" | "teacher">("student");
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
-  const [step, setStep] = useState<1 | 2>(1); // Step 1: Info, Step 2: 2FA Verification
   const [message, setMessage] = useState("");
-  const [mockSentCode] = useState("123456"); // Mock 2FA code
 
   const { register, loading } = useAuthAdapter();
 
-  const handleNextStep = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
 
@@ -37,20 +35,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // Move to 2FA step
-    setStep(2);
-    setMessage(`Mã xác thực 2 bước đã được gửi đến ${email} (Mã mô phỏng: ${mockSentCode})`);
-  };
-
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage("");
-
-    if (verificationCode !== mockSentCode) {
-      setMessage("Mã xác thực không đúng. Vui lòng thử lại.");
-      return;
-    }
-
     const res = await register({
       fullName,
       email,
@@ -60,20 +44,22 @@ export default function RegisterPage() {
     });
 
     if (!res.success || !res.user) {
-      setMessage(res.error || "Đăng ký thất bại.");
+      setMessage(res.error || "Đăng ký không thành công. Vui lòng thử lại.");
       return;
     }
+
+    setAuthCookie(res.user, true);
 
     if (role === "teacher") {
       setMessage("Đăng ký thành công! Đang chuyển hướng sang trang chờ duyệt...");
       setTimeout(() => {
-        window.location.href = "/public/pending";
-      }, 1500);
+        window.location.href = "/pending";
+      }, 1200);
     } else {
-      setMessage("Đăng ký thành công! Đang vào lớp học...");
+      setMessage("Đăng ký thành công! Đang vào góc học tập...");
       setTimeout(() => {
-        window.location.href = "/dashbroad/student";
-      }, 1500);
+        window.location.href = "/student/dashboard";
+      }, 1200);
     }
   };
 
@@ -109,7 +95,7 @@ export default function RegisterPage() {
                 className="material-symbols-outlined text-primary text-3xl"
                 style={{ fontVariationSettings: "'FILL' 1" }}
               >
-                language
+                school
               </span>
               <h1 className="font-headline-md text-headline-md text-primary tracking-widest uppercase">
                 E-V-E
@@ -117,30 +103,29 @@ export default function RegisterPage() {
             </div>
 
             <h2 className="font-headline-lg text-headline-lg text-on-surface mb-4">
-              Khởi Hành Vào
+              Khám Phá
               <br />
-              <span className="text-secondary">Vũ Trụ Tri Thức</span>
+              <span className="text-secondary">Nền Tảng Giáo Dục Tương Tác</span>
             </h2>
 
             <p className="font-body-md text-body-md text-on-surface-variant mb-8">
-              Tham gia học viện không gian E-V-E. Nơi tri thức vượt qua mọi giới hạn và sự tò mò định hình tương lai.
+              Tham gia nền tảng E-V-E. Nơi học tập lập trình & công nghệ trở nên trực quan và hào hứng hơn bao giờ hết.
             </p>
           </div>
 
-          {/* Statistics */}
           <div className="relative z-10">
             <div className="glass-panel p-4 rounded-xl flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-primary-container/20 flex items-center justify-center border border-border-ice">
                 <span className="material-symbols-outlined text-primary">
-                  rocket_launch
+                  verified_user
                 </span>
               </div>
               <div>
                 <div className="font-label-md text-label-md text-on-surface">
-                  Hệ thống bảo mật 2FA
+                  Tài khoản bảo mật
                 </div>
                 <div className="font-label-sm text-label-sm text-secondary">
-                  Bảo vệ tài khoản an toàn
+                  Dữ liệu được mã hóa an toàn
                 </div>
               </div>
             </div>
@@ -150,257 +135,189 @@ export default function RegisterPage() {
         {/* Right Side */}
         <section className="w-full md:w-7/12 p-8 md:p-12 bg-surface-container-lowest/80 backdrop-blur-xl">
           <div className="max-w-md mx-auto">
-            {step === 1 ? (
-              <>
-                {/* Header */}
-                <div className="mb-8">
-                  <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2">
-                    Tạo Hồ Sơ Mới
-                  </h3>
-                  <p className="font-body-md text-body-md text-on-surface-variant">
-                    Vui lòng cung cấp thông tin để thiết lập danh tính không gian của bạn.
-                  </p>
-                </div>
+            <div className="mb-8">
+              <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2">
+                Đăng Ký Tài Khoản Mới
+              </h3>
+              <p className="font-body-md text-body-md text-on-surface-variant">
+                Vui lòng cung cấp thông tin để tạo tài khoản học tập hoặc giảng dạy.
+              </p>
+            </div>
 
-                <form onSubmit={handleNextStep} className="space-y-6">
-                  {/* Role */}
-                  <div className="space-y-3">
-                    <label className="block font-label-md text-label-md text-on-surface">
-                      Bạn đăng ký vai trò gì?
-                    </label>
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Student */}
-                      <button
-                        type="button"
-                        onClick={() => setRole("student")}
-                        className={`role-card glass-panel rounded-xl p-4 text-center border border-border-ice flex flex-col items-center gap-2 group cursor-pointer transition-all ${
-                          role === "student" ? "bg-sky-500/25 border-sky-400" : ""
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">
-                          school
-                        </span>
-                        <span className="font-label-sm text-label-sm text-on-surface block mt-1">
-                          Học sinh
-                        </span>
-                      </button>
-
-                      {/* Teacher */}
-                      <button
-                        type="button"
-                        onClick={() => setRole("teacher")}
-                        className={`role-card glass-panel rounded-xl p-4 text-center border border-border-ice flex flex-col items-center gap-2 group cursor-pointer transition-all ${
-                          role === "teacher" ? "bg-emerald-500/25 border-emerald-400" : ""
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-tertiary group-hover:scale-110 transition-transform">
-                          menu_book
-                        </span>
-                        <span className="font-label-sm text-label-sm text-on-surface block mt-1">
-                          Giáo viên
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Inputs */}
-                  <div className="space-y-4">
-                    {/* Full name */}
-                    <div>
-                      <label
-                        className="block font-label-md text-label-md text-on-surface-variant mb-1"
-                        htmlFor="fullname"
-                      >
-                        Họ và Tên
-                      </label>
-                      <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                          person
-                        </span>
-                        <input
-                          className="w-full glass-input rounded-lg py-3 pl-10 pr-4 text-on-surface font-body-md placeholder-outline-variant focus:ring-0"
-                          id="fullname"
-                          placeholder="Nhập tên đầy đủ của bạn"
-                          type="text"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Email */}
-                    <div>
-                      <label
-                        className="block font-label-md text-label-md text-on-surface-variant mb-1"
-                        htmlFor="email"
-                      >
-                        Email Chỉ Huy
-                      </label>
-                      <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                          mail
-                        </span>
-                        <input
-                          className="w-full glass-input rounded-lg py-3 pl-10 pr-4 text-on-surface font-body-md placeholder-outline-variant focus:ring-0"
-                          id="email"
-                          placeholder="commander@eve.academy"
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Password */}
-                    <div>
-                      <label
-                        className="block font-label-md text-label-md text-on-surface-variant mb-1"
-                        htmlFor="password"
-                      >
-                        Mã Khoá An Ninh
-                      </label>
-                      <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                          lock
-                        </span>
-                        <input
-                          className="w-full glass-input rounded-lg py-3 pl-10 pr-12 text-on-surface font-body-md placeholder-outline-variant focus:ring-0"
-                          id="password"
-                          placeholder="Ít nhất 8 ký tự"
-                          type={showPassword ? "text" : "password"}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                        />
-                        <button
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-secondary"
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          <span className="material-symbols-outlined text-sm">
-                            {showPassword ? "visibility" : "visibility_off"}
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Confirm Password */}
-                    <div>
-                      <label
-                        className="block font-label-md text-label-md text-on-surface-variant mb-1"
-                        htmlFor="confirmPassword"
-                      >
-                        Xác nhận Mã Khoá An Ninh
-                      </label>
-                      <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                          lock_reset
-                        </span>
-                        <input
-                          className="w-full glass-input rounded-lg py-3 pl-10 pr-4 text-on-surface font-body-md placeholder-outline-variant focus:ring-0"
-                          id="confirmPassword"
-                          placeholder="Nhập lại mật khẩu phía trên"
-                          type={showPassword ? "text" : "password"}
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {message && (
-                    <p className="text-sm font-medium text-cyan-300">
-                      {message}
-                    </p>
-                  )}
-
-                  {/* Submit to Step 2 */}
+            <form onSubmit={handleRegisterSubmit} className="space-y-6">
+              {/* Role */}
+              <div className="space-y-3">
+                <label className="block font-label-md text-label-md text-on-surface">
+                  Bạn đăng ký vai trò gì?
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Student */}
                   <button
-                    className="w-full btn-primary-glow bg-primary-container text-on-primary-container font-label-md text-label-md py-3 rounded-lg flex items-center justify-center gap-2 mt-4 hover:bg-primary-fixed"
-                    type="submit"
+                    type="button"
+                    onClick={() => setRole("student")}
+                    className={`role-card glass-panel rounded-xl p-4 text-center border border-border-ice flex flex-col items-center gap-2 group cursor-pointer transition-all ${
+                      role === "student" ? "bg-sky-500/25 border-sky-400" : ""
+                    }`}
                   >
-                    <span>Tiếp Tục Đăng Ký (2FA)</span>
-                    <span className="material-symbols-outlined">
-                      arrow_forward
+                    <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">
+                      school
+                    </span>
+                    <span className="font-label-sm text-label-sm text-on-surface block mt-1">
+                      Học sinh
                     </span>
                   </button>
-                </form>
-              </>
-            ) : (
-              <>
-                {/* Step 2 Header */}
-                <div className="mb-8">
-                  <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2">
-                    Xác Thực Hai Bước (2FA)
-                  </h3>
-                  <p className="font-body-md text-body-md text-on-surface-variant">
-                    Vui lòng nhập mã xác thực đã được gửi đến email chỉ huy của bạn để hoàn tất hồ sơ.
-                  </p>
+
+                  {/* Teacher */}
+                  <button
+                    type="button"
+                    onClick={() => setRole("teacher")}
+                    className={`role-card glass-panel rounded-xl p-4 text-center border border-border-ice flex flex-col items-center gap-2 group cursor-pointer transition-all ${
+                      role === "teacher" ? "bg-emerald-500/25 border-emerald-400" : ""
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-tertiary group-hover:scale-110 transition-transform">
+                      menu_book
+                    </span>
+                    <span className="font-label-sm text-label-sm text-on-surface block mt-1">
+                      Giáo viên
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Inputs */}
+              <div className="space-y-4">
+                {/* Full name */}
+                <div>
+                  <label
+                    className="block font-label-md text-label-md text-on-surface-variant mb-1"
+                    htmlFor="fullname"
+                  >
+                    Họ và Tên
+                  </label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
+                      person
+                    </span>
+                    <input
+                      className="w-full glass-input rounded-lg py-3 pl-10 pr-4 text-on-surface font-body-md placeholder-outline-variant focus:ring-0"
+                      id="fullname"
+                      placeholder="Nhập họ và tên đầy đủ"
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
 
-                <form onSubmit={handleRegisterSubmit} className="space-y-6">
-                  <div>
-                    <label
-                      className="block font-label-md text-label-md text-on-surface-variant mb-2"
-                      htmlFor="2facode"
-                    >
-                      Mã Xác Thực 6 Số
-                    </label>
-                    <div className="relative">
-                      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
-                        security
-                      </span>
-                      <input
-                        className="w-full glass-input rounded-lg py-3 pl-10 pr-4 text-on-surface font-body-md placeholder-outline-variant focus:ring-0 text-center tracking-widest text-lg font-bold"
-                        id="2facode"
-                        placeholder="••••••"
-                        maxLength={6}
-                        type="text"
-                        value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value)}
-                        required
-                      />
-                    </div>
+                {/* Email */}
+                <div>
+                  <label
+                    className="block font-label-md text-label-md text-on-surface-variant mb-1"
+                    htmlFor="email"
+                  >
+                    Email Đăng Ký
+                  </label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
+                      mail
+                    </span>
+                    <input
+                      className="w-full glass-input rounded-lg py-3 pl-10 pr-4 text-on-surface font-body-md placeholder-outline-variant focus:ring-0"
+                      id="email"
+                      placeholder="name@school.edu.vn"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
                   </div>
+                </div>
 
-                  {message && (
-                    <p className="text-sm font-medium text-cyan-300">
-                      {message}
-                    </p>
-                  )}
-
-                  <div className="flex gap-4">
+                {/* Password */}
+                <div>
+                  <label
+                    className="block font-label-md text-label-md text-on-surface-variant mb-1"
+                    htmlFor="password"
+                  >
+                    Mật Khẩu
+                  </label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
+                      lock
+                    </span>
+                    <input
+                      className="w-full glass-input rounded-lg py-3 pl-10 pr-12 text-on-surface font-body-md placeholder-outline-variant focus:ring-0"
+                      id="password"
+                      placeholder="Ít nhất 8 ký tự"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
                     <button
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-secondary"
                       type="button"
-                      onClick={() => {
-                        setStep(1);
-                        setMessage("");
-                      }}
-                      className="w-1/3 py-3 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 text-xs font-bold hover:bg-slate-800"
+                      onClick={() => setShowPassword(!showPassword)}
                     >
-                      Quay lại
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-2/3 btn-primary-glow bg-primary-container text-on-primary-container font-label-md text-label-md py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-primary-fixed disabled:opacity-50"
-                    >
-                      {loading ? "Đang tạo tài khoản..." : "Xác Thực & Hoàn Tất"}
+                      <span className="material-symbols-outlined text-sm">
+                        {showPassword ? "visibility" : "visibility_off"}
+                      </span>
                     </button>
                   </div>
-                </form>
-              </>
-            )}
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label
+                    className="block font-label-md text-label-md text-on-surface-variant mb-1"
+                    htmlFor="confirmPassword"
+                  >
+                    Xác Nhận Mật Khẩu
+                  </label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">
+                      lock_reset
+                    </span>
+                    <input
+                      className="w-full glass-input rounded-lg py-3 pl-10 pr-4 text-on-surface font-body-md placeholder-outline-variant focus:ring-0"
+                      id="confirmPassword"
+                      placeholder="Nhập lại mật khẩu phía trên"
+                      type={showPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {message && (
+                <p className="text-sm font-medium text-cyan-300">
+                  {message}
+                </p>
+              )}
+
+              {/* Submit */}
+              <button
+                className="w-full btn-primary-glow bg-primary-container text-on-primary-container font-label-md text-label-md py-3 rounded-lg flex items-center justify-center gap-2 mt-4 hover:bg-primary-fixed disabled:opacity-50"
+                type="submit"
+                disabled={loading}
+              >
+                <span>{loading ? "Đang tạo tài khoản..." : "Tạo Tài Khoản Ngay"}</span>
+                <span className="material-symbols-outlined">
+                  arrow_forward
+                </span>
+              </button>
+            </form>
 
             {/* Login Link */}
             <div className="mt-8 text-center font-label-sm text-label-sm text-on-surface-variant">
-              Đã có quyền truy cập?{" "}
+              Đã có tài khoản?{" "}
               <Link
                 className="text-secondary font-semibold hover:underline"
-                href="/public/login"
+                href="/login"
               >
                 Đăng nhập tại đây
               </Link>

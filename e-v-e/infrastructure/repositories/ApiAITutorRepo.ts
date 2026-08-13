@@ -1,17 +1,28 @@
 import { AITutorPort } from "@/core/ports/AITutorPort";
 import { ChatMessage, AITutorSubject } from "@/core/entities/AITutor";
+import { getDecryptedAIKey } from "@/lib/secureKeyStorage";
 
 export class ApiAITutorRepo implements AITutorPort {
   async getMessages(): Promise<ChatMessage[]> {
+    return [];
+  }
+
+  async getSubjects(): Promise<AITutorSubject[]> {
     return [
       {
-        id: "msg_1",
-        sender: "ai",
-        text: "Xin chào! Mình là Trợ lý AI E-V-E. Hôm nay bạn muốn tìm hiểu hay giải đáp thắc mắc về chủ đề nào?",
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        id: "python",
+        name: "Lập trình Python",
+        iconName: "Code",
+      },
+      {
+        id: "logic",
+        name: "Tư duy Thuật toán",
+        iconName: "BrainCircuit",
+      },
+      {
+        id: "hardware",
+        name: "Phần cứng Máy tính 3D",
+        iconName: "Cpu",
       },
     ];
   }
@@ -20,6 +31,8 @@ export class ApiAITutorRepo implements AITutorPort {
     userMessage: string,
     subjectId?: string
   ): Promise<ChatMessage> {
+    const savedKey = getDecryptedAIKey();
+
     const response = await fetch("/api/tutor", {
       method: "POST",
       headers: {
@@ -28,6 +41,7 @@ export class ApiAITutorRepo implements AITutorPort {
       body: JSON.stringify({
         message: userMessage,
         subjectId,
+        geminiApiKey: savedKey,
       }),
     });
 
@@ -45,14 +59,5 @@ export class ApiAITutorRepo implements AITutorPort {
         minute: "2-digit",
       }),
     };
-  }
-
-  async getSubjects(): Promise<AITutorSubject[]> {
-    return [
-      { id: "phys", name: "Vật Lý Lượng Tử", iconName: "Atom" },
-      { id: "ai", name: "Trí Tuệ Nhân Tạo", iconName: "Bot" },
-      { id: "math", name: "Toán Học Cao Cấp", iconName: "Calculator" },
-      { id: "ux", name: "Thiết Kế UI/UX", iconName: "Palette" },
-    ];
   }
 }

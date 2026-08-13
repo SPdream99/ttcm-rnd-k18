@@ -1,30 +1,21 @@
-import Header from "@/components/student/Header";
-import Sidebar from "@/components/student/Sidebar";
+"use client";
 
-export default function StudentLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+import React from "react";
+import { StudentTabProvider } from "@/context/DashboardTabContext";
+import DashboardSidebar from "@/components/DashboardSidebar";
+
+export default function StudentLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen">
+    <StudentTabProvider>
+      <div className="flex min-h-screen bg-[#0a0e1a]">
+        {/* ASIDE BÊN NGOÀI - Sidebar dùng chung */}
+        <DashboardSidebar role="student" />
 
-      {/* SIDEBAR */}
-      <aside className="w-64 shrink-0">
-        <Sidebar />
-      </aside>
-
-      {/* RIGHT SIDE */}
-      <main className="flex-1 p-4 md:p-4 z-10 space-y-8">
-
-        {/* HEADER */}
-          <Header />
-      <div>
-        {/* CONTENT */}
+        {/* NỘI DUNG CHÍNH */}
+        <main className="flex-1 overflow-y-auto">
           {children}
+        </main>
       </div>
-      </main>
-
-    </div>
+    </StudentTabProvider>
   );
 }

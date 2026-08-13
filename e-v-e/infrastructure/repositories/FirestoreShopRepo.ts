@@ -17,7 +17,7 @@ export class FirestoreShopRepo implements ShopPort {
   private mapDocToShopItem(id: string, data: any): ShopItem {
     return {
       id,
-      itemId: data.item_id || id,
+      itemId: id,
       name: data.name || "",
       price: Number(data.price) || 0,
       type: data.type || "avatar_frame",

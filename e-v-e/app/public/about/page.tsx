@@ -5,26 +5,18 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import HeaderEffect from "@/components/HeaderEffect";
 import Navbar from "@/components/Navbar";
-import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { useAuth, getDashboardPath } from "@/context/AuthContext";
 
 export default function AboutPage() {
   const router = useRouter();
-  const { currentUser, profile } = useAuthAdapter();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    const user = currentUser || profile;
-    if (user && user.email) {
-      if (user.role === "teacher") {
-        if ((user as any).status === "pending") {
-          router.push("/public/pending");
-        } else {
-          router.push("/dashbroad/teacher");
-        }
-      } else {
-        router.push("/dashbroad/student");
-      }
+    if (!loading && user && user.email) {
+      const targetPath = getDashboardPath(user.role, user.status);
+      router.push(targetPath);
     }
-  }, [currentUser, profile, router]);
+  }, [user, loading, router]);
 
   return (
     <>

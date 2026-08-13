@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { setAuthCookie } from "@/lib/cookies";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -27,17 +28,22 @@ export default function LoginPage() {
     setMessage("");
 
     if (rememberMe) {
+      localStorage.setItem("eve_remember_me", "true");
       localStorage.setItem("eve_remembered_email", email);
     } else {
+      localStorage.setItem("eve_remember_me", "false");
       localStorage.removeItem("eve_remembered_email");
     }
 
-    const res = await login({ email, pass: password });
+    const res = await login({ email, pass: password, rememberMe });
 
     if (!res.success || !res.user) {
       setMessage(res.error || "Email hoặc mật khẩu không đúng.");
       return;
     }
+
+    // Ensure auth cookie is saved
+    setAuthCookie(res.user, rememberMe);
 
     const { role, status } = res.user;
 
@@ -49,22 +55,21 @@ export default function LoginPage() {
     if (role === "teacher" && status === "pending") {
       setMessage("Tài khoản đang chờ phê duyệt. Đang chuyển hướng...");
       setTimeout(() => {
-        window.location.href = "/public/pending";
+        window.location.href = "/pending";
       }, 1000);
       return;
     }
 
-    setMessage("Đăng nhập thành công! Đang vào trung tâm điều hành...");
+    setMessage("Đăng nhập thành công! Đang vào hệ thống...");
     setTimeout(() => {
       if (role === "student") {
-        window.location.href = "/dashbroad/student";
+        window.location.href = "/student/dashboard";
       } else if (role === "teacher") {
-        window.location.href = "/dashbroad/teacher";
+        window.location.href = "/teacher/dashboard";
       } else if (role === "school" || role === "admin") {
-        // Redirect to school (Admin dashboard route)
-        window.location.href = "/dashbroad/school";
+        window.location.href = "/admin/dashboard";
       } else {
-        window.location.href = "/dashbroad/student";
+        window.location.href = "/student/dashboard";
       }
     }, 1000);
   };
@@ -113,7 +118,7 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-xs font-mono text-slate-300 mb-1.5">
-                Email Chỉ Huy
+                Email Đăng Nhập
               </label>
               <input
                 type="email"
@@ -179,7 +184,7 @@ export default function LoginPage() {
           <form onSubmit={handleForgotPassword} className="space-y-6">
             <div>
               <label className="block text-xs font-mono text-slate-300 mb-1.5">
-                Email Chỉ Huy
+                Email Đăng Nhập
               </label>
               <input
                 type="email"

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { setAuthCookie } from "@/lib/cookies";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -23,18 +24,20 @@ export default function LoginForm() {
       return;
     }
 
+    setAuthCookie(res.user, true);
+
     setMessage("Đăng nhập thành công!");
     const role = res.user.role;
 
     setTimeout(() => {
       if (role === "student") {
-        window.location.href = "/dashbroad/student";
+        window.location.href = "/student/dashboard";
       } else if (role === "teacher") {
-        window.location.href = "/dashbroad/teacher";
+        window.location.href = res.user?.status === "pending" ? "/pending" : "/teacher/dashboard";
       } else if (role === "school" || role === "admin") {
-        window.location.href = "/dashbroad/school";
+        window.location.href = "/admin/dashboard";
       } else {
-        window.location.href = "/dashbroad/student";
+        window.location.href = "/student/dashboard";
       }
     }, 1000);
   };
