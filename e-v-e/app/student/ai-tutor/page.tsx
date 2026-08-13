@@ -149,7 +149,7 @@ export default function StudentAITutorPage() {
       }
 
       // Regular text with bold & line breaks
-      const formattedLines = part.split("\n").map((line, lIdx) => {
+      const renderedLines = part.split("\n").map((line, lIdx) => {
         // Simple bold parser
         const boldParts = line.split(/(\*\*.*?\*\*)/g).map((bChunk, bIdx) => {
           if (bChunk.startsWith("**") && bChunk.endsWith("**")) {
@@ -160,12 +160,12 @@ export default function StudentAITutorPage() {
 
         return (
           <p key={lIdx} className="min-h-[1rem]">
-            {formattedLines ? boldParts : <br />}
+            {line.trim() ? boldParts : <br />}
           </p>
         );
       });
 
-      return <div key={index} className="space-y-1">{formattedLines}</div>;
+      return <div key={index} className="space-y-1">{renderedLines}</div>;
     });
   };
 

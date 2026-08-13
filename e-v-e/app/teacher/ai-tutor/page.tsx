@@ -137,7 +137,7 @@ export default function TeacherAITutorPage() {
         );
       }
 
-      const formattedLines = part.split("\n").map((line, lIdx) => {
+      const renderedLines = part.split("\n").map((line, lIdx) => {
         const boldParts = line.split(/(\*\*.*?\*\*)/g).map((bChunk, bIdx) => {
           if (bChunk.startsWith("**") && bChunk.endsWith("**")) {
             return <strong key={bIdx} className="text-white font-bold">{bChunk.slice(2, -2)}</strong>;
@@ -147,12 +147,12 @@ export default function TeacherAITutorPage() {
 
         return (
           <p key={lIdx} className="min-h-[1rem]">
-            {formattedLines ? boldParts : <br />}
+            {line.trim() ? boldParts : <br />}
           </p>
         );
       });
 
-      return <div key={index} className="space-y-1">{formattedLines}</div>;
+      return <div key={index} className="space-y-1">{renderedLines}</div>;
     });
   };
 
