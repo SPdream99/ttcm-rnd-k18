@@ -1,21 +1,36 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [message, setMessage] = useState("");
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
   const { login, loading } = useAuthAdapter();
 
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("eve_remembered_email");
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
+
+    if (rememberMe) {
+      localStorage.setItem("eve_remembered_email", email);
+    } else {
+      localStorage.removeItem("eve_remembered_email");
+    }
 
     const res = await login({ email, pass: password });
 
@@ -135,6 +150,21 @@ export default function LoginPage() {
                 className="w-full bg-slate-950/80 border border-sky-500/20 focus:border-sky-400 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-all"
                 required
               />
+            </div>
+
+            {/* Remember Me */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-sky-500 focus:ring-sky-400 focus:ring-offset-slate-950 accent-sky-500 cursor-pointer"
+                />
+                <span className="text-xs font-mono text-slate-300">
+                  Ghi nhớ đăng nhập
+                </span>
+              </label>
             </div>
 
             <button
