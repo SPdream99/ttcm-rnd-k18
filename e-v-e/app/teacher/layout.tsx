@@ -11,16 +11,20 @@ import {
   Bot,
   LogOut,
   Sparkles,
+  Code2,
+  UserCheck,
   ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 
 const TEACHER_NAV = [
-  { id: "dashboard",     label: "Bảng Điều Khiển",     icon: LayoutDashboard, href: "/teacher/dashboard" },
-  { id: "upload-center", label: "Soạn Bài & Học Liệu", icon: UploadCloud,     href: "/teacher/upload-center" },
-  { id: "my-contents",   label: "Quản Lý Bài Đã Tạo",  icon: FolderKanban,    href: "/teacher/my-contents" },
-  { id: "ai-tutor",       label: "Trợ Lý Giảng Dạy AI", icon: Bot,             href: "/teacher/ai-tutor" },
+  { id: "dashboard",      label: "Bảng Điều Khiển",      icon: LayoutDashboard, href: "/teacher/dashboard" },
+  { id: "upload-center",  label: "Soạn Bài & Học Liệu",  icon: UploadCloud,     href: "/teacher/upload-center" },
+  { id: "my-contents",    label: "Quản Lý Bài Đã Tạo",   icon: FolderKanban,    href: "/teacher/my-contents" },
+  { id: "game-sdk-guide", label: "Tài Liệu Game SDK",    icon: Code2,           href: "/teacher/game-sdk-guide" },
+  { id: "ai-tutor",        label: "Trợ Lý Giảng Dạy AI",  icon: Bot,             href: "/teacher/ai-tutor" },
+  { id: "profile",         label: "Hồ Sơ Giáo Viên",      icon: UserCheck,       href: "/teacher/profile" },
 ];
 
 import { useEffect } from "react";
