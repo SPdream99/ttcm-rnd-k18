@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
@@ -15,21 +15,17 @@ import {
   LogOut,
   Coins,
   ChevronRight,
-  PlusCircle,
 } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { useStudentTab, useTeacherTab } from "@/context/DashboardTabContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
   /** Role xác định màu chủ đạo & menu items */
   role: "student" | "teacher";
-  /** Tab hiện tại (cho các trang dùng internal tab state) */
-  activeTab?: string;
-  /** Callback khi chuyển tab nội bộ */
-  onTabChange?: (tab: string) => void;
 }
 
 // ─── Nav Configs ──────────────────────────────────────────────────────────────
@@ -53,13 +49,22 @@ const TEACHER_NAV = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function DashboardSidebar({ role, activeTab, onTabChange }: SidebarProps) {
+export default function DashboardSidebar({ role }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { currentUser, profile } = useAuthAdapter();
 
   const isStudent = role === "student";
   const navItems = isStudent ? STUDENT_NAV : TEACHER_NAV;
+
+  // Read tab state from the appropriate context
+  const studentCtx = useStudentTab();
+  const teacherCtx = useTeacherTab();
+  const activeTab = isStudent ? studentCtx.activeTab : teacherCtx.activeTab;
+  const setTabInContext = (tab: string) => {
+    if (isStudent) studentCtx.setActiveTab(tab as import("@/context/DashboardTabContext").StudentTab);
+    else teacherCtx.setActiveTab(tab as import("@/context/DashboardTabContext").TeacherTab);
+  };
 
   const displayName =
     (currentUser as any)?.name ||
@@ -83,8 +88,8 @@ export default function DashboardSidebar({ role, activeTab, onTabChange }: Sideb
   const handleItemClick = (item: (typeof STUDENT_NAV)[0]) => {
     if (item.href) {
       router.push(item.href);
-    } else if (onTabChange) {
-      onTabChange(item.id);
+    } else {
+      setTabInContext(item.id as any);
     }
   };
 

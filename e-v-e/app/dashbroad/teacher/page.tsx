@@ -14,7 +14,7 @@ import {
   Gamepad2,
   Sparkles,
 } from "lucide-react";
-import DashboardSidebar from "@/components/DashboardSidebar";
+import { useTeacherTab } from "@/context/DashboardTabContext";
 
 export default function TeacherDashboard() {
   const { currentUser, profile } = useAuthAdapter();
@@ -25,7 +25,8 @@ export default function TeacherDashboard() {
   const { learningPaths, createLearningPath, loading: lpathLoading } = useLearningPathAdapter(teacherUid);
   const { games, createGame, loading: gamesLoading } = useGameAdapter(teacherUid);
 
-  const [activeTab, setActiveTab] = useState<"overview" | "create_path" | "upload_game">("overview");
+  // Tab state from layout context (controlled by external DashboardSidebar)
+  const { activeTab, setActiveTab } = useTeacherTab();
 
   // Create Learning Path Form State
   const [lpathTitle, setLpathTitle] = useState("");
@@ -101,23 +102,15 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] flex flex-col md:flex-row relative font-sans">
+    <div className="text-[#e1e2ec] font-sans relative">
       {/* Background Orbs */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-[130px]" />
         <div className="absolute bottom-10 left-10 w-96 h-96 bg-blue-600/10 rounded-full blur-[130px]" />
       </div>
 
-      {/* Shared Sidebar */}
-      <DashboardSidebar
-        role="teacher"
-        activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
-      />
-
-
       {/* Main Educator Workspace */}
-      <main className="flex-1 p-4 md:p-8 z-10 space-y-8 overflow-y-auto">
+      <div className="p-4 md:p-8 z-10 space-y-8 relative">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/10">
           <div>
             <div className="flex items-center gap-2 text-sm text-emerald-400 font-medium mb-1">
@@ -377,7 +370,7 @@ export default function TeacherDashboard() {
             </form>
           </section>
         )}
-      </main>
+      </div>
     </div>
   );
 }

@@ -18,7 +18,7 @@ import { useLearningPathAdapter } from "@/hooks/useLearningPathAdapter";
 import { useGameAdapter } from "@/hooks/useGameAdapter";
 import { useGameResultAdapter } from "@/hooks/useGameResultAdapter";
 import { useShopAdapter } from "@/hooks/useShopAdapter";
-import DashboardSidebar from "@/components/DashboardSidebar";
+import { useStudentTab } from "@/context/DashboardTabContext";
 
 export default function StudentDashboard() {
   const { currentUser, profile } = useAuthAdapter();
@@ -29,7 +29,8 @@ export default function StudentDashboard() {
   const { topStudents, submitResult } = useGameResultAdapter(uid);
   const { shopItems, userDecorations, buyItem } = useShopAdapter(uid);
 
-  const [activeTab, setActiveTab] = useState<"paths" | "games" | "leaderboard" | "shop">("paths");
+  // Tab state from layout context (controlled by external DashboardSidebar)
+  const { activeTab, setActiveTab } = useStudentTab();
   const [selectedGameUrl, setSelectedGameUrl] = useState<string | null>(null);
   const [selectedGameTitle, setSelectedGameTitle] = useState<string>("");
   const [buyingItemId, setBuyingItemId] = useState<string | null>(null);
@@ -75,26 +76,18 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] font-sans flex flex-col md:flex-row relative overflow-hidden">
+    <div className="text-[#e1e2ec] font-sans relative">
       {/* Background Starfield */}
       <div
-        className="absolute inset-0 z-0 opacity-20 pointer-events-none"
+        className="fixed inset-0 z-0 opacity-10 pointer-events-none"
         style={{
           backgroundImage: "radial-gradient(white 1px, transparent 1px)",
           backgroundSize: "40px 40px",
         }}
       />
 
-      {/* Shared Sidebar */}
-      <DashboardSidebar
-        role="student"
-        activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab as typeof activeTab)}
-      />
-
-
       {/* Main Workspace */}
-      <main className="flex-1 p-4 md:p-8 z-10 space-y-8 overflow-y-auto">
+      <div className="p-4 md:p-8 z-10 space-y-8 relative">
         {/* Banner Header */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/10">
           <div>
@@ -402,7 +395,7 @@ export default function StudentDashboard() {
             </div>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
