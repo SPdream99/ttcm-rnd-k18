@@ -213,8 +213,8 @@ export default function StudentDashboard() {
                     <p className="text-xs text-[#8e9bb4]">{game.description}</p>
 
                     <div className="space-y-1 font-mono text-[11px] text-slate-400">
-                      <div>Tác giả: {game.authors.join(", ")}</div>
-                      <div>Khóa học tương thích: {game.coursesAllowed.join(", ")}</div>
+                      <div>Tác giả: {Array.isArray(game.authors) ? game.authors.join(", ") : (game.authorName || "Giáo viên")}</div>
+                      <div>Khóa học tương thích: {Array.isArray(game.coursesAllowed) ? game.coursesAllowed.join(", ") : "Tất cả"}</div>
                     </div>
 
                     <div className="pt-4 border-t border-[#7bd1fa]/10 flex items-center justify-between">
@@ -222,7 +222,7 @@ export default function StudentDashboard() {
                         <Coins className="w-3.5 h-3.5" /> Phấn thưởng: +50 Coins
                       </span>
                       <button
-                        onClick={() => handleLaunchGame(game.sourceUrl, game.title)}
+                        onClick={() => handleLaunchGame(game.gameUrl || game.sourceUrl || "", game.title)}
                         className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black font-bold font-mono text-xs shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <Play className="w-3.5 h-3.5" /> Chơi Game Ngay

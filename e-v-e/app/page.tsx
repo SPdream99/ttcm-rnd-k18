@@ -15,16 +15,16 @@ export default function Home() {
   useEffect(() => {
     const user = currentUser || profile || getAuthCookie();
     if (user && user.email) {
-      if (user.role === "teacher") {
+      if (user.role === "admin" || user.role === "school") {
+        router.replace("/admin/dashboard");
+      } else if (user.role === "teacher") {
         if ((user as any).status === "pending") {
-          router.replace("/public/pending");
+          router.replace("/pending");
         } else {
-          router.replace("/dashbroad/teacher");
+          router.replace("/teacher/dashboard");
         }
-      } else if (user.role === "school" || user.role === "admin") {
-        router.replace("/dashbroad/school");
       } else {
-        router.replace("/dashbroad/student");
+        router.replace("/student/dashboard");
       }
     }
   }, [currentUser, profile, router]);
@@ -61,13 +61,13 @@ export default function Home() {
               Trải nghiệm lộ trình học tập cá nhân hóa được dẫn dắt bởi AI. Khám phá vũ trụ tri thức với giao diện tương lai, nơi sự tập trung và khơi gợi trí tò mò hòa quyện trong một không gian thanh tĩnh.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-              <Link href="/public/register">
+              <Link href="/register">
                 <button className="btn-primary rounded-lg px-8 py-4 font-headline-sm text-headline-sm flex items-center justify-center gap-2 group cursor-pointer">
                   Khám Phá Ngay
                   <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </button>
               </Link>
-              <Link href="/public/login">
+              <Link href="/login">
                 <button className="glass-card rounded-lg px-8 py-4 font-headline-sm text-headline-sm text-on-surface flex items-center justify-center gap-2 hover:bg-white/5 transition-colors cursor-pointer">
                   <span className="material-symbols-outlined text-secondary">play_circle</span>
                   Đăng Nhập Ngay
@@ -130,7 +130,7 @@ export default function Home() {
               <h2 className="font-headline-lg text-3xl md:text-5xl text-on-surface mb-6">Sẵn Sàng Khởi Hành?</h2>
               <p className="font-body-lg text-on-surface-variant max-w-2xl mx-auto mb-10">Tham gia cùng hàng ngàn học sinh và giáo viên đã chuyển đổi số thành công. Trải nghiệm tương lai của giáo dục ngay hôm nay.</p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <Link href="/public/register">
+                <Link href="/register">
                   <button className="btn-primary rounded-lg px-8 py-4 font-headline-sm text-headline-sm shadow-glow-primary hover:-translate-y-1 transition-transform cursor-pointer">
                     Đăng Ký Tài Khoản Miễn Phí
                   </button>

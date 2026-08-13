@@ -42,8 +42,8 @@ const TEACHER_NAV = [
   { id: "overview",     label: "Bàn Làm Việc",         icon: GraduationCap, href: null },
   { id: "create_path",  label: "Tạo Lộ Trình Mới",     icon: BookOpen,      href: null },
   { id: "upload_game",  label: "Nộp Game Engine",       icon: Gamepad2,      href: null },
-  { id: "ai_tutor",     label: "Trợ Lý AI Tutor",       icon: Bot,           href: "/dashbroad/student/AITutor" },
-  { id: "profile",      label: "Trang Cá Nhân",          icon: UserCheck,     href: "/dashbroad/student/profile" },
+  { id: "ai_tutor",     label: "Trợ Lý AI Tutor",       icon: Bot,           href: "/dashbroad/teacher/AITutor" },
+  { id: "profile",      label: "Trang Cá Nhân",          icon: UserCheck,     href: "/dashbroad/teacher/profile" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -56,6 +56,8 @@ export default function DashboardSidebar({ role }: SidebarProps) {
 
   const isStudent = role === "student";
   const navItems = isStudent ? STUDENT_NAV : TEACHER_NAV;
+  const baseDashboardUrl = isStudent ? "/dashbroad/student" : "/dashbroad/teacher";
+  const isAtBaseDashboard = pathname === baseDashboardUrl;
 
   // Read tab state from the appropriate context
   const studentCtx = useStudentTab();
@@ -82,7 +84,7 @@ export default function DashboardSidebar({ role }: SidebarProps) {
 
   const isActiveItem = (item: (typeof STUDENT_NAV)[0]): boolean => {
     if (item.href) return pathname.startsWith(item.href);
-    return activeTab === item.id;
+    return isAtBaseDashboard && activeTab === item.id;
   };
 
   const handleItemClick = (item: (typeof STUDENT_NAV)[0]) => {
@@ -90,6 +92,9 @@ export default function DashboardSidebar({ role }: SidebarProps) {
       router.push(item.href);
     } else {
       setTabInContext(item.id as any);
+      if (!isAtBaseDashboard) {
+        router.push(baseDashboardUrl);
+      }
     }
   };
 

@@ -44,6 +44,13 @@ export default function Navbar() {
     return "/dashbroad/student";
   };
 
+  const getProfileUrl = () => {
+    if (user?.role === "teacher") {
+      return "/dashbroad/teacher/profile";
+    }
+    return "/dashbroad/student/profile";
+  };
+
   return (
     <header
       className="fixed top-0 w-full z-50 bg-[#0a0e1a]/80 backdrop-blur-md border-b border-[#7bd1fa]/15 shadow-lg transition-all duration-300"
@@ -114,7 +121,7 @@ export default function Navbar() {
                     </Link>
 
                     <Link
-                      href="/dashbroad/student/profile"
+                      href={getProfileUrl()}
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all"
                     >

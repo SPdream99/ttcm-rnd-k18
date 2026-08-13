@@ -4,36 +4,133 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Root redirect logic: "localhost:3000" (/) -> redirect to appropriate dashboard based on cookie
-  if (pathname === "/") {
-    const authCookie = request.cookies.get("eve_auth_user");
-    if (authCookie && authCookie.value) {
-      try {
-        const rawValue = authCookie.value;
-        const user = JSON.parse(decodeURIComponent(rawValue));
+  // Read session cookie
+  const authCookie = request.cookies.get("eve_auth_user");
+  let user: {
+    uid?: string;
+    role?: string;
+    status?: string;
+    email?: string;
+  } | null = null;
 
-        if (user && user.role) {
-          if (user.role === "teacher") {
-            if (user.status === "pending") {
-              return NextResponse.redirect(new URL("/public/pending", request.url));
-            }
-            return NextResponse.redirect(new URL("/dashbroad/teacher", request.url));
-          } else if (user.role === "school" || user.role === "admin") {
-            return NextResponse.redirect(new URL("/dashbroad/school", request.url));
-          } else {
-            // Default: student dashboard
-            return NextResponse.redirect(new URL("/dashbroad/student", request.url));
-          }
-        }
-      } catch (e) {
-        console.error("Middleware parsing auth cookie error:", e);
-      }
+  if (authCookie && authCookie.value) {
+    try {
+      user = JSON.parse(decodeURIComponent(authCookie.value));
+    } catch {
+      user = null;
     }
+  }
+
+  const isLoggedIn = Boolean(user && user.role);
+  const role = user?.role || "student";
+  const status = user?.status || "active";
+
+  // Helper to determine home dashboard based on role
+  const getRoleDashboard = (userRole: string, userStatus: string) => {
+    if (userRole === "admin" || userRole === "school") {
+      return "/admin/dashboard";
+    }
+    if (userRole === "teacher") {
+      if (userStatus === "pending") return "/pending";
+      return "/teacher/dashboard";
+    }
+    return "/student/dashboard";
+  };
+
+  // 1. Backward compatibility redirects
+  if (pathname === "/public/login") {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+  if (pathname === "/public/register") {
+    return NextResponse.redirect(new URL("/register", request.url));
+  }
+  if (pathname === "/public/pending") {
+    return NextResponse.redirect(new URL("/pending", request.url));
+  }
+  if (pathname.startsWith("/dashbroad/student")) {
+    return NextResponse.redirect(new URL("/student/dashboard", request.url));
+  }
+  if (pathname.startsWith("/dashbroad/teacher")) {
+    return NextResponse.redirect(new URL("/teacher/dashboard", request.url));
+  }
+  if (pathname.startsWith("/dashbroad/school")) {
+    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+  }
+
+  // 2. Root path ('/') redirect for authenticated users
+  if (pathname === "/") {
+    if (isLoggedIn) {
+      return NextResponse.redirect(new URL(getRoleDashboard(role, status), request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 3. Auth pages ('/login', '/register') when already logged in
+  if (pathname === "/login" || pathname === "/register") {
+    if (isLoggedIn) {
+      return NextResponse.redirect(new URL(getRoleDashboard(role, status), request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 4. Pending page ('/pending')
+  if (pathname === "/pending") {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (role === "teacher" && status === "pending") {
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(new URL(getRoleDashboard(role, status), request.url));
+  }
+
+  // 5. Admin area ('/admin/*')
+  if (pathname.startsWith("/admin")) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (role !== "admin" && role !== "school") {
+      // Non-admin trying to access admin area
+      return NextResponse.redirect(new URL(getRoleDashboard(role, status), request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 6. Teacher area ('/teacher/*')
+  if (pathname.startsWith("/teacher")) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (role === "teacher" && status === "pending") {
+      return NextResponse.redirect(new URL("/pending", request.url));
+    }
+    if (role !== "teacher" && role !== "admin" && role !== "school") {
+      return NextResponse.redirect(new URL(getRoleDashboard(role, status), request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 7. Student area ('/student/*')
+  if (pathname.startsWith("/student")) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.next();
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/"],
+  matcher: [
+    "/",
+    "/login",
+    "/register",
+    "/pending",
+    "/admin/:path*",
+    "/teacher/:path*",
+    "/student/:path*",
+    "/public/:path*",
+    "/dashbroad/:path*",
+  ],
 };
