@@ -19,7 +19,7 @@ export class FirestoreGameRepo implements GamePort {
   private mapDocToGame(id: string, data: any): Game {
     return {
       id,
-      gameId: data.game_id || id,
+      gameId: data.game_id || data.id || id,
       authors: Array.isArray(data.authors) ? data.authors : [],
       title: data.title || "",
       description: data.description || "",
@@ -99,6 +99,8 @@ export class FirestoreGameRepo implements GamePort {
     const gameId = newDocRef.id;
 
     const payload = {
+      id: gameId,
+      _id: gameId,
       game_id: gameId,
       authors: input.authors,
       title: input.title,

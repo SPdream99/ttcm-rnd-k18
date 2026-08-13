@@ -22,7 +22,7 @@ export class FirestoreLearningPathRepo implements LearningPathPort {
   private mapDocToLearningPath(id: string, data: any): LearningPath {
     return {
       id,
-      lpathId: data.lpath_id || id,
+      lpathId: data.lpath_id || data.id || id,
       title: data.title || "",
       description: data.description || "",
       authorId: data.author_id || "",
@@ -98,6 +98,8 @@ export class FirestoreLearningPathRepo implements LearningPathPort {
     const lpathId = newDocRef.id;
 
     const payload = {
+      id: lpathId,
+      _id: lpathId,
       lpath_id: lpathId,
       title: input.title,
       description: input.description,

@@ -1,13 +1,14 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "EVE_Firestore_Database_Schema",
-  "description": "Cấu hình thiết kế Firestore Database chính thức của dự án E-V-E với toàn bộ mẫu collection.",
+  "description": "Cấu hình thiết kế Firestore Database chính thức của dự án E-V-E với Document Key trùng khớp ID bên trong.",
   "collections": {
     "users": {
       "description": "Lưu trữ thông tin người dùng (Học sinh, Giảng viên, Admin)",
       "fields": {
-        "_id": "String (UID người dùng)",
-        "uid": "String (UID Firebase Authentication để truy xuất qua Auth)",
+        "id": "String (Mã định danh trùng khớp với Document Key)",
+        "_id": "String (UID người dùng trùng khớp với Document Key)",
+        "uid": "String (UID Firebase Authentication trùng khớp với Document Key)",
         "name": "String (Họ và tên)",
         "email": "String (Email chỉ huy)",
         "role": "String ('student' | 'teacher' | 'admin')",
@@ -16,10 +17,11 @@
         "profile_decorations": "Array<String> (Danh sách ID vật phẩm trang trí đã sở hữu)"
       },
       "sample_document": {
+        "id": "usr_student_001",
         "_id": "usr_student_001",
         "uid": "usr_student_001",
-        "name": "Nguyễn Văn A",
-        "email": "student001@eve.edu.vn",
+        "name": "Học Sinh Explorer",
+        "email": "student@eve.edu.vn",
         "role": "student",
         "status": "active",
         "coins": 250,
@@ -29,13 +31,17 @@
     "shop_items": {
       "description": "Lưu trữ vật phẩm trong cửa hàng đổi coin",
       "fields": {
-        "item_id": "String (Mã định danh vật phẩm)",
+        "id": "String (Mã định danh vật phẩm trùng khớp với Document Key)",
+        "_id": "String (Mã định danh vật phẩm trùng khớp với Document Key)",
+        "item_id": "String (Mã định danh vật phẩm trùng khớp với Document Key)",
         "name": "String (Tên vật phẩm)",
         "price": "Number (Giá tính bằng Coin)",
         "type": "String ('avatar_frame' | 'title_tag' | 'profile_theme')",
         "image_url": "String (Đường dẫn hình ảnh hiển thị)"
       },
       "sample_document": {
+        "id": "item_frame_cosmic_01",
+        "_id": "item_frame_cosmic_01",
         "item_id": "item_frame_cosmic_01",
         "name": "Khung Vũ Trụ Lấp Lánh",
         "price": 100,
@@ -46,8 +52,9 @@
     "courses": {
       "description": "Lưu trữ thông tin khóa học / bài học do giáo viên tạo",
       "fields": {
-        "id": "String (Firestore document ID)",
-        "course_id": "String (Mã bài học)",
+        "id": "String (Firestore document ID trùng khớp với Document Key)",
+        "_id": "String (Mã bài học trùng khớp với Document Key)",
+        "course_id": "String (Mã bài học trùng khớp với Document Key)",
         "title": "String (Tên bài học)",
         "author_id": "String (UID giáo viên tạo)",
         "is_accepted": "Boolean (Trạng thái duyệt của Admin)",
@@ -56,6 +63,7 @@
       },
       "sample_document": {
         "id": "crs_quantum_101",
+        "_id": "crs_quantum_101",
         "course_id": "crs_quantum_101",
         "title": "Vật Lý Lượng Tử Cơ Bản",
         "author_id": "usr_teacher_001",
@@ -81,7 +89,9 @@
     "learning_path": {
       "description": "Lộ trình học tập tập hợp nhiều bài học do giáo viên thiết kế",
       "fields": {
-        "lpath_id": "String (Mã lộ trình học tập)",
+        "id": "String (Mã lộ trình trùng khớp với Document Key)",
+        "_id": "String (Mã lộ trình trùng khớp với Document Key)",
+        "lpath_id": "String (Mã lộ trình trùng khớp với Document Key)",
         "title": "String (Tên lộ trình)",
         "description": "String (Mô tả lộ trình)",
         "courses": "Array<String> (Danh sách course_id)",
@@ -89,6 +99,8 @@
         "is_accepted": "Boolean (Trạng thái duyệt của Admin)"
       },
       "sample_document": {
+        "id": "lpath_quantum_physics",
+        "_id": "lpath_quantum_physics",
         "lpath_id": "lpath_quantum_physics",
         "title": "Lộ Trình Nhập Môn Vật Lý Lượng Tử",
         "description": "Chinh phục từ lý thuyết cơ bản đến máy tính lượng tử.",
@@ -100,7 +112,8 @@
     "resources": {
       "description": "Tài liệu học tập đi kèm bài học (PDF, Slide, Video...)",
       "fields": {
-        "id": "String (Resource ID)",
+        "id": "String (Resource ID trùng khớp với Document Key)",
+        "_id": "String (Resource ID trùng khớp với Document Key)",
         "courseId": "String (Mã bài học liên kết)",
         "title": "String (Tiêu đề tài liệu)",
         "description": "String (Mô tả chi tiết)",
@@ -112,6 +125,7 @@
       },
       "sample_document": {
         "id": "res_quantum_pdf_01",
+        "_id": "res_quantum_pdf_01",
         "courseId": "crs_quantum_101",
         "title": "Slide Bài Giảng Vật Lý Lượng Tử Chapter 1",
         "description": "Tài liệu tổng hợp công thức và bài tập mẫu.",
@@ -125,7 +139,9 @@
     "game_info": {
       "description": "Thông tin các Game Engine được tải lên hệ thống",
       "fields": {
-        "game_id": "String (Mã định danh trò chơi)",
+        "id": "String (Mã trò chơi trùng khớp với Document Key)",
+        "_id": "String (Mã trò chơi trùng khớp với Document Key)",
+        "game_id": "String (Mã trò chơi trùng khớp với Document Key)",
         "authors": "Array<String> (Danh sách tác giả / nhóm phát triển)",
         "title": "String (Tên trò chơi)",
         "description": "String (Mô tả lối chơi)",
@@ -137,6 +153,8 @@
         "uploader_id": "String (UID người đăng game)"
       },
       "sample_document": {
+        "id": "game_space_quiz_3d",
+        "_id": "game_space_quiz_3d",
         "game_id": "game_space_quiz_3d",
         "authors": ["GS. Nguyễn Văn An", "Nhóm Dev EVE"],
         "title": "Bắn Tháp Vũ Trụ Quiz 3D",
@@ -152,14 +170,18 @@
     "game_results": {
       "description": "Lịch sử lượt chơi và kết quả đạt được để xếp hạng & thưởng Coin",
       "fields": {
+        "id": "String (Mã kết quả trùng khớp với Document Key)",
+        "_id": "String (Mã kết quả trùng khớp với Document Key)",
         "uid": "String (UID học sinh chơi)",
         "cid": "String (Mã bài học course_id)",
         "gid": "String (Mã game game_id)",
         "result": "Number | Object (Điểm số hoặc chi tiết kết quả)",
         "reward": "Number (Số coin thưởng)",
-        "played_at": "Timestamp (Thời điểm hoàn thành lượt chơi - Dùng để xếp hạng tháng)"
+        "played_at": "Timestamp (Thời điểm hoàn thành lượt chơi)"
       },
       "sample_document": {
+        "id": "res_student_001",
+        "_id": "res_student_001",
         "uid": "usr_student_001",
         "cid": "crs_quantum_101",
         "gid": "game_space_quiz_3d",
@@ -171,12 +193,16 @@
     "enrollments": {
       "description": "Theo dõi tiến độ ghi danh lộ trình học tập của học sinh",
       "fields": {
+        "id": "String (Mã ghi danh trùng khớp với Document Key)",
+        "_id": "String (Mã ghi danh trùng khớp với Document Key)",
         "uid": "String (UID học sinh)",
         "lpath_id": "String (Mã lộ trình học tập lpath_id)",
         "enrollment_date": "Timestamp (Ngày đăng ký học)",
         "is_finished": "Boolean (Trạng thái đã hoàn thành lộ trình hay chưa)"
       },
       "sample_document": {
+        "id": "enr_student_001",
+        "_id": "enr_student_001",
         "uid": "usr_student_001",
         "lpath_id": "lpath_quantum_physics",
         "enrollment_date": "2026-08-10T08:00:00.000Z",

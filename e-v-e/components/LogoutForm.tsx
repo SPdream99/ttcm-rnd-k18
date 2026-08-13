@@ -3,42 +3,35 @@
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 
 export default function Logout() {
-    const router = useRouter();
+  const router = useRouter();
 
-    const handleLogout = async () => {
-        try {
-            await signOut(auth);
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Đăng xuất thất bại:", error);
+    }
 
-            console.log("Đăng xuất thành công!");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("eve_user");
+      localStorage.removeItem("remember_me");
+      localStorage.removeItem("user_email");
+    }
 
-            router.push("/public/login");
-        } catch (error) {
-            console.error("Đăng xuất thất bại:", error);
-        }
-    };
+    router.push("/public/login");
+  };
 
-    return (
-        <button
-            type="button"
-            onClick={handleLogout}
-            className="
-        flex items-center gap-3
-        rounded-lg
-        px-4 py-3
-        text-left
-        text-gray-400
-        hover:bg-cyan-500/10
-        hover:text-cyan-300
-        transition-all duration-200
-      "
-        >
-            <span className="material-symbols-outlined">
-                logout
-            </span>
-
-            <span>Đăng xuất</span>
-        </button>
-    );
+  return (
+    <button
+      type="button"
+      onClick={handleLogout}
+      className="px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-mono text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+    >
+      <LogOut className="w-4 h-4 text-red-400" />
+      <span>Đăng xuất</span>
+    </button>
+  );
 }
