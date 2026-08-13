@@ -1,0 +1,185 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EVE_Firestore_Database_Schema",
+  "description": "Cấu hình thiết kế Firestore Database chính thức của dự án E-V-E với toàn bộ mẫu collection.",
+  "collections": {
+    "users": {
+      "description": "Lưu trữ thông tin người dùng (Học sinh, Giảng viên, Admin)",
+      "fields": {
+        "_id": "String (UID người dùng)",
+        "name": "String (Họ và tên)",
+        "email": "String (Email chỉ huy)",
+        "role": "String ('student' | 'teacher' | 'admin')",
+        "status": "String ('pending' | 'active' | 'banned')",
+        "coins": "Number (Số coin tích lũy)",
+        "profile_decorations": "Array<String> (Danh sách ID vật phẩm trang trí đã sở hữu)"
+      },
+      "sample_document": {
+        "_id": "usr_student_001",
+        "name": "Nguyễn Văn A",
+        "email": "student001@eve.edu.vn",
+        "role": "student",
+        "status": "active",
+        "coins": 250,
+        "profile_decorations": ["item_frame_cosmic_01", "item_title_explorer"]
+      }
+    },
+    "shop_items": {
+      "description": "Lưu trữ vật phẩm trong cửa hàng đổi coin",
+      "fields": {
+        "item_id": "String (Mã định danh vật phẩm)",
+        "name": "String (Tên vật phẩm)",
+        "price": "Number (Giá tính bằng Coin)",
+        "type": "String ('avatar_frame' | 'title_tag' | 'profile_theme')",
+        "image_url": "String (Đường dẫn hình ảnh hiển thị)"
+      },
+      "sample_document": {
+        "item_id": "item_frame_cosmic_01",
+        "name": "Khung Vũ Trụ Lấp Lánh",
+        "price": 100,
+        "type": "avatar_frame",
+        "image_url": "/assets/shop/frames/cosmic_glow.png"
+      }
+    },
+    "courses": {
+      "description": "Lưu trữ thông tin khóa học / bài học do giáo viên tạo",
+      "fields": {
+        "id": "String (Firestore document ID)",
+        "course_id": "String (Mã bài học)",
+        "title": "String (Tên bài học)",
+        "author_id": "String (UID giáo viên tạo)",
+        "is_accepted": "Boolean (Trạng thái duyệt của Admin)",
+        "created_at": "Timestamp (Thời gian tạo)",
+        "content_data": "JSON Object (Dữ liệu động câu hỏi/đáp án cho Game)"
+      },
+      "sample_document": {
+        "id": "crs_quantum_101",
+        "course_id": "crs_quantum_101",
+        "title": "Vật Lý Lượng Tử Cơ Bản",
+        "author_id": "usr_teacher_001",
+        "is_accepted": true,
+        "created_at": "2026-08-13T10:00:00.000Z",
+        "content_data": {
+          "pairs": [
+            {
+              "id": "pair_1",
+              "title": "Phương trình Schrödinger dùng để làm gì?",
+              "right_answer": "Mô tả trạng thái lượng tử của hệ thống",
+              "image": "https://example.com/schrodinger.png",
+              "wrong_answers": [
+                "Tính vận tốc ánh sáng",
+                "Đo điện trở của kim loại",
+                "Tính áp suất khí lý tưởng"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "learning_path": {
+      "description": "Lộ trình học tập tập hợp nhiều bài học do giáo viên thiết kế",
+      "fields": {
+        "lpath_id": "String (Mã lộ trình học tập)",
+        "title": "String (Tên lộ trình)",
+        "description": "String (Mô tả lộ trình)",
+        "courses": "Array<String> (Danh sách course_id)",
+        "author_id": "String (UID giáo viên tạo)",
+        "is_accepted": "Boolean (Trạng thái duyệt của Admin)"
+      },
+      "sample_document": {
+        "lpath_id": "lpath_quantum_physics",
+        "title": "Lộ Trình Nhập Môn Vật Lý Lượng Tử",
+        "description": "Chinh phục từ lý thuyết cơ bản đến máy tính lượng tử.",
+        "courses": ["crs_quantum_101", "crs_schrodinger_eq"],
+        "author_id": "usr_teacher_001",
+        "is_accepted": true
+      }
+    },
+    "resources": {
+      "description": "Tài liệu học tập đi kèm bài học (PDF, Slide, Video...)",
+      "fields": {
+        "id": "String (Resource ID)",
+        "courseId": "String (Mã bài học liên kết)",
+        "title": "String (Tiêu đề tài liệu)",
+        "description": "String (Mô tả chi tiết)",
+        "fileUrl": "String (Link tải file)",
+        "fileType": "String (Loại file: pdf, docx, mp4...)",
+        "fileSize": "Number (Kích thước file theo bytes)",
+        "downloadCount": "Number (Số lượt tải)",
+        "uploadedAt": "Timestamp (Thời gian upload)"
+      },
+      "sample_document": {
+        "id": "res_quantum_pdf_01",
+        "courseId": "crs_quantum_101",
+        "title": "Slide Bài Giảng Vật Lý Lượng Tử Chapter 1",
+        "description": "Tài liệu tổng hợp công thức và bài tập mẫu.",
+        "fileUrl": "https://storage.eve.edu.vn/resources/quantum_ch1.pdf",
+        "fileType": "pdf",
+        "fileSize": 2457600,
+        "downloadCount": 42,
+        "uploadedAt": "2026-08-13T10:00:00.000Z"
+      }
+    },
+    "game_info": {
+      "description": "Thông tin các Game Engine được tải lên hệ thống",
+      "fields": {
+        "game_id": "String (Mã định danh trò chơi)",
+        "authors": "Array<String> (Danh sách tác giả / nhóm phát triển)",
+        "title": "String (Tên trò chơi)",
+        "description": "String (Mô tả lối chơi)",
+        "is_accepted": "Boolean (Trạng thái duyệt của Admin)",
+        "courses_allowed": "Array<String> (Danh sách course_id được phép dùng)",
+        "courses_blocked": "Array<String> (Danh sách course_id bị chặn)",
+        "need_extra_data": "Boolean (Yêu cầu nạp extra_data từ bài học hay không)",
+        "source_url": "String (Link đến file static/bundle để load trong iframe và tải về)",
+        "uploader_id": "String (UID người đăng game)"
+      },
+      "sample_document": {
+        "game_id": "game_space_quiz_3d",
+        "authors": ["Thầy Nguyễn Văn B", "Nhóm Dev EVE"],
+        "title": "Bắn Tháp Vũ Trụ Quiz 3D",
+        "description": "Game bắn tháp câu hỏi trắc nghiệm không gian.",
+        "is_accepted": true,
+        "courses_allowed": ["crs_quantum_101", "crs_astrophysics"],
+        "courses_blocked": [],
+        "need_extra_data": true,
+        "source_url": "https://storage.eve.edu.vn/games/space_quiz_3d/index.html",
+        "uploader_id": "usr_teacher_001"
+      }
+    },
+    "game_results": {
+      "description": "Lịch sử lượt chơi và kết quả đạt được để xếp hạng & thưởng Coin",
+      "fields": {
+        "uid": "String (UID học sinh chơi)",
+        "cid": "String (Mã bài học course_id)",
+        "gid": "String (Mã game game_id)",
+        "result": "Number | Object (Điểm số hoặc chi tiết kết quả)",
+        "reward": "Number (Số coin thưởng)",
+        "played_at": "Timestamp (Thời điểm hoàn thành lượt chơi - Dùng để xếp hạng tháng)"
+      },
+      "sample_document": {
+        "uid": "usr_student_001",
+        "cid": "crs_quantum_101",
+        "gid": "game_space_quiz_3d",
+        "result": 95,
+        "reward": 50,
+        "played_at": "2026-08-13T10:30:00.000Z"
+      }
+    },
+    "enrollments": {
+      "description": "Theo dõi tiến độ ghi danh lộ trình học tập của học sinh",
+      "fields": {
+        "uid": "String (UID học sinh)",
+        "lpath_id": "String (Mã lộ trình học tập lpath_id)",
+        "enrollment_date": "Timestamp (Ngày đăng ký học)",
+        "is_finished": "Boolean (Trạng thái đã hoàn thành lộ trình hay chưa)"
+      },
+      "sample_document": {
+        "uid": "usr_student_001",
+        "lpath_id": "lpath_quantum_physics",
+        "enrollment_date": "2026-08-10T08:00:00.000Z",
+        "is_finished": false
+      }
+    }
+  }
+}
