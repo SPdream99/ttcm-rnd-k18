@@ -16,7 +16,6 @@ import {
   Sparkles,
   LogOut,
   UserCheck,
-  Bot,
 } from "lucide-react";
 
 export default function TeacherDashboard() {
@@ -161,13 +160,6 @@ export default function TeacherDashboard() {
             >
               <Gamepad2 className="w-5 h-5 text-emerald-400" /> Nộp Game Engine
             </button>
-
-            <Link
-              href="/dashbroad/student/AITutor"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-[#8e9bb4] hover:text-white hover:bg-white/5 transition-all"
-            >
-              <Bot className="w-5 h-5 text-cyan-400" /> Trợ Lý AI Tutor
-            </Link>
 
             <Link
               href="/dashbroad/student/profile"

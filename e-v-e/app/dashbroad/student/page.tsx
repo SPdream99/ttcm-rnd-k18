@@ -8,7 +8,6 @@ import {
   Gamepad2,
   Trophy,
   ShoppingBag,
-  Bot,
   UserCheck,
   Coins,
   Flame,
@@ -150,13 +149,6 @@ export default function StudentDashboard() {
             >
               <ShoppingBag className="w-4 h-4" /> Cửa Hàng Đổi Coin
             </button>
-
-            <Link
-              href="/dashbroad/student/AITutor"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#8e9bb4] hover:text-white hover:bg-white/5 transition-all"
-            >
-              <Bot className="w-4 h-4 text-cyan-400" /> Trợ Lý AI Tutor
-            </Link>
 
             <Link
               href="/dashbroad/student/profile"
