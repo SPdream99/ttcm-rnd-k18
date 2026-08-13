@@ -65,11 +65,12 @@ const COLLECTIONS = [
   "enrollments",
 ];
 
-// Seed Data
+// Seed Data with uid included
 const SEED_DATA = {
   users: [
     {
       _id: "usr_admin_001",
+      uid: "usr_admin_001",
       name: "Admin E-V-E",
       email: "admin@eve.edu.vn",
       role: "admin",
@@ -79,6 +80,7 @@ const SEED_DATA = {
     },
     {
       _id: "usr_teacher_001",
+      uid: "usr_teacher_001",
       name: "GS. Nguyễn Văn An",
       email: "teacher@eve.edu.vn",
       role: "teacher",
@@ -88,6 +90,7 @@ const SEED_DATA = {
     },
     {
       _id: "usr_teacher_pending",
+      uid: "usr_teacher_pending",
       name: "Thầy Trần Văn Bình",
       email: "teacher_pending@eve.edu.vn",
       role: "teacher",
@@ -97,6 +100,7 @@ const SEED_DATA = {
     },
     {
       _id: "usr_student_001",
+      uid: "usr_student_001",
       name: "Học Sinh Explorer",
       email: "student@eve.edu.vn",
       role: "student",
@@ -278,7 +282,7 @@ async function resetAndSeedFirestore() {
   for (const [colName, docs] of Object.entries(SEED_DATA)) {
     for (const data of docs) {
       let docId;
-      if (colName === "users") docId = data._id;
+      if (colName === "users") docId = data._id || data.uid;
       else if (colName === "shop_items") docId = data.item_id;
       else if (colName === "courses") docId = data.id || data.course_id;
       else if (colName === "learning_path") docId = data.lpath_id;

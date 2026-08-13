@@ -7,6 +7,7 @@ export class MockAuthRepo implements AuthPort {
       success: true,
       user: {
         id: "usr_101",
+        uid: "usr_101",
         email: credentials.email,
         name: "Người Dùng E-V-E",
         role: credentials.role || "student",
@@ -20,10 +21,12 @@ export class MockAuthRepo implements AuthPort {
 
   async register(credentials: RegisterCredentials): Promise<{ success: boolean; user?: User; error?: string }> {
     const initialStatus = credentials.role === "teacher" ? "pending" : "active";
+    const id = "usr_" + Date.now();
     return {
       success: true,
       user: {
-        id: "usr_" + Date.now(),
+        id,
+        uid: id,
         email: credentials.email,
         name: credentials.fullName,
         role: credentials.role,
@@ -38,6 +41,7 @@ export class MockAuthRepo implements AuthPort {
   async getCurrentUser(): Promise<User | null> {
     return {
       id: "usr_101",
+      uid: "usr_101",
       email: "user@eve-cosmic.edu.vn",
       name: "Trần Minh Đức",
       role: "student",
@@ -51,6 +55,7 @@ export class MockAuthRepo implements AuthPort {
   async getUserProfile(userId: string): Promise<UserProfile> {
     return {
       id: userId,
+      uid: userId,
       fullName: "Trần Minh Đức",
       email: "duc.tm@eve-cosmic.edu.vn",
       phone: "0987 654 321",

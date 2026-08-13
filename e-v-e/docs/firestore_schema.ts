@@ -7,6 +7,7 @@
 
 export interface FirestoreUserDoc {
   _id: string;
+  uid: string; // Firebase Authentication UID
   name: string;
   email: string;
   role: "student" | "teacher" | "admin";

@@ -7,6 +7,7 @@
       "description": "Lưu trữ thông tin người dùng (Học sinh, Giảng viên, Admin)",
       "fields": {
         "_id": "String (UID người dùng)",
+        "uid": "String (UID Firebase Authentication để truy xuất qua Auth)",
         "name": "String (Họ và tên)",
         "email": "String (Email chỉ huy)",
         "role": "String ('student' | 'teacher' | 'admin')",
@@ -16,6 +17,7 @@
       },
       "sample_document": {
         "_id": "usr_student_001",
+        "uid": "usr_student_001",
         "name": "Nguyễn Văn A",
         "email": "student001@eve.edu.vn",
         "role": "student",
@@ -90,7 +92,7 @@
         "lpath_id": "lpath_quantum_physics",
         "title": "Lộ Trình Nhập Môn Vật Lý Lượng Tử",
         "description": "Chinh phục từ lý thuyết cơ bản đến máy tính lượng tử.",
-        "courses": ["crs_quantum_101", "crs_schrodinger_eq"],
+        "courses": ["crs_quantum_101", "crs_astrophysics"],
         "author_id": "usr_teacher_001",
         "is_accepted": true
       }
@@ -136,7 +138,7 @@
       },
       "sample_document": {
         "game_id": "game_space_quiz_3d",
-        "authors": ["Thầy Nguyễn Văn B", "Nhóm Dev EVE"],
+        "authors": ["GS. Nguyễn Văn An", "Nhóm Dev EVE"],
         "title": "Bắn Tháp Vũ Trụ Quiz 3D",
         "description": "Game bắn tháp câu hỏi trắc nghiệm không gian.",
         "is_accepted": true,

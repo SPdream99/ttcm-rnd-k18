@@ -9,6 +9,7 @@ export type UserRole = 'student' | 'instructor' | 'admin' | 'school' | 'teacher'
 
 export interface User {
   id: string;
+  uid: string; // Firebase Authentication UID
   email: string;
   displayName?: string;
   name?: string;
@@ -26,6 +27,7 @@ export interface User {
 
 export interface UserProfile {
   id: string;
+  uid: string; // Firebase Authentication UID
   fullName: string;
   email: string;
   phone: string;
