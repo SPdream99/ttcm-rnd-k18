@@ -1,69 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import {
-  BookOpen,
-  Users,
-  Clock,
-  PlayCircle,
-  FileText,
-  Search,
-  Plus,
-  ArrowRight,
-  GraduationCap,
-  Sparkles,
-} from "lucide-react";
+import { useStudentAdapter } from "@/hooks/useStudentAdapter";
+import { Users, Clock, Plus, ArrowRight, GraduationCap } from "lucide-react";
 
 export default function StudentClassPage() {
-  const [filterTag, setFilterTag] = useState("all");
+  const { courses, loading } = useStudentAdapter();
 
-  const enrolledClasses = [
-    {
-      id: "phys",
-      title: "Vật Lý Lượng Tử Advanced",
-      code: "PHYS-402",
-      instructor: "GS. Nguyễn Văn An",
-      progress: 75,
-      studentsCount: 38,
-      nextSchedule: "10:00 AM • Hôm nay",
-      tag: "Vật lý",
-      color: "from-blue-500 to-cyan-400",
-    },
-    {
-      id: "ai",
-      title: "Kiến Trúc Mạng Thần Kinh (Neural Networks)",
-      code: "AI-301",
-      instructor: "TS. Lê Thị Mai",
-      progress: 40,
-      studentsCount: 42,
-      nextSchedule: "08:00 AM • Sáng mai",
-      tag: "Công nghệ AI",
-      color: "from-purple-500 to-indigo-500",
-    },
-    {
-      id: "ux",
-      title: "Thiết Kế UI/UX & Dynamic System",
-      code: "DES-204",
-      instructor: "ThS. Trần Hoàng Nam",
-      progress: 92,
-      studentsCount: 30,
-      nextSchedule: "02:30 PM • Thứ 5",
-      tag: "Design",
-      color: "from-emerald-400 to-teal-500",
-    },
-    {
-      id: "math",
-      title: "Toán Cao Cấp cho AI & Data Science",
-      code: "MATH-501",
-      instructor: "GS. Alan Turing",
-      progress: 100,
-      studentsCount: 45,
-      nextSchedule: "Đã hoàn thành",
-      tag: "Toán học",
-      color: "from-amber-400 to-orange-500",
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] flex items-center justify-center font-sans">
+        <p className="text-cyan-400 font-medium">Đang tải danh sách lớp học...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] p-4 md:p-8 font-sans space-y-8">
@@ -86,7 +37,7 @@ export default function StudentClassPage() {
 
       {/* Grid of Classes */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {enrolledClasses.map((cls) => (
+        {courses.map((cls) => (
           <div
             key={cls.id}
             className="p-5 rounded-2xl bg-[#0f1524]/60 backdrop-blur-md border border-[#7bd1fa]/15 hover:border-cyan-500/40 hover-card-lift transition-all flex flex-col justify-between space-y-4"
@@ -94,10 +45,10 @@ export default function StudentClassPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="px-2.5 py-0.5 rounded-md bg-blue-500/10 text-cyan-300 border border-blue-500/20 text-xs font-medium">
-                  {cls.code}
+                  {cls.tag}
                 </span>
                 <span className="text-xs text-[#8e9bb4] flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5" /> {cls.studentsCount} Học sinh
+                  <Users className="w-3.5 h-3.5" /> 40 Học sinh
                 </span>
               </div>
 
@@ -119,7 +70,7 @@ export default function StudentClassPage() {
             {/* Actions */}
             <div className="pt-3 border-t border-[#7bd1fa]/10 flex items-center justify-between text-xs">
               <span className="text-[#8e9bb4] flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-cyan-400" /> {cls.nextSchedule}
+                <Clock className="w-3.5 h-3.5 text-cyan-400" /> {cls.nextLesson}
               </span>
               <Link
                 href={`/dashbroad/student/Class/Assignment`}
