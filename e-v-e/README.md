@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌌 E-V-E — Educational Virtual Ecosystem (Next.js Application)
 
-## Getting Started
+Tài liệu kỹ thuật và hướng dẫn khởi chạy ứng dụng web **E-V-E** (thư mục `e-v-e/`).
 
-First, run the development server:
+🌐 **Trải nghiệm demo trực tiếp tại:** [https://ttcm-rnd-k18.vercel.app/](https://ttcm-rnd-k18.vercel.app/)
 
+Vui lòng xem tài liệu tổng quan và hướng dẫn đồ án chi tiết tại [README.md gốc của dự án](../README.md).
+
+---
+
+## 🚀 Khởi Động Nhanh (Quick Start)
+
+### 1. Cài đặt thư viện
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Cấu hình biến môi trường
+Tạo file `.env.local` theo mẫu `.env.local.example`:
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSy..."
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="1234567890"
+NEXT_PUBLIC_FIREBASE_APP_ID="1:1234567890:web:abcdef"
+FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY='{"type":"service_account","project_id":"..."}'
+GEMINI_API_KEY="AIzaSy..."
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Chạy Server Phát Triển (Development Server)
+```bash
+npm run dev
+```
+Truy cập: **`http://localhost:3000`**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Kiểm Tra & Biên Dịch Production (Build Test)
+```bash
+npm run build
+npm run start
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📂 Cấu Trúc Thư Mục Dự Án
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `app/`: Next.js 16 App Router (các route: `/student`, `/teacher`, `/admin`, `/game/MemoryMatchingGame`, `/api/tutor`, `/api/games`).
+- `components/`: Thư viện giao diện tái sử dụng (Sidebar, Toast, LearningPathMap, GameCenterList, MemoryMatchingGame).
+- `core/`: Kiến trúc Clean Architecture (Domain Entities, Ports, Use Cases).
+- `infrastructure/`: Adapter kết nối cơ sở dữ liệu Firebase Firestore và Mock Repositories.
+- `lib/`: Tiện ích bảo mật, mã hóa AI Key, xác thực 2FA OTP, chống gian lận Game.
+- `public/`: Tài nguyên tĩnh, âm thanh, logo, và các gói minigame đóng gói sẵn (`memory_matching_game.zip`, `eve-game-sdk.js`).
+- `scripts/`: Scripts khởi tạo database Firestore và tạo tài khoản mẫu.

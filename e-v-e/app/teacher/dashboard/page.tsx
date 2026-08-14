@@ -19,131 +19,147 @@ import {
   FolderOpen,
   Bot,
   ExternalLink,
+  Inbox,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function TeacherDashboardPage() {
   const { currentUser, profile } = useAuthAdapter();
-  const teacherUid = currentUser?.uid || profile?.uid || "usr_teacher";
-  const teacherName = currentUser?.name || profile?.fullName || "Thầy/Cô Giáo Viên";
+  const teacherUid = currentUser?.uid || currentUser?.id || profile?.uid || profile?.id || "";
+  const teacherEmail = currentUser?.email || profile?.email || "";
+  const teacherName = currentUser?.name || currentUser?.displayName || profile?.fullName || "Thầy/Cô Giáo Viên";
 
   const [stats, setStats] = useState({
-    totalPlays: 348,
-    enrolledStudents: 72,
-    myCoursesCount: 4,
-    myGamesCount: 3,
+    totalPlays: 0,
+    enrolledStudents: 0,
+    myCoursesCount: 0,
+    myGamesCount: 0,
   });
 
-  const [recentCourses, setRecentCourses] = useState<any[]>([
-    {
-      id: "crs_coding_basics",
-      title: "Bài 1: Nhập Môn Tư Duy Lập Trình & Thuật Toán",
-      pairsCount: 4,
-      isAccepted: true,
-      updatedAt: "Hôm nay",
-    },
-    {
-      id: "crs_computer_hardware",
-      title: "Bài 2: Khám Phá Phần Cứng & Kiến Trúc Máy Tính 3D",
-      pairsCount: 3,
-      isAccepted: true,
-      updatedAt: "Hôm qua",
-    },
-    {
-      id: "crs_quantum_101",
-      title: "Bài 3: Lưỡng Tính Sóng Hạt & Hiện Tượng Quang Điện",
-      pairsCount: 4,
-      isAccepted: true,
-      updatedAt: "3 ngày trước",
-    },
-  ]);
-
-  const [myGames, setMyGames] = useState<any[]>([
-    {
-      id: "boss_battle_quiz",
-      title: "Boss Slayer Marathon Quiz 🗡️",
-      type: "Action QTE Quiz",
-      isAccepted: true,
-      downloads: 48,
-    },
-    {
-      id: "game_space_quiz_3d",
-      title: "Space Flight Quiz 3D",
-      type: "WebGL Space Simulator",
-      isAccepted: true,
-      downloads: 120,
-    },
-    {
-      id: "game_card_match_vr",
-      title: "Quantum Memory Card Matrix",
-      type: "Memory Match 3D",
-      isAccepted: true,
-      downloads: 85,
-    },
-  ]);
-
+  const [recentCourses, setRecentCourses] = useState<any[]>([]);
+  const [myGames, setMyGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadTeacherData() {
+      if (!teacherUid && !teacherEmail) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        // Load courses from Firestore
+        // 1. Load Courses belonging exclusively to this teacher
         const coursesSnap = await getDocs(collection(db, "courses"));
-        const coursesList = coursesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        let myCoursesList: any[] = [];
 
-        // Load games from Firestore
+        coursesSnap.docs.forEach((d) => {
+          const data = d.data();
+          const docAuthor =
+            data.authorId ||
+            data.author_id ||
+            data.instructorId ||
+            data.instructor_id;
+          const docEmail = data.authorEmail || data.email;
+
+          if (
+            (teacherUid && docAuthor === teacherUid) ||
+            (teacherEmail && docEmail === teacherEmail)
+          ) {
+            myCoursesList.push({ id: d.id, ...data });
+          }
+        });
+
+        // 2. Load Games belonging exclusively to this teacher
         const gamesSnap = await getDocs(collection(db, "game_info"));
-        let gamesList = gamesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        let myGamesList: any[] = [];
 
-        // Merge with local storage games
+        gamesSnap.docs.forEach((d) => {
+          const data = d.data();
+          const docAuthor =
+            data.authorId ||
+            data.author_id ||
+            data.uploaderId ||
+            data.uploader_id;
+          const docEmail = data.authorEmail || data.uploaderEmail;
+
+          if (
+            (teacherUid && docAuthor === teacherUid) ||
+            (teacherEmail && docEmail === teacherEmail)
+          ) {
+            myGamesList.push({ id: d.id, ...data });
+          }
+        });
+
+        // Merge with local storage items created by this teacher
         try {
           if (typeof window !== "undefined") {
-            const localGames = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
+            const localGames = JSON.parse(
+              localStorage.getItem("eve_uploaded_games") || "[]"
+            );
             localGames.forEach((lg: any) => {
-              const idx = gamesList.findIndex((g: any) => g.id === lg.id || g.title === lg.title);
-              if (idx === -1) {
-                gamesList.unshift(lg);
-              } else {
-                gamesList[idx] = { ...gamesList[idx], ...lg };
+              const lgAuthor =
+                lg.authorId || lg.author_id || lg.uploaderId || lg.uploader_id;
+              if (
+                (!lgAuthor || lgAuthor === teacherUid) &&
+                !myGamesList.some((g) => g.id === lg.id || g.title === lg.title)
+              ) {
+                myGamesList.unshift(lg);
               }
             });
 
-            const localCourses = JSON.parse(localStorage.getItem("eve_uploaded_courses") || "[]");
+            const localCourses = JSON.parse(
+              localStorage.getItem("eve_uploaded_courses") || "[]"
+            );
             localCourses.forEach((lc: any) => {
-              if (!coursesList.some((c: any) => c.title === lc.title || c.id === lc.id)) {
-                coursesList.push(lc);
+              const lcAuthor =
+                lc.authorId || lc.author_id || lc.instructorId || lc.instructor_id;
+              if (
+                (!lcAuthor || lcAuthor === teacherUid) &&
+                !myCoursesList.some((c) => c.id === lc.id || c.title === lc.title)
+              ) {
+                myCoursesList.push(lc);
               }
             });
           }
         } catch {}
 
-        if (coursesList.length > 0) {
-          setRecentCourses(coursesList.slice(0, 4));
-        }
+        setRecentCourses(myCoursesList.slice(0, 4));
 
-        if (gamesList.length > 0) {
-          const formattedGames = gamesList.map((g: any) => ({
-            id: g.id || g.gameId,
-            title: g.title || "Game Quiz",
-            genre: g.genre || (g.needExtraData || g.need_extra_data ? "Dynamic Quiz Game" : "Standalone Engine"),
-            playsCount: Number(g.playsCount || g.plays_count || 120),
-            rating: 4.9,
-            badge: (g.isAccepted ?? g.is_accepted) ? "ĐÃ DUYỆT ✅" : "CHỜ DUYỆT ⏳",
-            authorName: g.authorName || "Thầy/Cô",
-          }));
-          setMyGames(formattedGames.slice(0, 4));
-        }
+        const formattedGames = myGamesList.map((g: any) => ({
+          id: g.id || g.gameId,
+          title: g.title || "Game Quiz",
+          genre:
+            g.genre ||
+            (g.needExtraData || g.need_extra_data
+              ? "Dynamic Quiz Game"
+              : "Standalone Engine"),
+          playsCount: Number(g.playsCount || g.plays_count || 0),
+          isAccepted: Boolean(g.isAccepted ?? g.is_accepted),
+          authorName: g.authorName || "Tôi",
+        }));
+        setMyGames(formattedGames.slice(0, 4));
+
+        // Tính toán số liệu thống kê riêng của giáo viên này
+        const totalPlaysCount = myGamesList.reduce(
+          (acc, cur) => acc + (Number(cur.playsCount || cur.plays_count || 0)),
+          0
+        );
+
+        const totalStudentsCount = myCoursesList.reduce(
+          (acc, cur) => acc + (Number(cur.students_count || cur.studentsCount || 0)),
+          0
+        );
 
         setStats({
-          totalPlays: 348 + gamesList.length * 15,
-          enrolledStudents: 72 + coursesList.length * 4,
-          myCoursesCount: Math.max(coursesList.length, 4),
-          myGamesCount: Math.max(gamesList.length, 3),
+          totalPlays: totalPlaysCount,
+          enrolledStudents: totalStudentsCount,
+          myCoursesCount: myCoursesList.length,
+          myGamesCount: myGamesList.length,
         });
       } catch (err) {
-        console.warn("Using default teacher dashboard stats:", err);
+        console.warn("Lỗi tải thông tin tổng quan của giáo viên:", err);
       } finally {
         setLoading(false);
       }
@@ -159,7 +175,7 @@ export default function TeacherDashboardPage() {
         window.removeEventListener("storage", loadTeacherData);
       };
     }
-  }, []);
+  }, [teacherUid, teacherEmail]);
 
   return (
     <div className="space-y-8 animate-fade-in font-sans pb-12">
@@ -173,7 +189,7 @@ export default function TeacherDashboardPage() {
             Educator Studio Dashboard 🚀
           </h1>
           <p className="text-sm text-[#8e9bb4] mt-1">
-            Theo dõi thống kê học tập, quản lý ngân hàng bài giảng và nộp Game Engine tương tác.
+            Tổng quan các bài giảng, lộ trình và game tương tác thuộc quyền quản lý của riêng Thầy/Cô.
           </p>
         </div>
 
@@ -191,49 +207,49 @@ export default function TeacherDashboardPage() {
         {/* Total Student Plays */}
         <div className="p-5 rounded-2xl bg-[#0f1524]/80 border border-emerald-500/20 space-y-3">
           <div className="flex items-center justify-between text-emerald-400">
-            <span className="text-xs font-mono">Tổng Lượt Học / Chơi</span>
+            <span className="text-xs font-mono">Lượt Chơi Game Của Tôi</span>
             <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
           <div className="text-3xl font-bold text-white font-mono">{stats.totalPlays}</div>
-          <div className="text-xs text-emerald-300 font-mono">Tăng +28% so với tháng trước</div>
+          <div className="text-xs text-emerald-300 font-mono">Tổng tích lũy từ các game của tôi</div>
         </div>
 
         {/* Enrolled Students */}
         <div className="p-5 rounded-2xl bg-[#0f1524]/80 border border-cyan-500/20 space-y-3">
           <div className="flex items-center justify-between text-cyan-400">
-            <span className="text-xs font-mono">Học Sinh Theo Học</span>
+            <span className="text-xs font-mono">Học Sinh Tham Gia</span>
             <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="text-3xl font-bold text-white font-mono">{stats.enrolledStudents}</div>
-          <div className="text-xs text-cyan-300 font-mono">Đang hoạt động tích cực</div>
+          <div className="text-xs text-cyan-300 font-mono">Đăng ký vào khóa học của tôi</div>
         </div>
 
         {/* My Courses */}
         <div className="p-5 rounded-2xl bg-[#0f1524]/80 border border-slate-800 space-y-3">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-mono">Khóa Học & Bài Giảng</span>
+            <span className="text-xs font-mono">Bài Học / Khóa Học</span>
             <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
               <BookOpen className="w-4 h-4" />
             </div>
           </div>
           <div className="text-3xl font-bold text-white font-mono">{stats.myCoursesCount}</div>
-          <div className="text-xs text-[#8e9bb4]">Đã tích hợp bộ câu hỏi trắc nghiệm</div>
+          <div className="text-xs text-[#8e9bb4]">Đã tạo và đang quản lý</div>
         </div>
 
         {/* My Games */}
         <div className="p-5 rounded-2xl bg-[#0f1524]/80 border border-purple-500/20 space-y-3">
           <div className="flex items-center justify-between text-purple-400">
-            <span className="text-xs font-mono">Game Engine Tương Tác</span>
+            <span className="text-xs font-mono">Game Engine Của Tôi</span>
             <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
               <Gamepad2 className="w-4 h-4" />
             </div>
           </div>
           <div className="text-3xl font-bold text-white font-mono">{stats.myGamesCount}</div>
-          <div className="text-xs text-purple-300 font-mono">Đã nhúng chuẩn E-V-E SDK</div>
+          <div className="text-xs text-purple-300 font-mono">Game đã nộp lên hệ thống</div>
         </div>
       </div>
 
@@ -243,38 +259,64 @@ export default function TeacherDashboardPage() {
         <div className="p-6 rounded-2xl bg-[#0f1524]/80 border border-[#7bd1fa]/15 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-base text-white flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-emerald-400" /> Danh Sách Khóa Học Gần Đây
+              <BookOpen className="w-5 h-5 text-emerald-400" /> Khóa Học Gần Đây Của Tôi
             </h3>
             <Link
               href="/teacher/my-contents"
               className="text-xs font-mono text-cyan-400 hover:underline flex items-center gap-1"
             >
-              Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
+              Xem tất cả ({stats.myCoursesCount}) <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           <div className="space-y-3">
-            {recentCourses.map((c, idx) => (
-              <div
-                key={c.id || idx}
-                className="p-4 rounded-xl bg-[#151b2c] border border-slate-800 flex items-center justify-between gap-3 hover:border-emerald-500/30 transition-all"
-              >
-                <div className="min-w-0 space-y-1">
-                  <div className="font-bold text-sm text-white truncate">{c.title}</div>
-                  <div className="text-xs text-[#8e9bb4] flex items-center gap-2">
-                    <span>{c.pairs?.length || c.pairsCount || 4} Cặp dữ liệu JSON</span>
-                    <span>•</span>
-                    <span className="text-emerald-400">Đã phát hành</span>
-                  </div>
-                </div>
-
-                <Link href={`/student/play/boss_battle_quiz/${c.id || "crs_coding_basics"}`}>
-                  <button className="px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer">
-                    <Play className="w-3 h-3 fill-current" /> Chạy Thử
+            {recentCourses.length === 0 && !loading ? (
+              <div className="p-8 rounded-xl bg-[#151b2c]/60 border border-dashed border-slate-800 text-center space-y-2">
+                <div className="text-xs text-slate-400">Thầy/Cô chưa có khóa học nào.</div>
+                <Link href="/teacher/upload-center">
+                  <button className="text-xs text-cyan-400 hover:underline font-mono font-bold">
+                    + Tạo khóa học đầu tiên ngay
                   </button>
                 </Link>
               </div>
-            ))}
+            ) : (
+              recentCourses.map((c, idx) => {
+                const pairs = Array.isArray(c.contentData)
+                  ? c.contentData
+                  : c.contentData?.pairs || c.pairs || [];
+                return (
+                  <div
+                    key={c.id || idx}
+                    className="p-4 rounded-xl bg-[#151b2c] border border-slate-800 flex items-center justify-between gap-3 hover:border-emerald-500/30 transition-all"
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <div className="font-bold text-sm text-white truncate">{c.title}</div>
+                      <div className="text-xs text-[#8e9bb4] flex items-center gap-2">
+                        <span>{pairs.length || c.pairsCount || 0} Cặp câu hỏi</span>
+                        <span>•</span>
+                        <span
+                          className={
+                            (c.isAccepted ?? c.is_accepted)
+                              ? "text-emerald-400"
+                              : "text-amber-400"
+                          }
+                        >
+                          {(c.isAccepted ?? c.is_accepted)
+                            ? "Đã phê duyệt"
+                            : "Đang chờ duyệt"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <Link href={`/student/play/${myGames[0]?.id || "boss_battle_quiz"}/${c.id}`}>
+                      <button className="px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer">
+                        <Play className="w-3 h-3 fill-current" /> Chạy Thử
+                      </button>
+                    </Link>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -282,7 +324,7 @@ export default function TeacherDashboardPage() {
         <div className="p-6 rounded-2xl bg-[#0f1524]/80 border border-[#7bd1fa]/15 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-base text-white flex items-center gap-2">
-              <Gamepad2 className="w-5 h-5 text-purple-400" /> Game Engine Đã Đăng Tải
+              <Gamepad2 className="w-5 h-5 text-purple-400" /> Game Engine Tôi Đã Nộp
             </h3>
             <Link
               href="/teacher/upload-center"
@@ -293,29 +335,52 @@ export default function TeacherDashboardPage() {
           </div>
 
           <div className="space-y-3">
-            {myGames.map((g, idx) => (
-              <div
-                key={g.id || idx}
-                className="p-4 rounded-xl bg-[#151b2c] border border-slate-800 flex items-center justify-between gap-3 hover:border-purple-500/30 transition-all"
-              >
-                <div className="min-w-0 space-y-1">
-                  <div className="font-bold text-sm text-white truncate">{g.title}</div>
-                  <div className="text-xs text-[#8e9bb4] flex items-center gap-2">
-                    <span className="text-purple-300 font-mono">{g.type || "HTML5 Minigame"}</span>
-                    <span>•</span>
-                    <span className="text-emerald-400 font-bold flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Đã Kiểm Duyệt
-                    </span>
-                  </div>
-                </div>
-
-                <Link href={`/student/play/${g.id || "boss_battle_quiz"}/crs_coding_basics`}>
-                  <button className="px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer">
-                    <Play className="w-3 h-3 fill-current" /> Chơi Thử
+            {myGames.length === 0 && !loading ? (
+              <div className="p-8 rounded-xl bg-[#151b2c]/60 border border-dashed border-slate-800 text-center space-y-2">
+                <div className="text-xs text-slate-400">Thầy/Cô chưa tải lên game nào.</div>
+                <Link href="/teacher/upload-center">
+                  <button className="text-xs text-purple-400 hover:underline font-mono font-bold">
+                    + Nộp gói game (.zip) đầu tiên
                   </button>
                 </Link>
               </div>
-            ))}
+            ) : (
+              myGames.map((g, idx) => (
+                <div
+                  key={g.id || idx}
+                  className="p-4 rounded-xl bg-[#151b2c] border border-slate-800 flex items-center justify-between gap-3 hover:border-purple-500/30 transition-all"
+                >
+                  <div className="min-w-0 space-y-1">
+                    <div className="font-bold text-sm text-white truncate">{g.title}</div>
+                    <div className="text-xs text-[#8e9bb4] flex items-center gap-2">
+                      <span className="text-purple-300 font-mono">{g.genre}</span>
+                      <span>•</span>
+                      <span
+                        className={
+                          g.isAccepted
+                            ? "text-emerald-400 font-bold flex items-center gap-1"
+                            : "text-amber-400 font-bold flex items-center gap-1"
+                        }
+                      >
+                        {g.isAccepted ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3" /> Đã Kiểm Duyệt
+                          </>
+                        ) : (
+                          "Chờ Admin Duyệt"
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Link href={`/student/play/${g.id}/${recentCourses[0]?.id || "crs_coding_basics"}`}>
+                    <button className="px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer">
+                      <Play className="w-3 h-3 fill-current" /> Chơi Thử
+                    </button>
+                  </Link>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

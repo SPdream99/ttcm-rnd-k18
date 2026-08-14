@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import {
   Bot,
   Send,
@@ -122,9 +123,9 @@ export default function TeacherAITutorPage() {
         const codeContent = lang ? lines.slice(1).join("\n") : lines.join("\n");
 
         return (
-          <div key={index} className="my-3 rounded-xl bg-[#090d18] border border-emerald-500/20 overflow-hidden font-mono text-xs">
+          <div key={index} className="my-3 rounded-xl bg-[#090d18] border border-emerald-500/20 overflow-hidden font-mono text-xs shadow-lg">
             <div className="px-3.5 py-1.5 bg-[#141b2c] border-b border-slate-800 text-slate-400 flex items-center justify-between text-[11px]">
-              <span>{lang || "json"}</span>
+              <span className="text-emerald-400 font-bold">{lang || "json"}</span>
               <button
                 type="button"
                 onClick={() => navigator.clipboard.writeText(codeContent)}
@@ -133,29 +134,175 @@ export default function TeacherAITutorPage() {
                 <Copy className="w-3 h-3" /> Sao chép code
               </button>
             </div>
-            <pre className="p-3.5 overflow-x-auto text-emerald-200">
+            <pre className="p-3.5 overflow-x-auto text-emerald-200 leading-relaxed">
               <code>{codeContent}</code>
             </pre>
           </div>
         );
       }
 
-      const renderedLines = part.split("\n").map((line, lIdx) => {
-        const boldParts = line.split(/(\*\*.*?\*\*)/g).map((bChunk, bIdx) => {
-          if (bChunk.startsWith("**") && bChunk.endsWith("**")) {
-            return <strong key={bIdx} className="text-white font-bold">{bChunk.slice(2, -2)}</strong>;
-          }
-          return bChunk;
-        });
+      // 2. Parse lines and detect Table chunks
+      const lines = part.split("\n");
+      const elements: React.ReactNode[] = [];
+      let tableBuffer: string[] = [];
 
-        return (
-          <p key={lIdx} className="min-h-[1rem]">
-            {line.trim() ? boldParts : <br />}
+      const renderInlineTeacher = (str: string): React.ReactNode => {
+        const regex = /(\*\*.*?\*\*|`.*?`|\[.*?\]\(.*?\))/g;
+        const chunks = str.split(regex);
+        return chunks.map((chunk, idx) => {
+          if (chunk.startsWith("**") && chunk.endsWith("**") && chunk.length >= 4) {
+            return <strong key={idx} className="text-white font-bold font-sans">{chunk.slice(2, -2)}</strong>;
+          }
+          if (chunk.startsWith("`") && chunk.endsWith("`") && chunk.length >= 2) {
+            return (
+              <code key={idx} className="px-1.5 py-0.5 rounded bg-[#162035] text-emerald-300 font-mono text-[11px] border border-emerald-500/30">
+                {chunk.slice(1, -1)}
+              </code>
+            );
+          }
+          const linkMatch = chunk.match(/^\[(.*?)\]\((.*?)\)$/);
+          if (linkMatch) {
+            return (
+              <Link key={idx} href={linkMatch[2]} className="text-emerald-400 font-bold hover:underline inline-flex items-center gap-0.5">
+                {linkMatch[1]}
+              </Link>
+            );
+          }
+          return chunk;
+        });
+      };
+
+      const flushTable = (keyIndex: number) => {
+        if (tableBuffer.length >= 2) {
+          const headerCells = tableBuffer[0]
+            .split("|")
+            .map((c) => c.trim())
+            .filter((c) => c.length > 0);
+
+          const bodyLines = tableBuffer.slice(1).filter((l) => !/^[\s|:-]+$/.test(l.trim()));
+
+          elements.push(
+            <div key={`table-${keyIndex}`} className="my-3.5 overflow-x-auto rounded-xl border border-emerald-500/30 bg-[#0d1322] shadow-xl">
+              <table className="w-full text-left text-xs font-mono">
+                <thead className="bg-[#141d32] border-b border-emerald-500/20 text-emerald-300">
+                  <tr>
+                    {headerCells.map((h, hIdx) => (
+                      <th key={hIdx} className="px-4 py-2.5 font-bold uppercase tracking-wider text-[11px]">
+                        {renderInlineTeacher(h)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70">
+                  {bodyLines.map((bLine, rIdx) => {
+                    const cells = bLine
+                      .split("|")
+                      .map((c) => c.trim())
+                      .filter((c) => c.length > 0);
+                    return (
+                      <tr key={rIdx} className="hover:bg-emerald-500/5 transition-colors">
+                        {cells.map((cell, cIdx) => (
+                          <td key={cIdx} className="px-4 py-2.5 text-slate-200">
+                            {renderInlineTeacher(cell)}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+          tableBuffer = [];
+        } else if (tableBuffer.length > 0) {
+          tableBuffer.forEach((tblLine, idx) => {
+            elements.push(
+              <p key={`tbl-fallback-${keyIndex}-${idx}`} className="my-1 text-slate-200">
+                {renderInlineTeacher(tblLine)}
+              </p>
+            );
+          });
+          tableBuffer = [];
+        }
+      };
+
+      lines.forEach((line, lIdx) => {
+        const trimmed = line.trim();
+
+        if (trimmed.startsWith("|") && trimmed.endsWith("|") && trimmed.length > 2) {
+          tableBuffer.push(trimmed);
+          return;
+        }
+
+        if (tableBuffer.length > 0) {
+          flushTable(lIdx);
+        }
+
+        if (!trimmed) {
+          elements.push(<div key={`br-${lIdx}`} className="h-1.5" />);
+          return;
+        }
+
+        if (trimmed.startsWith("### ")) {
+          elements.push(
+            <h3 key={`h3-${lIdx}`} className="text-base font-bold text-white mt-3 mb-1.5 flex items-center gap-1.5">
+              {renderInlineTeacher(trimmed.replace(/^###\s+/, ""))}
+            </h3>
+          );
+          return;
+        }
+
+        if (trimmed.startsWith("## ")) {
+          elements.push(
+            <h2 key={`h2-${lIdx}`} className="text-lg font-bold text-emerald-300 mt-4 mb-2 pb-1 border-b border-emerald-500/20">
+              {renderInlineTeacher(trimmed.replace(/^##\s+/, ""))}
+            </h2>
+          );
+          return;
+        }
+
+        if (trimmed.startsWith("# ")) {
+          elements.push(
+            <h1 key={`h1-${lIdx}`} className="text-xl font-extrabold text-white mt-4 mb-2">
+              {renderInlineTeacher(trimmed.replace(/^#\s+/, ""))}
+            </h1>
+          );
+          return;
+        }
+
+        if (/^[-*]\s+/.test(trimmed)) {
+          elements.push(
+            <div key={`li-${lIdx}`} className="flex items-start gap-2 text-slate-200 my-1 ml-1">
+              <span className="text-emerald-400 mt-1 shrink-0">•</span>
+              <div className="flex-1">{renderInlineTeacher(trimmed.replace(/^[-*]\s+/, ""))}</div>
+            </div>
+          );
+          return;
+        }
+
+        const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+        if (numMatch) {
+          elements.push(
+            <div key={`num-${lIdx}`} className="flex items-start gap-2 text-slate-200 my-1 ml-1">
+              <span className="font-mono text-emerald-400 font-bold shrink-0">{numMatch[1]}.</span>
+              <div className="flex-1">{renderInlineTeacher(numMatch[2])}</div>
+            </div>
+          );
+          return;
+        }
+
+        elements.push(
+          <p key={`p-${lIdx}`} className="my-1 text-slate-200 leading-relaxed">
+            {renderInlineTeacher(line)}
           </p>
         );
       });
 
-      return <div key={index} className="space-y-1">{renderedLines}</div>;
+      if (tableBuffer.length > 0) {
+        flushTable(lines.length);
+      }
+
+      return <div key={`block-${index}`} className="space-y-0.5">{elements}</div>;
     });
   };
 

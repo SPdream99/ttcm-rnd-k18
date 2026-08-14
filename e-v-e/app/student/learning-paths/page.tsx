@@ -1,177 +1,268 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BookOpen,
-  Layers,
-  Sparkles,
-  CheckCircle2,
-  Play,
-  ArrowRight,
+  Search,
+  GraduationCap,
   Clock,
-  Award,
+  User,
+  ArrowRight,
+  Loader2,
   Compass,
-  MapPin,
-  Map,
+  Sparkles,
+  Layers,
+  CheckCircle2,
 } from "lucide-react";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { useToast } from "@/components/student/Toast";
 
-export default function StudentLearningPathsPage() {
-  const [filter, setFilter] = useState<"all" | "enrolled">("all");
-  const [enrolledIds, setEnrolledIds] = useState<string[]>([
-    "path_quantum_physics",
-  ]);
+interface LearningPath {
+  id: string;
+  title: string;
+  description: string;
+  author_id: string;
+  courses: string[];
+  is_accepted: boolean;
+  thumbnail?: string;
+  difficulty: string;
+  category: string;
+  teacherName: string;
+  estimated_hours: number;
+}
 
-  const [paths] = useState([
-    {
-      id: "path_quantum_physics",
-      title: "Chinh Phục Vật Lý Lượng Tử K18",
-      description: "Lộ trình học tập từ căn bản đến nâng cao về bản chất hạt ánh sáng, hàm sóng và nguyên lý bất định Heisenberg.",
-      authorName: "ThS. Phạm Hoàng Nam",
-      coursesCount: 3,
-      requiredGamesTotal: 5,
-      completedGamesTotal: 3,
-      rewardCoins: 150,
-      bannerGradient: "from-blue-600 via-indigo-600 to-cyan-500",
-    },
-    {
-      id: "path_astronomy_deepspace",
-      title: "Khám Phá Vũ Trụ & Thiên Văn Học Không Gian",
-      description: "Tìm hiểu sự hình thành các chòm sao, chân trời sự kiện của hố đen và các vụ nổ siêu tân tinh (Supernova).",
-      authorName: "GS. Nguyễn Văn An",
-      coursesCount: 3,
-      requiredGamesTotal: 6,
-      completedGamesTotal: 0,
-      rewardCoins: 180,
-      bannerGradient: "from-purple-600 via-pink-600 to-indigo-700",
-    },
-    {
-      id: "path_computational_thinking",
-      title: "Tư Duy Thuật Toán & Logic Không Gian Số",
-      description: "Rèn luyện tư duy giải thuật thông qua các mini-game logic, sắp xếp ma trận và đồ thị không gian.",
-      authorName: "TS. Lê Thị Mai",
-      coursesCount: 4,
-      requiredGamesTotal: 8,
-      completedGamesTotal: 0,
-      rewardCoins: 220,
-      bannerGradient: "from-emerald-600 via-teal-600 to-cyan-700",
-    },
-  ]);
+const DIFFICULTY_COLOR: Record<string, string> = {
+  Beginner: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  Intermediate: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+  Advanced: "text-red-400 bg-red-500/10 border-red-500/20",
+};
 
-  const handleToggleEnroll = (pathId: string) => {
-    if (enrolledIds.includes(pathId)) {
-      setEnrolledIds((prev) => prev.filter((id) => id !== pathId));
-    } else {
-      setEnrolledIds((prev) => [...prev, pathId]);
+export default function StudentLearningPathPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      try {
+        if (!user) {
+          // If not logged in, show all accepted paths
+          const pathQuery = query(collection(db, "learning_path"));
+          const pathSnapshot = await getDocs(pathQuery);
+          const availablePaths = pathSnapshot.docs;
+          await loadTeachersAndSetPaths(availablePaths);
+          setLoading(false);
+          return;
+        }
+
+        // 1. All accepted paths (or all paths)
+        const pathQuery = query(collection(db, "learning_path"));
+        const pathSnapshot = await getDocs(pathQuery);
+
+        // 2. Enrolled paths check
+        let enrolledPathIds = new Set<string>();
+        try {
+          const enrollmentQuery = query(
+            collection(db, "student_learning_path"),
+            where("student_id", "==", user.uid)
+          );
+          const enrollmentSnapshot = await getDocs(enrollmentQuery);
+          enrolledPathIds = new Set(
+            enrollmentSnapshot.docs
+              .map((d) => {
+                const data = d.data();
+                return data.status === "active" ? data.learning_path_id : null;
+              })
+              .filter(Boolean)
+          );
+        } catch {}
+
+        // 3. Filter paths
+        const availablePaths = pathSnapshot.docs.filter(
+          (doc) => !enrolledPathIds.has(doc.id)
+        );
+
+        await loadTeachersAndSetPaths(availablePaths);
+      } catch (error) {
+        console.error("Error fetching learning paths:", error);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  async function loadTeachersAndSetPaths(docs: any[]) {
+    const teacherIds = new Set<string>();
+    docs.forEach((doc) => {
+      const data = doc.data();
+      if (data.author_id) teacherIds.add(data.author_id);
+    });
+
+    const teacherMap: Record<string, string> = {};
+    if (teacherIds.size > 0) {
+      try {
+        const teacherSnapshot = await getDocs(collection(db, "teachers"));
+        teacherSnapshot.docs.forEach((doc) => {
+          if (teacherIds.has(doc.id)) {
+            const data = doc.data();
+            teacherMap[doc.id] = data.name || data.fullName || "Giảng viên E-V-E";
+          }
+        });
+      } catch {}
     }
-  };
 
-  const displayedPaths = paths.filter((p) => {
-    if (filter === "enrolled") return enrolledIds.includes(p.id);
-    return true;
+    const paths: LearningPath[] = docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.title || "Lộ trình học tập",
+        description: data.description || "",
+        author_id: data.author_id,
+        courses: Array.isArray(data.courses) ? data.courses : [],
+        is_accepted: Boolean(data.is_accepted ?? true),
+        thumbnail: data.thumbnail,
+        difficulty: data.difficulty || "Intermediate",
+        category: data.category || "General",
+        teacherName: teacherMap[data.author_id] || data.authorName || "Giáo Viên E-V-E",
+        estimated_hours: Number(data.estimated_hours) || (Array.isArray(data.courses) ? data.courses.length * 2 : 4),
+      };
+    });
+
+    setLearningPaths(paths);
+  }
+
+  const filteredPaths = learningPaths.filter((path) => {
+    const q = search.toLowerCase();
+    return (
+      path.title.toLowerCase().includes(q) ||
+      path.description.toLowerCase().includes(q) ||
+      path.category.toLowerCase().includes(q) ||
+      path.teacherName.toLowerCase().includes(q)
+    );
   });
 
+  if (loading) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
+        <div className="w-12 h-12 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin" />
+        <p className="text-cyan-400 font-medium text-sm">Đang tải danh mục Lộ Trình Học Tập...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8 animate-fade-in font-sans">
+    <div className="space-y-8 pb-12 font-sans">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/10">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-mono mb-2">
-            <Compass className="w-3.5 h-3.5 text-cyan-400" /> Khám Phá Lộ Trình Học Tập
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cyan-400 mb-1.5">
+            <Compass className="w-4 h-4" /> Khám Phá Lộ Trình Học Tập
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <Layers className="w-7 h-7 text-cyan-400" /> Danh Sách Lộ Trình Học Tập
+            Learning Paths Chuyên Sâu 🗺️
           </h1>
-          <p className="text-sm text-[#8e9bb4] mt-1">
-            Bạn có thể đăng ký các lộ trình học tập phù hợp. Mỗi lộ trình gồm chuỗi các bài học và thử thách minigame tương tác thực tế.
+          <p className="text-xs md:text-sm text-[#8e9bb4] mt-1">
+            Các lộ trình bài học chuẩn hóa kết hợp cùng minigame tương tác do Giảng viên phát triển.
           </p>
         </div>
 
-        {/* Filter Tab */}
-        <div className="flex items-center gap-2 bg-[#151b2c] p-1.5 rounded-2xl border border-slate-800 shrink-0">
-          <button
-            onClick={() => setFilter("all")}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
-              filter === "all"
-                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
-                : "text-slate-400 hover:text-white"
-            }`}
+        <div className="flex items-center gap-3">
+          <Link
+            href="/student/classes"
+            className="px-4 py-2.5 rounded-xl bg-[#151b2c] hover:bg-[#1f273d] text-cyan-300 border border-[#7bd1fa]/20 font-semibold text-xs md:text-sm transition-all flex items-center gap-2"
           >
-            Tất Cả Lộ Trình ({paths.length})
-          </button>
-          <button
-            onClick={() => setFilter("enrolled")}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
-              filter === "enrolled"
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Đã Đăng Ký ({enrolledIds.length})
-          </button>
+            <GraduationCap className="w-4 h-4 text-cyan-400" /> Xem Lớp Đã Đăng Ký
+          </Link>
         </div>
+      </header>
+
+      {/* Search Bar */}
+      <div className="relative max-w-md">
+        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8e9bb4]" />
+        <input
+          type="text"
+          placeholder="Tìm theo tên lộ trình, giảng viên, môn học..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full bg-[#151b2c] border border-[#7bd1fa]/20 rounded-xl pl-9 pr-4 py-2.5 text-xs md:text-sm text-white placeholder-[#8e9bb4] focus:outline-none focus:border-cyan-400 transition-all"
+        />
       </div>
 
-      {/* Path Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {displayedPaths.map((path) => {
-          const isEnrolled = enrolledIds.includes(path.id);
-
-          return (
+      {/* Learning Path Grid */}
+      {filteredPaths.length === 0 ? (
+        <div className="p-12 text-center rounded-2xl bg-[#0f1524]/60 border border-[#7bd1fa]/10 space-y-3">
+          <BookOpen className="w-12 h-12 text-cyan-400/40 mx-auto" />
+          <h3 className="text-lg font-bold text-white">Không tìm thấy Lộ Trình Học Tập phù hợp</h3>
+          <p className="text-xs text-[#8e9bb4]">
+            {search ? "Vui lòng thử tìm với từ khóa khác." : "Bạn đã đăng ký toàn bộ các lộ trình hiện có!"}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredPaths.map((path) => (
             <div
               key={path.id}
-              className="p-6 md:p-8 rounded-3xl bg-[#0f1524]/90 border border-[#7bd1fa]/15 hover:border-cyan-500/40 shadow-xl flex flex-col justify-between space-y-6 transition-all relative overflow-hidden group"
+              className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-[#7bd1fa]/15 bg-[#0f1524]/70 p-6 backdrop-blur-xl transition-all hover:border-cyan-400/40 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] space-y-5"
             >
-              {/* Subtle Ambient Glow */}
-              <div
-                className={`absolute top-0 right-0 w-48 h-48 bg-gradient-to-br ${path.bannerGradient} opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity`}
-              />
-
-              <div className="space-y-3 relative z-10">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-mono text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                    {path.coursesCount} Bài Học
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 text-xs font-bold">
+                    {path.category}
                   </span>
-                  <span className="font-mono text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">
-                    +{path.rewardCoins} Coins Thưởng
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                      DIFFICULTY_COLOR[path.difficulty] || "text-slate-300 bg-slate-500/10 border-slate-500/20"
+                    }`}
+                  >
+                    {path.difficulty}
                   </span>
                 </div>
 
-                <h2 className="text-xl font-bold text-white group-hover:text-cyan-300 transition-colors">
-                  {path.title}
-                </h2>
-                <p className="text-xs text-[#8e9bb4] leading-relaxed line-clamp-3">
-                  {path.description}
-                </p>
+                <div>
+                  <h3 className="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors">
+                    {path.title}
+                  </h3>
+                  <p className="line-clamp-2 text-xs text-[#8e9bb4] mt-1.5 leading-relaxed">
+                    {path.description}
+                  </p>
+                </div>
 
-                <div className="text-[11px] text-slate-400 font-mono pt-2">
-                  Giảng viên biên soạn: <strong className="text-white">{path.authorName}</strong>
+                <div className="space-y-2 pt-2 border-t border-[#7bd1fa]/10 text-xs text-[#8e9bb4]">
+                  <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Giảng viên: <strong className="text-slate-200">{path.teacherName}</strong></span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="flex items-center gap-1">
+                      <BookOpen className="w-3.5 h-3.5 text-cyan-400" /> {path.courses.length} Khóa học
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-emerald-400" /> ~{path.estimated_hours} Giờ học
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 relative z-10">
-                <button
-                  onClick={() => handleToggleEnroll(path.id)}
-                  className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer border ${
-                    isEnrolled
-                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                      : "bg-[#151b2c] hover:bg-slate-800 text-slate-300 border-slate-700"
-                  }`}
-                >
-                  {isEnrolled ? "✓ Đã Ghi Danh" : "+ Đăng Ký Học"}
-                </button>
-
-                <Link href={`/student/learning-paths/${path.id}`} className="w-full sm:w-auto">
-                  <button className="w-full px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:from-blue-500 hover:to-cyan-300 text-white font-mono text-xs font-bold shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.02]">
-                    <Compass className="w-4 h-4" /> Xem Chi Tiết Lộ Trình →
-                  </button>
-                </Link>
-              </div>
+              <Link
+                href={`/dashboard/student/LearningPath/${path.id}`}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:from-blue-500 hover:to-cyan-300 text-white font-bold text-xs shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all flex items-center justify-center gap-2"
+              >
+                Khám Phá & Đăng Ký <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+

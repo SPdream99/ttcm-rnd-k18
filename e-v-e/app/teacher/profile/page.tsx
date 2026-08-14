@@ -50,6 +50,9 @@ export default function TeacherProfilePage() {
   const [modalMsg, setModalMsg] = useState("");
   const [demoOtpHint, setDemoOtpHint] = useState<string | null>(null);
 
+  // ── Stats ──
+  const [stats, setStats] = useState({ courses: 0, games: 0, plays: 0 });
+
   useEffect(() => {
     const configured = hasAIKey();
     setIsKeyConfigured(configured);
@@ -60,7 +63,39 @@ export default function TeacherProfilePage() {
     if (currentUser?.twoFactorEnabled) {
       setIs2FAEnabled(true);
     }
-  }, [currentUser]);
+
+    // Fetch dynamic stats for current teacher
+    async function loadStats() {
+      if (!userUid) return;
+      try {
+        const { getDocs, collection } = await import("firebase/firestore");
+        const { db } = await import("@/lib/firebase");
+        
+        let cCount = 0;
+        const cSnap = await getDocs(collection(db, "courses"));
+        cSnap.forEach((d) => {
+          const data = d.data();
+          const docAuthor = data.authorId || data.author_id || data.instructorId || data.instructor_id;
+          if (docAuthor === userUid) cCount++;
+        });
+
+        let gCount = 0;
+        let pCount = 0;
+        const gSnap = await getDocs(collection(db, "game_info"));
+        gSnap.forEach((d) => {
+          const data = d.data();
+          const docAuthor = data.authorId || data.author_id || data.uploaderId || data.uploader_id;
+          if (docAuthor === userUid) {
+            gCount++;
+            pCount += Number(data.playsCount || data.plays_count || 0);
+          }
+        });
+
+        setStats({ courses: cCount, games: gCount, plays: pCount });
+      } catch {}
+    }
+    loadStats();
+  }, [currentUser, userUid]);
 
   const handleSaveAIKey = (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,9 +253,9 @@ export default function TeacherProfilePage() {
           <p className="text-xs text-[#8e9bb4] font-mono">{displayEmail} • Giảng viên bộ môn Công Nghệ</p>
 
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2 text-xs font-mono text-slate-300">
-            <span><BookOpen className="w-3.5 h-3.5 inline mr-1 text-cyan-400" /> 4 Khóa Học Đã Tạo</span>
-            <span><Gamepad2 className="w-3.5 h-3.5 inline mr-1 text-emerald-400" /> 3 Minigames</span>
-            <span><Users className="w-3.5 h-3.5 inline mr-1 text-amber-400" /> 128 Lượt Học Sinh Chơi</span>
+            <span><BookOpen className="w-3.5 h-3.5 inline mr-1 text-cyan-400" /> {stats.courses} Khóa Học Đã Tạo</span>
+            <span><Gamepad2 className="w-3.5 h-3.5 inline mr-1 text-emerald-400" /> {stats.games} Minigames</span>
+            <span><Users className="w-3.5 h-3.5 inline mr-1 text-amber-400" /> {stats.plays} Lượt Học Sinh Chơi</span>
           </div>
         </div>
       </div>

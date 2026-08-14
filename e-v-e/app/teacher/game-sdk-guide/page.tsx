@@ -287,7 +287,7 @@ document.getElementById("btn-fullscreen").addEventListener("click", () => {
                   Boss Slayer Marathon Quiz (.ZIP)
                 </h3>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Dự án game mẫu nâng cao: Đấu Trùm 1000 HP marathon 10s, phím mũi tên né đòn phản công QTE, combo sát thương và bảng xếp hạng.
+                  Đấu Trùm 1000 HP marathon 10s, phím mũi tên né đòn phản công QTE, combo sát thương và bảng xếp hạng.
                 </p>
               </div>
             </div>
@@ -297,7 +297,35 @@ document.getElementById("btn-fullscreen").addEventListener("click", () => {
               download="boss_battle_quiz.zip"
               className="w-full py-3 px-4 rounded-xl bg-purple-500/20 hover:bg-purple-500 text-purple-300 hover:text-black font-mono font-bold text-xs border border-purple-500/40 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(168,85,247,0.25)] cursor-pointer"
             >
-              <Download className="w-4 h-4" /> Tải Boss Battle Game (.ZIP)
+              <Download className="w-4 h-4" /> Tải Boss Battle (.ZIP)
+            </a>
+          </div>
+
+          {/* Card 4: Memory Matching Game ZIP */}
+          <div className="p-6 rounded-3xl bg-gradient-to-b from-[#151b2c] to-[#0f1524] border border-amber-500/30 hover:border-amber-400/60 transition-all flex flex-col justify-between space-y-4 shadow-lg group">
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-300 flex items-center justify-center border border-amber-500/30 group-hover:scale-105 transition-transform">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold">
+                  TRÍ NHỚ & GHÉP CẶP 🎴
+                </span>
+                <h3 className="text-base font-bold text-white mt-1 group-hover:text-amber-300 transition-colors">
+                  Memory Matching Game (.ZIP)
+                </h3>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Lật thẻ bài 3D xoay chiều ghép cặp Thuật ngữ & Khái niệm, hiệu ứng Synth Web Audio, combo x4 điểm.
+                </p>
+              </div>
+            </div>
+
+            <a
+              href="/memory_matching_game.zip"
+              download="memory_matching_game.zip"
+              className="w-full py-3 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black font-mono font-bold text-xs border border-amber-500/40 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.25)] cursor-pointer"
+            >
+              <Download className="w-4 h-4" /> Tải Memory Game (.ZIP)
             </a>
           </div>
         </div>

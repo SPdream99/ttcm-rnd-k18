@@ -4,17 +4,25 @@ import React from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
-  Rocket,
+  LayoutDashboard,
+  Calendar,
+  Compass,
   GraduationCap,
+  Bot,
+  Settings,
+  HelpCircle,
+  Sparkles,
   BookOpen,
   Gamepad2,
   Trophy,
   ShoppingBag,
   UserCheck,
-  Bot,
   LogOut,
   Coins,
   ChevronRight,
+  Layers,
+  Code,
+  Rocket,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { useStudentTab, useTeacherTab } from "@/context/DashboardTabContext";
@@ -30,18 +38,19 @@ interface SidebarProps {
 // ─── Nav Configs ──────────────────────────────────────────────────────────────
 
 const STUDENT_NAV = [
-  { id: "paths",       label: "Lộ Trình Học Tập",    icon: BookOpen,     href: "/student/learning-paths" },
-  { id: "games",       label: "Trò Chơi Học Tập",     icon: Gamepad2,     href: "/student/learning-paths" },
-  { id: "leaderboard", label: "Bảng Xếp Hạng",        icon: Trophy,       href: "/student/leaderboard" },
-  { id: "shop",        label: "Cửa Hàng Đổi Thưởng",  icon: ShoppingBag,  href: "/student/shop" },
-  { id: "ai_tutor",    label: "Trợ Lý AI Tutor",      icon: Bot,          href: "/student/ai-tutor" },
-  { id: "profile",     label: "Trang Cá Nhân",         icon: UserCheck,    href: "/student/profile" },
+  { id: "dashboard",   label: "Dashboard",           icon: LayoutDashboard, href: "/student/dashboard" },
+  { id: "ai_tutor",    label: "Ai Tutor",            icon: Bot,             href: "/student/ai-tutor" },
+  { id: "paths",       label: "Learning Path",       icon: Compass,         href: "/student/learning-paths" },
+  { id: "classes",     label: "Class",               icon: GraduationCap,   href: "/student/classes" },
+  { id: "profile",     label: "Trang Cá Nhân",       icon: UserCheck,       href: "/student/profile" },
 ];
 
 const TEACHER_NAV = [
   { id: "overview",     label: "Bảng Điều Khiển",      icon: GraduationCap, href: "/teacher/dashboard" },
+  { id: "classes",      label: "Quản Lý Lớp Học",      icon: Layers,        href: "/teacher/classes" },
   { id: "create_path",  label: "Soạn Bài & Lộ Trình",  icon: BookOpen,      href: "/teacher/upload-center" },
-  { id: "upload_game",  label: "Nộp Game Engine",       icon: Gamepad2,      href: "/teacher/upload-center" },
+  { id: "upload_game",  label: "Kho & Nộp Game Engine", icon: Gamepad2,      href: "/teacher/upload-center" },
+  { id: "game_guide",   label: "Hướng Dẫn Game SDK",   icon: Code,          href: "/teacher/game-sdk-guide" },
   { id: "ai_tutor",     label: "Trợ Lý AI Tutor",       icon: Bot,           href: "/teacher/ai-tutor" },
   { id: "profile",      label: "Trang Cá Nhân",          icon: UserCheck,     href: "/teacher/profile" },
 ];
@@ -177,16 +186,18 @@ export default function DashboardSidebar({ role }: SidebarProps) {
 
       {/* ── Bottom section ── */}
       <div className="pt-6 border-t border-[#7bd1fa]/10 space-y-3">
-        {/* AI Tutor shortcut banner */}
-        <div className="p-3 rounded-xl bg-gradient-to-br from-blue-900/40 via-[#151b2c] to-purple-900/30 border border-cyan-500/25">
-          <div className="flex items-center gap-2 mb-1">
-            <Bot className="w-4 h-4 text-cyan-400" />
-            <span className="text-xs font-semibold text-white">E-V-E AI Tutor</span>
+        {/* AI Assistant shortcut banner from dev-dat */}
+        <div className="p-3.5 rounded-2xl bg-gradient-to-br from-blue-900/40 via-[#151b2c] to-purple-900/30 border border-cyan-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)] space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-300">
+              <Bot className="w-4 h-4 text-cyan-400" />
+            </div>
+            <span className="text-xs font-bold text-white">E-V-E Assistant</span>
           </div>
-          <p className="text-[10px] text-[#8e9bb4] mb-2">Sẵn sàng giải đáp 24/7</p>
-          <Link href="/dashbroad/student/AITutor">
-            <button className="w-full py-1.5 px-3 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium text-[11px] transition-all flex items-center justify-center gap-1 cursor-pointer">
-              <Bot className="w-3 h-3" /> Trò Chuyện Ngay
+          <p className="text-[11px] text-[#8e9bb4]">Sẵn sàng giải đáp & trợ giúp bài tập 24/7</p>
+          <Link href={isStudent ? "/student/ai-tutor" : "/teacher/ai-tutor"}>
+            <button className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-semibold text-xs shadow-[0_0_12px_rgba(59,130,246,0.3)] transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+              <Sparkles className="w-3.5 h-3.5" /> Trò Chuyện Ngay
             </button>
           </Link>
         </div>

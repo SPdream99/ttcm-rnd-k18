@@ -44,25 +44,25 @@ export function middleware(request: NextRequest) {
     }
     return NextResponse.redirect(new URL(getRoleDashboard(role, status), request.url));
   }
-  if (pathname === "/dashbroad" || pathname === "/dashbroad/") {
+  if (pathname === "/dashboard" || pathname === "/dashboard/") {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     return NextResponse.redirect(new URL(getRoleDashboard(role, status), request.url));
   }
-  if (pathname.startsWith("/dashbroad/student")) {
+  if (pathname.startsWith("/dashboard/student")) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     return NextResponse.redirect(new URL("/student/dashboard", request.url));
   }
-  if (pathname.startsWith("/dashbroad/teacher")) {
+  if (pathname.startsWith("/dashboard/teacher")) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     return NextResponse.redirect(new URL("/teacher/dashboard", request.url));
   }
-  if (pathname.startsWith("/dashbroad/school") || pathname.startsWith("/dashbroad/admin")) {
+  if (pathname.startsWith("/dashboard/school") || pathname.startsWith("/dashboard/admin")) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
@@ -150,11 +150,12 @@ export const config = {
     "/pending",
     "/dashboard",
     "/dashboard/:path*",
-    "/dashbroad",
-    "/dashbroad/:path*",
+    "/dashboard",
+    "/dashboard/:path*",
     "/admin/:path*",
     "/teacher/:path*",
     "/student/:path*",
     "/public/:path*",
   ],
 };
+
