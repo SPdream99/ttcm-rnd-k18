@@ -6,12 +6,11 @@ import {
   Check,
   Lock,
   Play,
-  Terminal,
+  BookOpen,
   Gamepad2,
-  Cpu,
-  Radio,
-  Zap,
+  Trophy,
   Sparkles,
+  ChevronRight,
 } from "lucide-react";
 
 interface LearningPathMapProps {
@@ -51,42 +50,35 @@ export default function LearningPathMap({
   };
 
   return (
-    <section className="relative w-full overflow-hidden font-mono">
-      {/* Background Micro-Grid Texture */}
-      <div className="rounded-3xl border-2 border-zinc-800 bg-[#0c1017] p-6 md:p-10 shadow-[8px_8px_0px_0px_#000] relative overflow-hidden">
-        {/* Subtle dot matrix grid */}
-        <div className="absolute inset-0 bg-[radial-gradient(#222f3e_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
-
-        {/* ================= TELEMETRY HEADER ================= */}
-        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b-2 border-zinc-800 pb-6 mb-10">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-[#00F0FF]/15 border border-[#00F0FF]/50 text-[#00F0FF] text-[11px] font-bold tracking-widest uppercase">
-                <Radio className="w-3.5 h-3.5 animate-pulse" /> E-V-E SCHEMATIC // v2.0
-              </span>
-              <span className="text-zinc-500 text-xs">// SYSTEM ROADMAP</span>
+    <div className="w-full">
+      <div className="rounded-3xl border border-slate-800 bg-[#0f1422] p-6 md:p-10 shadow-2xl">
+        {/* Header Hành Trình */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-6 mb-10">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5" /> Lộ Trình Học Tập
             </div>
-            <h2 className="text-2xl md:text-3xl font-black text-zinc-100 tracking-tight flex items-center gap-2">
-              BẢN ĐỒ TIẾN TRÌNH KHÓA HỌC <span className="text-[#E2F952]">⚡</span>
+            <h2 className="text-2xl font-bold text-white tracking-tight">
+              Bản Đồ Mở Khóa Khóa Học
             </h2>
-            <p className="font-sans text-xs md:text-sm text-zinc-400 mt-1 max-w-xl">
-              Hoàn thành các bài tập và Minigame trong từng node để giải mã chặng tiếp theo trong chuỗi liên kết.
+            <p className="text-xs md:text-sm text-slate-400">
+              Hoàn thành các bài tập và minigame thử thách trong từng chặng để mở khóa bài học tiếp theo.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-auto bg-[#141b26] px-3 py-2 rounded-lg border border-zinc-700/80 shadow-[3px_3px_0px_0px_#000]">
-            <Cpu className="w-4 h-4 text-[#E2F952]" />
-            <div className="text-[11px]">
-              <span className="text-zinc-500 block">TIẾN ĐỘ CHẶNG:</span>
-              <span className="font-bold text-[#E2F952] font-mono">
-                {completedCourses.length} / {courses.length} NODES HOÀN TẤT
+          <div className="flex items-center gap-3 bg-[#151c2e] px-4 py-2.5 rounded-2xl border border-slate-800 shadow-sm self-start md:self-auto">
+            <Trophy className="w-5 h-5 text-amber-400" />
+            <div>
+              <span className="text-[11px] text-slate-400 block font-medium">Tiến độ chặng:</span>
+              <span className="font-bold text-white text-sm">
+                {completedCourses.length} / {courses.length} Khóa hoàn thành
               </span>
             </div>
           </div>
         </div>
 
-        {/* ================= CIRCUIT MAP NODES ================= */}
-        <div className="relative z-10 max-w-2xl mx-auto py-4">
+        {/* Bản Đồ Zigzag Tương Tác */}
+        <div className="relative max-w-2xl mx-auto py-2">
           {courses.map((courseId, index) => {
             const status = getCourseStatus(courseId, index);
             const isLeft = index % 2 === 0;
@@ -100,107 +92,103 @@ export default function LearningPathMap({
               .replace(/_/g, " ")
               .toUpperCase();
 
-            // Controlled micro-rotations for tactile physical look
-            const cardRotation = isLeft ? "rotate-[-1deg]" : "rotate-[1deg]";
-
             return (
-              <div key={courseId} className="relative mb-14 last:mb-2">
-                {/* Tactical Schematic Connecting Cable */}
+              <div key={courseId} className="relative mb-12 last:mb-2">
+                {/* Đường Nối Dẫn Chặng */}
                 {nextCourse && (
                   <div
-                    className={`absolute z-0 hidden md:block ${
+                    className={`absolute z-0 hidden md:block border-dashed ${
                       isCompleted
-                        ? "border-[#00F0FF] shadow-[0_0_12px_rgba(0,240,255,0.4)]"
+                        ? "border-cyan-400"
                         : isCurrent
-                        ? "border-[#E2F952] border-dashed"
-                        : "border-zinc-700/60 border-dashed"
+                        ? "border-cyan-500/50"
+                        : "border-slate-800"
                     } ${
                       isLeft
-                        ? "left-[32%] top-20 h-44 w-[42%] border-r-[3px] border-t-[3px] rounded-tr-3xl"
-                        : "right-[32%] top-20 h-44 w-[42%] border-l-[3px] border-t-[3px] rounded-tl-3xl"
+                        ? "left-[32%] top-20 h-40 w-[42%] border-r-2 border-t-2 rounded-tr-3xl"
+                        : "right-[32%] top-20 h-40 w-[42%] border-l-2 border-t-2 rounded-tl-3xl"
                     }`}
                   />
                 )}
 
-                {/* Node Container with Asymmetric Alignment */}
+                {/* Node Khóa Học */}
                 <div
-                  className={`relative z-10 flex min-h-[160px] items-center ${
+                  className={`relative z-10 flex min-h-[140px] items-center ${
                     isLeft ? "justify-start md:pl-4" : "justify-end md:pr-4"
                   }`}
                 >
                   <div
                     onClick={() => handleCourseClick(courseId, isLocked)}
-                    className={`group relative flex w-full max-w-[320px] flex-col p-4 transition-all duration-200 ${cardRotation} hover:rotate-0 ${
+                    className={`group w-full max-w-[320px] p-5 rounded-2xl border transition-all duration-300 ${
                       isLocked
-                        ? "cursor-not-allowed opacity-50 bg-[#121620] border-2 border-zinc-800 rounded-xl"
+                        ? "cursor-not-allowed bg-[#131929]/60 border-slate-800 opacity-60"
                         : isCompleted
-                        ? "cursor-pointer bg-[#0f1d1e] border-2 border-[#00F0FF] rounded-tl-2xl rounded-br-2xl rounded-tr-sm rounded-bl-md shadow-[5px_5px_0px_0px_#00F0FF] hover:-translate-y-1 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                        : "cursor-pointer bg-[#1a2118] border-2 border-[#E2F952] rounded-tr-2xl rounded-bl-2xl rounded-tl-sm rounded-br-md shadow-[6px_6px_0px_0px_#E2F952] hover:-translate-y-1 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none animate-pulse-subtle"
+                        ? "cursor-pointer bg-[#131b2e] border-cyan-500/40 hover:border-cyan-400 hover:shadow-[0_0_25px_rgba(6,182,212,0.15)] hover:-translate-y-1"
+                        : "cursor-pointer bg-[#152038] border-cyan-400 hover:border-cyan-300 hover:shadow-[0_0_30px_rgba(6,182,212,0.25)] hover:-translate-y-1"
                     }`}
                   >
-                    {/* Tape Header Tag */}
-                    <div className="flex items-center justify-between pb-2 border-b border-zinc-700/60">
-                      <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-wider">
-                        <Terminal className="w-3 h-3 text-zinc-400" />
-                        <span className="text-zinc-400">NODE_{String(index + 1).padStart(2, "0")}</span>
-                      </div>
+                    {/* Badge trạng thái */}
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+                      <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                        <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+                        Chặng {index + 1}
+                      </span>
 
                       <span
-                        className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-sm ${
+                        className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full ${
                           isCompleted
-                            ? "bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40"
+                            ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
                             : isCurrent
-                            ? "bg-[#E2F952]/20 text-[#E2F952] border border-[#E2F952]/40 animate-pulse"
-                            : "bg-zinc-800 text-zinc-500"
+                            ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 animate-pulse"
+                            : "bg-slate-800 text-slate-500"
                         }`}
                       >
-                        {isCompleted ? "COMPILED ✓" : isCurrent ? "ACTIVE KERNEL" : "AIR-GAPPED 🔒"}
+                        {isCompleted ? "Đã xong ✓" : isCurrent ? "Đang học" : "Chưa mở"}
                       </span>
                     </div>
 
-                    {/* Main Node Content */}
-                    <div className="py-3 flex items-start gap-3">
-                      {/* Physical Icon Stamp */}
+                    {/* Nội dung Node */}
+                    <div className="py-3.5 flex items-center gap-3.5">
                       <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border-2 font-black ${
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 font-bold ${
                           isCompleted
-                            ? "bg-[#00F0FF] text-black border-black shadow-[2px_2px_0px_0px_#000]"
+                            ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/30"
                             : isCurrent
-                            ? "bg-[#E2F952] text-black border-black shadow-[3px_3px_0px_0px_#000]"
-                            : "bg-zinc-800 text-zinc-500 border-zinc-700"
+                            ? "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md shadow-cyan-500/30"
+                            : "bg-slate-800 text-slate-500"
                         }`}
                       >
                         {isCompleted ? (
                           <Check className="w-6 h-6 stroke-[3]" />
                         ) : isCurrent ? (
-                          <Play className="w-6 h-6 fill-current ml-0.5" />
+                          <Play className="w-5 h-5 fill-white ml-0.5" />
                         ) : (
                           <Lock className="w-5 h-5" />
                         )}
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-black text-white group-hover:text-[#00F0FF] transition-colors line-clamp-2 leading-tight">
+                        <h4 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors line-clamp-1">
                           {cleanName}
                         </h4>
-                        <p className="text-[11px] font-sans text-zinc-400 mt-1 line-clamp-1">
+                        <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">
                           {isCompleted
-                            ? "Đã vượt qua tất cả thử thách"
+                            ? "Đã hoàn thành toàn bộ thử thách"
                             : isCurrent
-                            ? "Bấm để mở kho Minigame thử thách"
-                            : "Cần hoàn thành chặng trước để mở"}
+                            ? "Bấm để mở danh sách minigame"
+                            : "Hoàn thành chặng trước để mở"}
                         </p>
                       </div>
                     </div>
 
-                    {/* Bottom Action Footer */}
+                    {/* Footer Thao Tác */}
                     {!isLocked && (
-                      <div className="pt-2 border-t border-zinc-700/50 flex items-center justify-between text-[10px]">
-                        <span className="text-zinc-400 flex items-center gap-1 font-sans">
-                          <Gamepad2 className="w-3.5 h-3.5 text-[#00F0FF]" /> Minigame tương thích
+                      <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                        <span className="text-slate-400 flex items-center gap-1.5">
+                          <Gamepad2 className="w-3.5 h-3.5 text-cyan-400" /> Minigame tương thích
                         </span>
-                        <span className="font-bold text-[#E2F952] flex items-center gap-1">
-                          TRUY CẬP <Zap className="w-3 h-3" />
+                        <span className="font-bold text-cyan-400 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                          Xem chi tiết <ChevronRight className="w-3.5 h-3.5" />
                         </span>
                       </div>
                     )}
@@ -211,6 +199,6 @@ export default function LearningPathMap({
           })}
         </div>
       </div>
-    </section>
+    </div>
   );
 }
