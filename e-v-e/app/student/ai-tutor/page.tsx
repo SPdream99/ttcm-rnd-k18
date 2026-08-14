@@ -1,38 +1,67 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useAITutorAdapter } from "@/hooks/useAITutorAdapter";
+import Link from "next/link";
 import {
   Bot,
-  Send,
   User,
-  Paperclip,
-  Mic,
-  Copy,
-  Check,
-  Settings,
+  Send,
   Sparkles,
   Key,
+  RotateCcw,
+  BookOpen,
+  Gamepad2,
+  Trophy,
+  Copy,
+  Check,
+  Flame,
+  Lightbulb,
+  Cpu,
+  Mic,
 } from "lucide-react";
-import {
-  saveEncryptedAIKey,
-  getDecryptedAIKey,
-  removeAIKey,
-  hasAIKey,
-} from "@/lib/secureKeyStorage";
+import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+
+interface ChatMessage {
+  id: string;
+  sender: "user" | "ai";
+  text: string;
+  timestamp: string;
+}
 
 export default function StudentAITutorPage() {
-  const { messages, loading, isSending, sendMessage } = useAITutorAdapter();
+  const { currentUser, profile } = useAuthAdapter();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Gemini API Key modal & state
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [hasApiKeyActive, setHasApiKeyActive] = useState(false);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Load API Key & Initial greeting
   useEffect(() => {
-    setHasApiKeyActive(hasAIKey());
-  }, []);
+    if (typeof window !== "undefined") {
+      const storedKey = localStorage.getItem("eve_gemini_api_key") || "";
+      if (storedKey) {
+        setApiKeyInput(storedKey);
+        setHasApiKeyActive(true);
+      }
+    }
+
+    const studentName = currentUser?.name || profile?.fullName || "bạn";
+    setMessages([
+      {
+        id: "msg-welcome",
+        sender: "ai",
+        text: `Chào ${studentName}! 👋 Mình là **Trợ Lý AI E-V-E**, đồng hành học tập cùng bạn hôm nay.\n\nBạn có thể hỏi mình mọi thứ về:\n- 🐍 **Lập trình Python, Scratch & Thuật toán**\n- 🎮 **Tra cứu trò chơi, lộ trình học & bảng xếp hạng**\n- 🖥️ **Linh kiện & mô phỏng phần cứng máy tính 3D**\n- 🧮 **Giải toán và tư duy logic**\n\nBạn muốn khám phá chủ đề nào trước?`,
+        timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+  }, [currentUser, profile]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -40,22 +69,70 @@ export default function StudentAITutorPage() {
 
   const handleSaveApiKey = (e: React.FormEvent) => {
     e.preventDefault();
-    if (apiKeyInput.trim()) {
-      saveEncryptedAIKey(apiKeyInput.trim());
-      setHasApiKeyActive(true);
-      setApiKeyInput("");
-    } else {
-      removeAIKey();
-      setHasApiKeyActive(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("eve_gemini_api_key", apiKeyInput.trim());
+      setHasApiKeyActive(Boolean(apiKeyInput.trim()));
+      setShowKeyModal(false);
     }
-    setShowKeyModal(false);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isSending) return;
-    const currentMsg = inputMessage.trim();
-    setInputMessage("");
-    await sendMessage(currentMsg);
+  const handleSendMessage = async (textToSend?: string) => {
+    const prompt = (textToSend || inputMessage).trim();
+    if (!prompt || isSending) return;
+
+    const userMsgId = `usr-${Date.now()}`;
+    const userMsg: ChatMessage = {
+      id: userMsgId,
+      sender: "user",
+      text: prompt,
+      timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    if (!textToSend) setInputMessage("");
+    setIsSending(true);
+
+    try {
+      const storedKey =
+        typeof window !== "undefined"
+          ? localStorage.getItem("eve_gemini_api_key") || ""
+          : "";
+
+      const res = await fetch("/api/tutor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: prompt,
+          role: "student",
+          geminiApiKey: storedKey,
+        }),
+      });
+
+      const data = await res.json();
+      const aiReply =
+        data.reply ||
+        "Rất tiếc, AI tạm thời chưa thể phản hồi. Bạn hãy thử lại sau ít giây nhé!";
+
+      const aiMsg: ChatMessage = {
+        id: `ai-${Date.now()}`,
+        sender: "ai",
+        text: aiReply,
+        timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+      };
+
+      setMessages((prev) => [...prev, aiMsg]);
+    } catch (err) {
+      console.error("AI send error:", err);
+      const errMsg: ChatMessage = {
+        id: `ai-err-${Date.now()}`,
+        sender: "ai",
+        text: "⚠️ Có lỗi khi kết nối tới máy chủ AI. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau!",
+        timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleCopy = (text: string, id: string) => {
@@ -64,20 +141,63 @@ export default function StudentAITutorPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Markdown & Code block renderer
-  const renderMessageContent = (text: string) => {
-    const parts = text.split(/(```[\s\S]*?```)/g);
+  // ── Markdown Inline Formatter ──
+  const renderInlineText = (str: string): React.ReactNode => {
+    const regex = /(\*\*.*?\*\*|`.*?`|\[.*?\]\(.*?\))/g;
+    const chunks = str.split(regex);
 
-    return parts.map((part, index) => {
-      if (part.startsWith("```") && part.endsWith("```")) {
-        const lines = part.slice(3, -3).trim().split("\n");
+    return chunks.map((chunk, idx) => {
+      if (chunk.startsWith("**") && chunk.endsWith("**") && chunk.length >= 4) {
+        return (
+          <strong key={idx} className="text-white font-bold font-sans">
+            {chunk.slice(2, -2)}
+          </strong>
+        );
+      }
+      if (chunk.startsWith("`") && chunk.endsWith("`") && chunk.length >= 2) {
+        return (
+          <code
+            key={idx}
+            className="px-1.5 py-0.5 rounded bg-[#162035] text-cyan-300 font-mono text-[11px] border border-cyan-500/30"
+          >
+            {chunk.slice(1, -1)}
+          </code>
+        );
+      }
+      const linkMatch = chunk.match(/^\[(.*?)\]\((.*?)\)$/);
+      if (linkMatch) {
+        return (
+          <Link
+            key={idx}
+            href={linkMatch[2]}
+            className="text-cyan-400 font-bold hover:underline inline-flex items-center gap-0.5"
+          >
+            {linkMatch[1]}
+          </Link>
+        );
+      }
+      return chunk;
+    });
+  };
+
+  // ── Rich Markdown, Tables & Code block visual renderer ──
+  const renderMessageContent = (text: string) => {
+    // 1. Split code blocks
+    const codeParts = text.split(/(```[\s\S]*?```)/g);
+
+    return codeParts.map((block, bIdx) => {
+      if (block.startsWith("```") && block.endsWith("```")) {
+        const lines = block.slice(3, -3).trim().split("\n");
         const lang = lines[0].trim();
         const codeContent = lang ? lines.slice(1).join("\n") : lines.join("\n");
 
         return (
-          <div key={index} className="my-2.5 rounded-xl bg-[#090d18] border border-cyan-500/20 overflow-hidden font-mono text-xs">
+          <div
+            key={bIdx}
+            className="my-3 rounded-xl bg-[#090d18] border border-cyan-500/25 overflow-hidden font-mono text-xs shadow-lg"
+          >
             <div className="px-3.5 py-1.5 bg-[#141b2c] border-b border-slate-800 text-slate-400 flex items-center justify-between text-[11px]">
-              <span>{lang || "code"}</span>
+              <span className="text-cyan-400 font-bold">{lang || "code"}</span>
               <button
                 type="button"
                 onClick={() => navigator.clipboard.writeText(codeContent)}
@@ -86,29 +206,170 @@ export default function StudentAITutorPage() {
                 <Copy className="w-3 h-3" /> Sao chép
               </button>
             </div>
-            <pre className="p-3.5 overflow-x-auto text-cyan-200">
+            <pre className="p-3.5 overflow-x-auto text-cyan-200 leading-relaxed">
               <code>{codeContent}</code>
             </pre>
           </div>
         );
       }
 
-      const renderedLines = part.split("\n").map((line, lIdx) => {
-        const boldParts = line.split(/(\*\*.*?\*\*)/g).map((bChunk, bIdx) => {
-          if (bChunk.startsWith("**") && bChunk.endsWith("**")) {
-            return <strong key={bIdx} className="text-white font-bold">{bChunk.slice(2, -2)}</strong>;
-          }
-          return bChunk;
-        });
+      // 2. Parse lines and detect Table chunks
+      const lines = block.split("\n");
+      const elements: React.ReactNode[] = [];
+      let tableBuffer: string[] = [];
 
-        return (
-          <p key={lIdx} className="min-h-[1.2rem]">
-            {line.trim() ? boldParts : <br />}
+      const flushTable = (keyIndex: number) => {
+        if (tableBuffer.length >= 2) {
+          const headerCells = tableBuffer[0]
+            .split("|")
+            .map((c) => c.trim())
+            .filter((c) => c.length > 0);
+
+          const bodyLines = tableBuffer
+            .slice(1)
+            .filter((l) => !/^[\s|:-]+$/.test(l.trim()));
+
+          elements.push(
+            <div
+              key={`table-${keyIndex}`}
+              className="my-3.5 overflow-x-auto rounded-xl border border-cyan-500/30 bg-[#0d1322] shadow-xl"
+            >
+              <table className="w-full text-left text-xs font-mono">
+                <thead className="bg-[#141d32] border-b border-cyan-500/20 text-cyan-300">
+                  <tr>
+                    {headerCells.map((h, hIdx) => (
+                      <th
+                        key={hIdx}
+                        className="px-4 py-2.5 font-bold uppercase tracking-wider text-[11px]"
+                      >
+                        {renderInlineText(h)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70">
+                  {bodyLines.map((bLine, rIdx) => {
+                    const cells = bLine
+                      .split("|")
+                      .map((c) => c.trim())
+                      .filter((c) => c.length > 0);
+                    return (
+                      <tr key={rIdx} className="hover:bg-cyan-500/5 transition-colors">
+                        {cells.map((cell, cIdx) => (
+                          <td key={cIdx} className="px-4 py-2.5 text-slate-200">
+                            {renderInlineText(cell)}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+          tableBuffer = [];
+        } else if (tableBuffer.length > 0) {
+          tableBuffer.forEach((tblLine, idx) => {
+            elements.push(
+              <p key={`tbl-fallback-${keyIndex}-${idx}`} className="my-1 text-slate-200">
+                {renderInlineText(tblLine)}
+              </p>
+            );
+          });
+          tableBuffer = [];
+        }
+      };
+
+      lines.forEach((line, lIdx) => {
+        const trimmed = line.trim();
+
+        // Table line detection
+        if (trimmed.startsWith("|") && trimmed.endsWith("|") && trimmed.length > 2) {
+          tableBuffer.push(trimmed);
+          return;
+        }
+
+        if (tableBuffer.length > 0) {
+          flushTable(lIdx);
+        }
+
+        if (!trimmed) {
+          elements.push(<div key={`br-${lIdx}`} className="h-1.5" />);
+          return;
+        }
+
+        // Heading 3
+        if (trimmed.startsWith("### ")) {
+          elements.push(
+            <h3
+              key={`h3-${lIdx}`}
+              className="text-base font-bold text-white mt-3 mb-1.5 flex items-center gap-1.5"
+            >
+              {renderInlineText(trimmed.replace(/^###\s+/, ""))}
+            </h3>
+          );
+          return;
+        }
+
+        // Heading 2
+        if (trimmed.startsWith("## ")) {
+          elements.push(
+            <h2
+              key={`h2-${lIdx}`}
+              className="text-lg font-bold text-cyan-300 mt-4 mb-2 pb-1 border-b border-cyan-500/20"
+            >
+              {renderInlineText(trimmed.replace(/^##\s+/, ""))}
+            </h2>
+          );
+          return;
+        }
+
+        // Heading 1
+        if (trimmed.startsWith("# ")) {
+          elements.push(
+            <h1 key={`h1-${lIdx}`} className="text-xl font-extrabold text-white mt-4 mb-2">
+              {renderInlineText(trimmed.replace(/^#\s+/, ""))}
+            </h1>
+          );
+          return;
+        }
+
+        // Bullet items (- or *)
+        if (/^[-*]\s+/.test(trimmed)) {
+          elements.push(
+            <div key={`li-${lIdx}`} className="flex items-start gap-2 text-slate-200 my-1 ml-1">
+              <span className="text-cyan-400 mt-1 shrink-0">•</span>
+              <div className="flex-1">{renderInlineText(trimmed.replace(/^[-*]\s+/, ""))}</div>
+            </div>
+          );
+          return;
+        }
+
+        // Numbered items (1. 2.)
+        const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+        if (numMatch) {
+          elements.push(
+            <div key={`num-${lIdx}`} className="flex items-start gap-2 text-slate-200 my-1 ml-1">
+              <span className="font-mono text-cyan-400 font-bold shrink-0">{numMatch[1]}.</span>
+              <div className="flex-1">{renderInlineText(numMatch[2])}</div>
+            </div>
+          );
+          return;
+        }
+
+        // Normal paragraph
+        elements.push(
+          <p key={`p-${lIdx}`} className="my-1 text-slate-200 leading-relaxed">
+            {renderInlineText(line)}
           </p>
         );
       });
 
-      return <div key={index} className="space-y-1">{renderedLines}</div>;
+      if (tableBuffer.length > 0) {
+        flushTable(lines.length);
+      }
+
+      return <div key={`block-${bIdx}`} className="space-y-0.5">{elements}</div>;
     });
   };
 
@@ -127,7 +388,9 @@ export default function StudentAITutorPage() {
               Trợ Lý Học Tập AI E-V-E <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             </h1>
             <p className="text-xs text-[#8e9bb4]">
-              {hasApiKeyActive ? "⚡ Đang kết nối mô hình Google Gemini AI trực tiếp" : "Đồng hành 24/7 cùng lộ trình học tập của bạn"}
+              {hasApiKeyActive
+                ? "⚡ Đang kết nối mô hình Google Gemini AI trực tiếp"
+                : "Đồng hành 24/7 cùng lộ trình học tập của bạn"}
             </p>
           </div>
         </div>
@@ -149,17 +412,6 @@ export default function StudentAITutorPage() {
 
       {/* Message Stream */}
       <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-6">
-        {messages.length === 0 && !loading && (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 rounded-full bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center mb-4">
-              <Bot className="w-8 h-8 text-cyan-300" />
-            </div>
-            <h2 className="text-xl font-semibold text-white">Xin chào 👋</h2>
-            <p className="text-gray-400 mt-2 text-sm">Tôi là AI Tutor của E-V-E.</p>
-            <p className="text-gray-500 text-xs mt-1">Bạn có thể hỏi tôi bất kỳ câu hỏi học tập nào.</p>
-          </div>
-        )}
-
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -169,38 +421,37 @@ export default function StudentAITutorPage() {
           >
             {/* Avatar */}
             <div
-              className={`w-9 h-9 rounded-full shrink-0 flex items-center justify-center border ${
-                msg.sender === "ai"
-                  ? "bg-cyan-500/20 border-cyan-400/40 text-cyan-300"
-                  : "bg-blue-600/30 border-blue-400/40 text-white"
+              className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center border ${
+                msg.sender === "user"
+                  ? "bg-cyan-500 text-black border-cyan-400 font-bold"
+                  : "bg-[#151b2c] text-cyan-400 border-cyan-500/30"
               }`}
             >
-              {msg.sender === "ai" ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
+              {msg.sender === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
             </div>
 
             {/* Message Bubble */}
-            <div>
+            <div className="space-y-1 max-w-[85%]">
               <div
-                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                  msg.sender === "ai"
-                    ? "bg-[#0f1524] border border-cyan-400/15 text-slate-200"
-                    : "bg-blue-600 text-white"
+                className={`p-4 rounded-2xl text-xs md:text-sm leading-relaxed ${
+                  msg.sender === "user"
+                    ? "bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-500 text-white rounded-tr-none shadow-md"
+                    : "bg-[#0f1524]/90 border border-slate-800 text-slate-200 rounded-tl-none shadow-lg"
                 }`}
               >
                 {renderMessageContent(msg.text)}
               </div>
 
               <div
-                className={`flex items-center gap-2 text-xs text-gray-500 mt-1 ${
+                className={`flex items-center gap-2 text-[10px] font-mono text-slate-500 ${
                   msg.sender === "user" ? "justify-end" : "justify-start"
                 }`}
               >
                 <span>{msg.timestamp}</span>
                 {msg.sender === "ai" && (
                   <button
-                    type="button"
                     onClick={() => handleCopy(msg.text, msg.id)}
-                    className="hover:text-cyan-400 flex items-center gap-0.5 cursor-pointer ml-1 text-[11px]"
+                    className="hover:text-cyan-400 flex items-center gap-0.5 cursor-pointer ml-1"
                   >
                     {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                     <span>{copiedId === msg.id ? "Đã chép" : "Chép"}</span>
@@ -211,16 +462,15 @@ export default function StudentAITutorPage() {
           </div>
         ))}
 
-        {/* AI Loading Indicator */}
+        {/* AI Typing Indicator */}
         {isSending && (
-          <div className="flex gap-3 mr-auto animate-pulse">
-            <div className="w-9 h-9 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-cyan-300" />
+          <div className="flex gap-3 max-w-xl mr-auto animate-pulse">
+            <div className="w-8 h-8 rounded-xl shrink-0 bg-[#151b2c] text-cyan-400 border border-cyan-500/30 flex items-center justify-center">
+              <Bot className="w-4 h-4" />
             </div>
-            <div className="rounded-2xl bg-[#0f1524] border border-cyan-400/15 px-4 py-3">
-              <p className="text-gray-400 text-sm flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-cyan-400 animate-spin" /> AI Tutor đang suy nghĩ và trả lời...
-              </p>
+            <div className="p-4 rounded-2xl bg-[#0f1524] border border-slate-800 text-xs text-cyan-300 rounded-tl-none flex items-center gap-2">
+              <Sparkles className="w-4 h-4 animate-spin text-cyan-400" />
+              <span>AI E-V-E đang suy nghĩ và tổng hợp câu trả lời...</span>
             </div>
           </div>
         )}
@@ -228,22 +478,35 @@ export default function StudentAITutorPage() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input Bar */}
+      {/* Suggested Quick Questions */}
+      <div className="px-4 py-2 bg-[#0b0f1a] border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto shrink-0">
+        <span className="text-[11px] font-mono text-slate-500 flex items-center gap-1 shrink-0">
+          <Lightbulb className="w-3.5 h-3.5 text-amber-400" /> Gợi ý:
+        </span>
+        {[
+          "Có những game nào trên web?",
+          "Bảng xếp hạng học sinh hiện tại?",
+          "Giải thích biến số và vòng lặp trong Python",
+          "CPU và RAM khác nhau thế nào?",
+        ].map((prompt, idx) => (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => handleSendMessage(prompt)}
+            className="px-3 py-1 rounded-full bg-[#151b2c] hover:bg-[#1f2840] border border-slate-800 hover:border-cyan-500/30 text-xs text-slate-300 hover:text-cyan-300 transition-all shrink-0 cursor-pointer"
+          >
+            {prompt}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Chat Input Area (No Attachment) ── */}
       <div className="p-4 bg-[#0f1524]/90 border-t border-[#7bd1fa]/15 shrink-0">
         <div className="max-w-4xl mx-auto flex items-center gap-2">
-          {/* Attachment */}
-          <button
-            type="button"
-            className="p-2.5 rounded-xl bg-[#151b2c] border border-[#7bd1fa]/20 text-[#8e9bb4] hover:text-white transition-all cursor-pointer"
-            title="Đính kèm tệp"
-          >
-            <Paperclip className="w-4 h-4" />
-          </button>
-
           {/* Input */}
           <input
             type="text"
-            placeholder="Đặt câu hỏi cho AI E-V-E (toán học, lập trình Python, bài tập...)"
+            placeholder="Đặt câu hỏi cho AI E-V-E (toán học, lập trình Python, bài tập, game, lộ trình...)"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={(e) => {
@@ -268,7 +531,7 @@ export default function StudentAITutorPage() {
           {/* Send */}
           <button
             type="button"
-            onClick={handleSendMessage}
+            onClick={() => handleSendMessage()}
             disabled={isSending || !inputMessage.trim()}
             className="p-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
           >
@@ -287,7 +550,7 @@ export default function StudentAITutorPage() {
               </h3>
               <button
                 onClick={() => setShowKeyModal(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white cursor-pointer"
               >
                 ✕
               </button>

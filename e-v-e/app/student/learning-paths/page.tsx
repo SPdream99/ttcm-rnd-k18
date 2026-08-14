@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   BookOpen,
@@ -9,60 +9,66 @@ import {
   CheckCircle2,
   Play,
   ArrowRight,
-  Clock,
-  Award,
   Compass,
-  MapPin,
-  Map,
+  Award,
 } from "lucide-react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function StudentLearningPathsPage() {
   const [filter, setFilter] = useState<"all" | "enrolled">("all");
-  const [enrolledIds, setEnrolledIds] = useState<string[]>([
-    "path_quantum_physics",
-  ]);
+  const [enrolledIds, setEnrolledIds] = useState<string[]>([]);
+  const [paths, setPaths] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [paths] = useState([
-    {
-      id: "path_quantum_physics",
-      title: "Chinh Phục Vật Lý Lượng Tử K18",
-      description: "Lộ trình học tập từ căn bản đến nâng cao về bản chất hạt ánh sáng, hàm sóng và nguyên lý bất định Heisenberg.",
-      authorName: "ThS. Phạm Hoàng Nam",
-      coursesCount: 3,
-      requiredGamesTotal: 5,
-      completedGamesTotal: 3,
-      rewardCoins: 150,
-      bannerGradient: "from-blue-600 via-indigo-600 to-cyan-500",
-    },
-    {
-      id: "path_astronomy_deepspace",
-      title: "Khám Phá Vũ Trụ & Thiên Văn Học Không Gian",
-      description: "Tìm hiểu sự hình thành các chòm sao, chân trời sự kiện của hố đen và các vụ nổ siêu tân tinh (Supernova).",
-      authorName: "GS. Nguyễn Văn An",
-      coursesCount: 3,
-      requiredGamesTotal: 6,
-      completedGamesTotal: 0,
-      rewardCoins: 180,
-      bannerGradient: "from-purple-600 via-pink-600 to-indigo-700",
-    },
-    {
-      id: "path_computational_thinking",
-      title: "Tư Duy Thuật Toán & Logic Không Gian Số",
-      description: "Rèn luyện tư duy giải thuật thông qua các mini-game logic, sắp xếp ma trận và đồ thị không gian.",
-      authorName: "TS. Lê Thị Mai",
-      coursesCount: 4,
-      requiredGamesTotal: 8,
-      completedGamesTotal: 0,
-      rewardCoins: 220,
-      bannerGradient: "from-emerald-600 via-teal-600 to-cyan-700",
-    },
-  ]);
+  useEffect(() => {
+    async function loadPaths() {
+      try {
+        setLoading(true);
+        // Load enrolled IDs from local storage if available
+        if (typeof window !== "undefined") {
+          const saved = JSON.parse(localStorage.getItem("eve_enrolled_paths") || "[]");
+          setEnrolledIds(saved);
+        }
+
+        const snap = await getDocs(collection(db, "learning_path"));
+        const realPaths = snap.docs.map((d) => {
+          const data = d.data();
+          const coursesList = Array.isArray(data.courses) ? data.courses : [];
+          return {
+            id: d.id,
+            title: data.title || "Lộ trình đào tạo",
+            description: data.description || "Lộ trình học tập toàn diện được thiết kế bởi giảng viên.",
+            authorName: data.authorName || data.instructorName || "Giáo Viên E-V-E",
+            coursesCount: coursesList.length,
+            requiredGamesTotal: coursesList.length,
+            completedGamesTotal: 0,
+            rewardCoins: Number(data.rewardCoins) || (coursesList.length * 50),
+            bannerGradient: data.bannerGradient || "from-blue-600 via-indigo-600 to-cyan-500",
+          };
+        });
+
+        setPaths(realPaths);
+      } catch (err) {
+        console.warn("Lỗi tải lộ trình học tập:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPaths();
+  }, []);
 
   const handleToggleEnroll = (pathId: string) => {
+    let next: string[];
     if (enrolledIds.includes(pathId)) {
-      setEnrolledIds((prev) => prev.filter((id) => id !== pathId));
+      next = enrolledIds.filter((id) => id !== pathId);
     } else {
-      setEnrolledIds((prev) => [...prev, pathId]);
+      next = [...enrolledIds, pathId];
+    }
+    setEnrolledIds(next);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("eve_enrolled_paths", JSON.stringify(next));
     }
   };
 
@@ -79,99 +85,137 @@ export default function StudentLearningPathsPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-mono mb-2">
             <Compass className="w-3.5 h-3.5 text-cyan-400" /> Khám Phá Lộ Trình Học Tập
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <Layers className="w-7 h-7 text-cyan-400" /> Danh Sách Lộ Trình Học Tập
+          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+            Lộ Trình Học & Chinh Phục Kiến Thức
           </h1>
           <p className="text-sm text-[#8e9bb4] mt-1">
-            Bạn có thể đăng ký các lộ trình học tập phù hợp. Mỗi lộ trình gồm chuỗi các bài học và thử thách minigame tương tác thực tế.
+            Các chuỗi bài học chuẩn hóa kết hợp cùng minigame thử thách do chính thầy cô giáo phát triển.
           </p>
         </div>
 
-        {/* Filter Tab */}
-        <div className="flex items-center gap-2 bg-[#151b2c] p-1.5 rounded-2xl border border-slate-800 shrink-0">
+        {/* Filter buttons */}
+        <div className="flex items-center gap-2 bg-[#151b2c] p-1.5 rounded-xl border border-slate-800 self-start sm:self-auto">
           <button
             onClick={() => setFilter("all")}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
               filter === "all"
-                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
                 : "text-slate-400 hover:text-white"
             }`}
           >
-            Tất Cả Lộ Trình ({paths.length})
+            Tất Cả ({paths.length})
           </button>
           <button
             onClick={() => setFilter("enrolled")}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
               filter === "enrolled"
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
                 : "text-slate-400 hover:text-white"
             }`}
           >
-            Đã Đăng Ký ({enrolledIds.length})
+            Đang Học ({enrolledIds.length})
           </button>
         </div>
       </div>
 
-      {/* Path Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {displayedPaths.map((path) => {
-          const isEnrolled = enrolledIds.includes(path.id);
-
-          return (
-            <div
-              key={path.id}
-              className="p-6 md:p-8 rounded-3xl bg-[#0f1524]/90 border border-[#7bd1fa]/15 hover:border-cyan-500/40 shadow-xl flex flex-col justify-between space-y-6 transition-all relative overflow-hidden group"
+      {/* Grid Container */}
+      {loading ? (
+        <div className="text-center py-20 bg-[#0f1524]/60 rounded-3xl border border-slate-800">
+          <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-slate-400 text-sm font-sans">Đang tải danh sách lộ trình học tập thực tế...</p>
+        </div>
+      ) : displayedPaths.length === 0 ? (
+        <div className="text-center py-20 bg-[#0f1524]/60 rounded-3xl border border-slate-800 p-8">
+          <BookOpen className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-white mb-1 font-sans">
+            {filter === "enrolled"
+              ? "Bạn chưa đăng ký lộ trình học tập nào"
+              : "Chưa có lộ trình học tập nào được xuất bản"}
+          </h3>
+          <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">
+            {filter === "enrolled"
+              ? "Hãy chuyển sang tab 'Tất Cả' để chọn và tham gia các lộ trình học hấp dẫn!"
+              : "Thầy cô đang xây dựng các lộ trình bài giảng và mini-game mới. Vui lòng quay lại sau nhé!"}
+          </p>
+          {filter === "enrolled" && (
+            <button
+              onClick={() => setFilter("all")}
+              className="px-5 py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-mono font-bold transition-all cursor-pointer"
             >
-              {/* Subtle Ambient Glow */}
+              Khám Phá Tất Cả Lộ Trình
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {displayedPaths.map((path) => {
+            const isEnrolled = enrolledIds.includes(path.id);
+
+            return (
               <div
-                className={`absolute top-0 right-0 w-48 h-48 bg-gradient-to-br ${path.bannerGradient} opacity-10 rounded-full blur-3xl group-hover:opacity-20 transition-opacity`}
-              />
+                key={path.id}
+                className="rounded-3xl bg-[#0f1524]/90 border border-[#7bd1fa]/15 overflow-hidden flex flex-col justify-between hover:border-cyan-500/40 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] transition-all group"
+              >
+                <div>
+                  {/* Banner */}
+                  <div className={`h-28 bg-gradient-to-r ${path.bannerGradient} p-5 relative flex flex-col justify-between`}>
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md text-[11px] font-mono text-cyan-200 border border-white/10 flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5" />
+                        {path.coursesCount} Khóa Học
+                      </span>
 
-              <div className="space-y-3 relative z-10">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-mono text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                    {path.coursesCount} Bài Học
-                  </span>
-                  <span className="font-mono text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">
-                    +{path.rewardCoins} Coins Thưởng
-                  </span>
+                      <span className="px-2.5 py-1 rounded-full bg-amber-500/30 backdrop-blur-md text-[11px] font-mono text-amber-200 border border-amber-400/30 flex items-center gap-1">
+                        <Award className="w-3.5 h-3.5 text-amber-300" />
+                        +{path.rewardCoins} Coins
+                      </span>
+                    </div>
+
+                    <div className="text-[11px] text-white/80 font-mono flex items-center gap-1 truncate">
+                      <span>Giảng viên:</span>
+                      <strong className="text-white">{path.authorName}</strong>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-6 space-y-4">
+                    <h3 className="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors line-clamp-2">
+                      {path.title}
+                    </h3>
+                    <p className="text-xs text-[#8e9bb4] line-clamp-3 leading-relaxed">
+                      {path.description}
+                    </p>
+                  </div>
                 </div>
 
-                <h2 className="text-xl font-bold text-white group-hover:text-cyan-300 transition-colors">
-                  {path.title}
-                </h2>
-                <p className="text-xs text-[#8e9bb4] leading-relaxed line-clamp-3">
-                  {path.description}
-                </p>
-
-                <div className="text-[11px] text-slate-400 font-mono pt-2">
-                  Giảng viên biên soạn: <strong className="text-white">{path.authorName}</strong>
+                {/* Footer Actions */}
+                <div className="p-6 pt-0 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleToggleEnroll(path.id)}
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                        isEnrolled
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30"
+                          : "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+                      }`}
+                    >
+                      {isEnrolled ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Đã Tham Gia
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4" /> Bắt Đầu Học
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              {/* Action Buttons */}
-              <div className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 relative z-10">
-                <button
-                  onClick={() => handleToggleEnroll(path.id)}
-                  className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer border ${
-                    isEnrolled
-                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                      : "bg-[#151b2c] hover:bg-slate-800 text-slate-300 border-slate-700"
-                  }`}
-                >
-                  {isEnrolled ? "✓ Đã Ghi Danh" : "+ Đăng Ký Học"}
-                </button>
-
-                <Link href={`/student/learning-paths/${path.id}`} className="w-full sm:w-auto">
-                  <button className="w-full px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:from-blue-500 hover:to-cyan-300 text-white font-mono text-xs font-bold shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.02]">
-                    <Compass className="w-4 h-4" /> Xem Chi Tiết Lộ Trình →
-                  </button>
-                </Link>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

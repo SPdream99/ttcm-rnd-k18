@@ -663,7 +663,21 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         </div>
 
         {/* Action Controls: Fullscreen, Sound, Tabs */}
-        <div className="flex items-center gap-2 self-end md:self-auto">
+        <div className="flex items-center gap-2 self-end md:self-auto flex-wrap">
+          {/* Quick exit for Teacher or Admin */}
+          {currentUser?.role === "teacher" || profile?.role === "teacher" ? (
+            <Link href="/teacher/my-contents">
+              <button className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer">
+                <ArrowLeft className="w-3.5 h-3.5" /> Về Quản Lý GV
+              </button>
+            </Link>
+          ) : currentUser?.role === "admin" || profile?.role === "admin" ? (
+            <Link href="/admin/dashboard">
+              <button className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer">
+                <ArrowLeft className="w-3.5 h-3.5" /> Về Admin
+              </button>
+            </Link>
+          ) : null}
           {/* Fullscreen Button */}
           <button
             onClick={toggleFullscreen}

@@ -56,42 +56,22 @@ const DEFAULT_GAMES: ArcadeGameItem[] = [
   {
     id: "boss_battle_quiz",
     title: "Boss Slayer Marathon Quiz",
-    subtitle: "Đấu Trùm Lượng Tử & Thuật Toán 1000 HP",
+    subtitle: "Đấu Trùm Marathon Kiến Thức 1000 HP",
     genre: "Action QTE & Marathon Quiz",
     category: "boss",
     description:
       "Game hành động diệt Boss thời gian thực: Trả lời nhanh các câu hỏi trích xuất từ bài học trong 10 giây marathon, tích luỹ combo sát thương và thực hiện Quick Time Event (QTE) né đòn phản công!",
-    author: "Ban Học Thuật & Đội Ngũ E-V-E Game Studio",
+    author: "Ban Học Thuật E-V-E",
     difficulty: "Thử Thách",
     rewardCoins: 100,
     needExtraData: true,
     coursesAllowed: "all",
     thumbnailUrl:
       "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80",
-    badge: "HOT NHẤT 🔥",
-    rating: 4.9,
-    playsCount: 2840,
+    badge: "ACTION QUIZ 🔥",
+    rating: 5.0,
+    playsCount: 0,
     tags: ["Action", "Boss Battle", "Marathon 10s", "QTE Reflex"],
-  },
-  {
-    id: "game_space_quiz_3d",
-    title: "Quiz Runner 3D - Bắn Tháp Vũ Trụ",
-    subtitle: "Thử Thách Tốc Độ & Phản Xạ Không Gian",
-    genre: "Action Quiz 3D & Speed Test",
-    category: "quiz",
-    description:
-      "Trò chơi trắc nghiệm tốc độ 3D kết hợp phản xạ: Đọc kỹ câu hỏi từ khóa học và chọn đáp án chính xác nhất để ghi điểm, duy trì chuỗi combo x2.0 và tích lũy Coins thưởng.",
-    author: "GS. Nguyễn Văn An & Ban Học Thuật E-V-E",
-    difficulty: "Trung Bình",
-    rewardCoins: 50,
-    needExtraData: true,
-    coursesAllowed: "all",
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=800&auto=format&fit=crop&q=80",
-    badge: "PHỔ BIẾN ⭐",
-    rating: 4.8,
-    playsCount: 4120,
-    tags: ["Quiz 3D", "Combo Multiplier", "Speed Reflex"],
   },
   {
     id: "game_card_match_vr",
@@ -101,7 +81,7 @@ const DEFAULT_GAMES: ArcadeGameItem[] = [
     category: "memory",
     description:
       "Trò chơi lật thẻ bài kinh điển: Tìm và ghép đôi thẻ chứa Khái niệm (Thuật ngữ) với thẻ chứa Định nghĩa chính xác tương ứng của bài học trong số lượt lật ít nhất.",
-    author: "TS. Lê Thị Mai & Nhóm Nghiên Cứu Sư Phạm",
+    author: "Ban Học Thuật E-V-E",
     difficulty: "Dễ",
     rewardCoins: 40,
     needExtraData: true,
@@ -109,8 +89,8 @@ const DEFAULT_GAMES: ArcadeGameItem[] = [
     thumbnailUrl:
       "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80",
     badge: "TRÍ TUỆ 💡",
-    rating: 4.7,
-    playsCount: 1950,
+    rating: 5.0,
+    playsCount: 0,
     tags: ["Memory Card", "Logic", "Terminology Matching"],
   },
   {
@@ -121,69 +101,17 @@ const DEFAULT_GAMES: ArcadeGameItem[] = [
     category: "simulation",
     description:
       "Khám phá cấu tạo bên trong thùng máy PC: Chọn linh kiện quan trọng (CPU, RAM, GPU, SSD M.2, Bộ Nguồn PSU) và lắp ráp chuẩn xác vào Bo mạch chủ để kích nguồn kiểm tra POST OS.",
-    author: "ThS. Phạm Hoàng Nam",
+    author: "Ban Học Thuật E-V-E",
     difficulty: "Trung Bình",
     rewardCoins: 60,
-    needExtraData: false, // Có thể chơi độc lập
-    coursesAllowed: ["crs_computer_hardware", "crs_coding_basics"],
+    needExtraData: false,
+    coursesAllowed: "all",
     thumbnailUrl:
       "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=800&auto=format&fit=crop&q=80",
     badge: "MÔ PHỎNG 💻",
-    rating: 4.9,
-    playsCount: 3200,
+    rating: 5.0,
+    playsCount: 0,
     tags: ["Hardware 3D", "PC Building", "Motherboard Simulation"],
-  },
-];
-
-// Fallback Courses presets if Firestore has no extra courses
-const PRESET_COURSES = [
-  {
-    id: "crs_quantum_101",
-    title: "Vật Lý Lượng Tử Cơ Bản (Quantum 101)",
-    authorName: "Đạt Teacher",
-    description: "Khám phá hàm sóng Schrödinger, vướng víu lượng tử và bản chất hạt của ánh sáng.",
-    pairsCount: 3,
-    tags: ["Vật Lý", "Lượng Tử", "Cơ Bản"],
-  },
-  {
-    id: "crs_astrophysics",
-    title: "Vật Lý Thiên Văn & Hố Đen Vũ Trụ",
-    authorName: "Đạt Teacher",
-    description: "Tìm hiểu Chân trời sự kiện (Event Horizon), Điểm kỳ dị và Vành đai tiểu hành tinh.",
-    pairsCount: 3,
-    tags: ["Thiên Văn", "Vũ Trụ", "Hố Đen"],
-  },
-  {
-    id: "crs_coding_basics",
-    title: "Nhập Môn Tư Duy Lập Trình & Thuật Toán",
-    authorName: "Ban Học Thuật E-V-E",
-    description: "Nắm vững Biến số, Cấu trúc IF - ELSE, Vòng lặp For/While và Độ phức tạp thuật toán.",
-    pairsCount: 4,
-    tags: ["Lập Trình", "Thuật Toán", "Nhập Môn"],
-  },
-  {
-    id: "crs_computer_hardware",
-    title: "Khám Phá Phần Cứng & Kiến Trúc Máy Tính 3D",
-    authorName: "ThS. Phạm Hoàng Nam",
-    description: "Cấu tạo CPU, GPU đa nhân, RAM DDR5 tốc độ cao, SSD M.2 NVMe và Bộ nguồn PSU.",
-    pairsCount: 4,
-    tags: ["Phần Cứng", "Kiến Trúc", "PC Gaming"],
-  },
-  {
-    id: "crs_python_mini_games",
-    title: "Lập Trình Trò Chơi Mini Với Python",
-    authorName: "Giảng Viên Trần Thị Bình",
-    description: "Cú pháp hàm print(), kiểu dữ liệu Boolean, xử lý sự kiện và vòng lặp game loop.",
-    pairsCount: 2,
-    tags: ["Python", "Game Mini", "Code"],
-  },
-  {
-    id: "crs_ai_robotics",
-    title: "Khám Phá Trí Tuệ Nhân Tạo AI & Tương Lai Số",
-    authorName: "E-V-E AI Research Lab",
-    description: "Mô hình học máy Machine Learning, mạng nơ-ron nhân tạo Neural Network và dữ liệu lớn.",
-    pairsCount: 2,
-    tags: ["Trí Tuệ Nhân Tạo", "Machine Learning", "Neural Network"],
   },
 ];
 
@@ -194,7 +122,7 @@ export default function StudentGamesArcadePage() {
 
   // Games & Courses State
   const [games, setGames] = useState<ArcadeGameItem[]>(DEFAULT_GAMES);
-  const [coursesList, setCoursesList] = useState<any[]>(PRESET_COURSES);
+  const [coursesList, setCoursesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters & Search State
@@ -207,11 +135,12 @@ export default function StudentGamesArcadePage() {
   const [courseSearchTerm, setCourseSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 1. Fetch Real Games from Firestore & Combine
+  // 1. Fetch Real Games & Real Courses from Firestore
   useEffect(() => {
     async function loadArcadeData() {
       try {
-        // Fetch custom/approved games
+        setLoading(true);
+        // Fetch custom/approved games from Firestore
         const gamesSnap = await getDocs(collection(db, "game_info"));
         let fetchedGames: ArcadeGameItem[] = [];
 
@@ -225,7 +154,7 @@ export default function StudentGamesArcadePage() {
               genre: data.genre || (data.need_extra_data ? "Dynamic Quiz Game" : "Standalone Lab"),
               category: "custom",
               description: data.description || "Trò chơi học tập tích hợp ngân hàng câu hỏi.",
-              author: Array.isArray(data.authors) ? data.authors.join(", ") : "Giáo Viên E-V-E",
+              author: Array.isArray(data.authors) ? data.authors.join(", ") : (data.authorName || "Giáo Viên E-V-E"),
               difficulty: "Trung Bình",
               rewardCoins: 50,
               needExtraData: Boolean(data.need_extra_data),
@@ -234,14 +163,14 @@ export default function StudentGamesArcadePage() {
                 data.thumbnail_url ||
                 "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80",
               badge: "CỘNG ĐỒNG 🌟",
-              rating: 4.8,
-              playsCount: Number(data.plays_count) || 120,
+              rating: 5.0,
+              playsCount: Number(data.plays_count) || 0,
               tags: ["Giáo Trình", "Tương Tác"],
             };
           });
         }
 
-        // Merge with local storage games
+        // Merge with local storage uploaded games
         try {
           if (typeof window !== "undefined") {
             const localGames = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
@@ -261,8 +190,8 @@ export default function StudentGamesArcadePage() {
                 coursesAllowed: lg.coursesAllowed || lg.courses_allowed || "all",
                 thumbnailUrl: lg.thumbnailUrl || lg.thumbnail_url || "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80",
                 badge: (lg.isAccepted ?? lg.is_accepted) ? "ĐÃ DUYỆT ✅" : "CHỜ DUYỆT ⏳",
-                rating: 4.9,
-                playsCount: Number(lg.playsCount || lg.plays_count || 120),
+                rating: 5.0,
+                playsCount: Number(lg.playsCount || lg.plays_count || 0),
                 tags: ["Giáo Trình", "Tương Tác"],
               };
 
@@ -280,7 +209,7 @@ export default function StudentGamesArcadePage() {
         const customUnique = fetchedGames.filter((g) => !existingIds.has(g.id));
         setGames([...DEFAULT_GAMES, ...customUnique]);
 
-        // Fetch courses from Firestore
+        // Fetch ONLY real courses from Firestore
         const coursesSnap = await getDocs(collection(db, "courses"));
         if (!coursesSnap.empty) {
           const realCourses = coursesSnap.docs.map((d) => {
@@ -296,18 +225,17 @@ export default function StudentGamesArcadePage() {
               title: data.title || "Khóa Học E-V-E",
               authorName: data.author_name || data.authorName || "Giáo Viên",
               description: data.description || "Bài học tương tác kèm câu hỏi và giải thích.",
-              pairsCount: pairs.length || 3,
+              pairsCount: pairs.length,
               tags: Array.isArray(data.tags) ? data.tags : ["Bài Học"],
             };
           });
 
-          // Merge preset courses and real courses
-          const cIds = new Set(realCourses.map((c) => c.id));
-          const presetUnique = PRESET_COURSES.filter((c) => !cIds.has(c.id));
-          setCoursesList([...realCourses, ...presetUnique]);
+          setCoursesList(realCourses);
+        } else {
+          setCoursesList([]);
         }
       } catch (err) {
-        console.warn("Arcade load fallback error:", err);
+        console.warn("Arcade load error:", err);
       } finally {
         setLoading(false);
       }
