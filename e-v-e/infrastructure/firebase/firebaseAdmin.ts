@@ -34,5 +34,8 @@ try {
   // Ignore error if settings were already applied
 }
 
+import { getAuth as getAdminAuth, Auth as AdminAuth } from 'firebase-admin/auth';
+
+export const adminAuth: AdminAuth = getAdminAuth(adminApp);
 export const adminDb: Firestore = db;
 export default adminApp;

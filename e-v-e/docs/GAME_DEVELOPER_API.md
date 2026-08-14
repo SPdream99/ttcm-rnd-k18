@@ -38,6 +38,7 @@ E-V-E hỗ trợ 2 phương thức giao tiếp song song:
         "id": "p1",
         "title": "Hiện tượng quang điện chứng minh tính chất gì của ánh sáng?",
         "description": "Tính chất hạt (Photon)",
+        "explanation": "Hiện tượng quang điện chỉ có thể giải thích được bằng thuyết lượng tử ánh sáng của Einstein, coi ánh sáng là chùm các hạt photon mang năng lượng.",
         "distractions": ["Tính chất sóng", "Tính chất phản xạ", "Tính chất tán sắc"],
         "image_url": "https://images.unsplash.com/..."
       }

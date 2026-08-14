@@ -7,6 +7,7 @@ import {
   Rocket,
   LayoutDashboard,
   BookOpen,
+  Gamepad2,
   Trophy,
   ShoppingBag,
   UserCheck,
@@ -21,6 +22,7 @@ import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 const STUDENT_NAV = [
   { id: "dashboard",      label: "Góc Học Tập",        icon: LayoutDashboard, href: "/student/dashboard" },
   { id: "learning-paths", label: "Lộ Trình Học Tập",   icon: BookOpen,        href: "/student/learning-paths" },
+  { id: "games",          label: "Kho Trò Chơi (Arcade)", icon: Gamepad2,     href: "/student/games" },
   { id: "ai-tutor",       label: "Trợ Lý AI Tutor",    icon: Bot,             href: "/student/ai-tutor" },
   { id: "leaderboard",    label: "Bảng Xếp Hạng",      icon: Trophy,          href: "/student/leaderboard" },
   { id: "shop",           label: "Cửa Hàng Đổi Thưởng", icon: ShoppingBag,     href: "/student/shop" },

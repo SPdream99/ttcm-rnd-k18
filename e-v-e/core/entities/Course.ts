@@ -10,10 +10,13 @@ export interface CourseContentPair {
   title: string;               // Tiêu đề câu hỏi / Khái niệm
   description?: string;        // Đáp án đúng (Right Answer)
   distractions?: string[];     // Danh sách các đáp án sai (Wrong Answers / Distractions)
+  explanation?: string;        // Giải thích chi tiết đáp án / kiến thức (Explanation)
   imageUrl?: string;           // Ảnh minh họa (nếu có)
   image_url?: string;
   rightAnswer?: string;        // Alias tương thích
+  right_answer?: string;       // Alias tương thích
   wrongAnswers?: string[];     // Alias tương thích
+  wrong_answers?: string[];    // Alias tương thích
 }
 
 export interface CourseResource {

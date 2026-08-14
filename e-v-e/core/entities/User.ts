@@ -17,6 +17,7 @@ export interface User {
   avatarUrl?: string;
   status?: "pending" | "active" | "banned";
   coins?: number;
+  twoFactorEnabled?: boolean;
   profileDecorations?: string[];
   activeDecorations?: {
     avatarFrame?: string;
@@ -38,6 +39,7 @@ export interface UserProfile {
   joinDate: string;
   status?: "pending" | "active" | "banned";
   coins?: number;
+  twoFactorEnabled?: boolean;
   profileDecorations?: string[];
   activeDecorations?: {
     avatarFrame?: string;

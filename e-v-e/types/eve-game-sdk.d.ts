@@ -7,7 +7,10 @@ export interface EVEGameCoursePair {
   title: string;
   description: string;
   distractions?: string[];
+  explanation?: string;
   image_url?: string;
+  right_answer?: string;
+  wrong_answers?: string[];
 }
 
 export interface EVEInitGamePayload {

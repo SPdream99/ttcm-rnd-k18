@@ -1,11 +1,18 @@
 "use client";
 
+import React, { useState } from "react";
 import Link from "next/link";
-import { Clock, ShieldAlert, ArrowLeft, LogOut } from "lucide-react";
+import { Clock, ShieldAlert, ArrowLeft, LogOut, RefreshCw } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function PendingApprovalPage() {
   const { signOut } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleSignOutAndRedirect = async () => {
+    setIsLoggingOut(true);
+    await signOut();
+  };
 
   return (
     <main className="bg-[#0a0e1a] text-[#e1e2ec] min-h-screen flex items-center justify-center p-4 md:p-8 overflow-hidden relative font-sans">
@@ -42,18 +49,28 @@ export default function PendingApprovalPage() {
 
         <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
           <button
-            onClick={() => signOut()}
-            className="inline-flex items-center gap-1.5 text-xs font-mono text-rose-400 hover:text-rose-300 hover:underline cursor-pointer"
+            type="button"
+            disabled={isLoggingOut}
+            onClick={handleSignOutAndRedirect}
+            className="inline-flex items-center gap-1.5 text-xs font-mono text-rose-400 hover:text-rose-300 hover:underline cursor-pointer disabled:opacity-50"
           >
-            <LogOut className="w-3.5 h-3.5" /> Đăng xuất
+            {isLoggingOut ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <LogOut className="w-3.5 h-3.5" />
+            )}
+            <span>{isLoggingOut ? "Đang xử lý..." : "Đăng xuất"}</span>
           </button>
 
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-1.5 text-xs font-mono text-cyan-400 hover:text-cyan-300 hover:underline"
+          <button
+            type="button"
+            disabled={isLoggingOut}
+            onClick={handleSignOutAndRedirect}
+            className="inline-flex items-center gap-1.5 text-xs font-mono text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer disabled:opacity-50 font-bold"
           >
-            Đăng nhập tài khoản khác <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
-          </Link>
+            <span>{isLoggingOut ? "Đang đăng xuất..." : "Đăng nhập tài khoản khác"}</span>
+            <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
+          </button>
         </div>
       </div>
     </main>

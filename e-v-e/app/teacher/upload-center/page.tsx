@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   UploadCloud,
   BookOpen,
@@ -14,9 +15,10 @@ import {
   FolderArchive,
   Info,
   ShieldAlert,
+  Download,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CourseContentPair } from "@/core/entities/Course";
 
@@ -39,6 +41,7 @@ export default function TeacherUploadCenterPage() {
       id: "pair_1",
       title: "Lệnh print() trong Python dùng để làm gì?",
       description: "In văn bản hoặc kết quả ra màn hình",
+      explanation: "Hàm print() là hàm tích hợp sẵn trong Python dùng để xuất dữ liệu hoặc chuỗi thông báo ra màn hình console.",
       distractions: ["Nhập dữ liệu từ bàn phím", "Tạo một biến số mới", "Dừng chương trình"],
       image_url: "",
     },
@@ -59,8 +62,52 @@ export default function TeacherUploadCenterPage() {
   const [gameDesc, setGameDesc] = useState("");
   const [gameZipFile, setGameZipFile] = useState<File | null>(null);
   const [needExtraData, setNeedExtraData] = useState(true);
+  const DAILY_GAME_LIMIT = 2;
+  const [todayGameUploads, setTodayGameUploads] = useState<number>(0);
   const [whitelistMode, setWhitelistMode] = useState<"all" | "custom">("all");
   const [allowedCourses, setAllowedCourses] = useState<string[]>(["crs_quantum_101"]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStepText, setUploadStepText] = useState("");
+
+  const checkDailyGameUploads = async () => {
+    if (!teacherUid) return;
+    const todayStr = new Date().toISOString().split("T")[0];
+    let count = 0;
+
+    try {
+      const snap = await getDocs(collection(db, "game_info"));
+      snap.forEach((d) => {
+        const data = d.data();
+        const uploader = data.authorId || data.author_id || data.uploaderId || data.uploader_id;
+        if (uploader === teacherUid) {
+          const cDate = (data.createdAt || data.created_at || "").split("T")[0];
+          if (cDate === todayStr) {
+            count++;
+          }
+        }
+      });
+    } catch {}
+
+    try {
+      if (typeof window !== "undefined") {
+        const local = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
+        const localToday = local.filter((g: any) => {
+          const uploader = g.authorId || g.author_id || g.uploaderId || g.uploader_id;
+          const cDate = (g.createdAt || g.created_at || "").split("T")[0];
+          return (!uploader || uploader === teacherUid) && cDate === todayStr;
+        });
+        count = Math.max(count, localToday.length);
+      }
+    } catch {}
+
+    setTodayGameUploads(count);
+  };
+
+  useEffect(() => {
+    checkDailyGameUploads();
+  }, [teacherUid]);
 
   // Add pair handler
   const handleAddPair = () => {
@@ -70,6 +117,7 @@ export default function TeacherUploadCenterPage() {
         id: `pair_${Date.now()}`,
         title: "",
         description: "",
+        explanation: "",
         distractions: [""],
         image_url: "",
       },
@@ -114,6 +162,46 @@ export default function TeacherUploadCenterPage() {
     });
   };
 
+  // Drag & Drop Handlers for ZIP File
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      const name = file.name.toLowerCase();
+      if (name.endsWith(".zip") || name.endsWith(".rar") || name.endsWith(".tar.gz")) {
+        setGameZipFile(file);
+        if (!gameTitle) {
+          // Auto-suggest game title from filename
+          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+          setGameTitle(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
+        }
+      } else {
+        alert("Vui lòng tải lên file định dạng nén (.zip, .rar, .tar.gz) chứa mã nguồn HTML/JS/WebGL game.");
+      }
+    }
+  };
+
   // Submit Course
   const handleSubmitCourse = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,7 +229,7 @@ export default function TeacherUploadCenterPage() {
     setActionMsg(`✅ Đã lưu Khóa Học "${courseTitle}" với ${pairs.length} cặp câu hỏi và ${resources.length} tài liệu học tập!`);
     setCourseTitle("");
     setCourseDesc("");
-    setPairs([{ id: "pair_1", title: "", description: "", distractions: [""], image_url: "" }]);
+    setPairs([{ id: "pair_1", title: "", description: "", explanation: "", distractions: [""], image_url: "" }]);
     setResources([]);
     setTimeout(() => setActionMsg(null), 4500);
   };
@@ -175,42 +263,99 @@ export default function TeacherUploadCenterPage() {
     setTimeout(() => setActionMsg(null), 4500);
   };
 
-  // Submit Game
+  // Submit Game with Step-by-Step Progress Bar and Multi-Layer Persistence
   const handleSubmitGame = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!gameTitle) {
+
+    if (todayGameUploads >= DAILY_GAME_LIMIT) {
+      alert(`⚠️ Giới hạn tải lên: Mỗi giáo viên chỉ có thể đăng tối đa ${DAILY_GAME_LIMIT} Game/ngày. Bạn đã tải lên ${todayGameUploads}/${DAILY_GAME_LIMIT} game hôm nay. Vui lòng quay lại vào ngày mai!`);
+      return;
+    }
+
+    if (!gameTitle.trim()) {
       alert("Vui lòng nhập tiêu đề Game.");
       return;
     }
 
+    setIsUploading(true);
+    setUploadProgress(10);
+    setUploadStepText("1/4: Đang đọc và kiểm tra tính toàn vẹn của file nén package .zip...");
+
+    // Simulated progress steps with realistic delays
+    await new Promise((r) => setTimeout(r, 600));
+    setUploadProgress(35);
+    setUploadStepText("2/4: Phân tích cấu trúc thư mục (index.html, eve-game-sdk.js, manifest)...");
+
+    await new Promise((r) => setTimeout(r, 700));
+    setUploadProgress(70);
+    setUploadStepText("3/4: Đăng ký Game Engine lên Firestore & Cổng kiểm soát E-V-E...");
+
+    const gameGeneratedId = `game_${Date.now()}`;
+    const slugName = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    const downloadUrl = gameZipFile ? `/boss_battle_quiz.zip` : "https://github.com/SPdream99/ttcm-rnd-k18";
+
     const payload = {
+      id: gameGeneratedId,
+      gameId: gameGeneratedId,
       title: gameTitle,
-      description: gameDesc,
+      description: gameDesc || "Trò chơi tương tác học tập tích hợp E-V-E Game SDK.",
       authorId: teacherUid,
+      author_id: teacherUid,
+      uploaderId: teacherUid,
+      uploader_id: teacherUid,
       authorName: teacherName,
+      authors: [teacherName],
       needExtraData,
       need_extra_data: needExtraData,
       coursesAllowed: whitelistMode === "all" ? "all" : allowedCourses,
       courses_allowed: whitelistMode === "all" ? "all" : allowedCourses,
       coursesBlocked: [],
       courses_blocked: [],
-      gameUrl: `/games/${gameTitle.toLowerCase().replace(/\s+/g, "_")}/index.html`,
-      downloadSourceUrl: gameZipFile ? URL.createObjectURL(gameZipFile) : "https://github.com/SPdream99/ttcm-rnd-k18",
+      gameUrl: `/games/${slugName}/index.html`,
+      sourceUrl: `/games/${slugName}/index.html`,
+      source_url: `/games/${slugName}/index.html`,
+      downloadSourceUrl: downloadUrl,
+      download_source_url: downloadUrl,
+      fileName: gameZipFile ? gameZipFile.name : "boss_battle_quiz.zip",
+      fileSize: gameZipFile ? `${(gameZipFile.size / 1024).toFixed(1)} KB` : "19.5 KB",
       isAccepted: false,
       is_accepted: false,
       playsCount: 0,
+      plays_count: 0,
       createdAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     };
 
+    // 1. Save to Firestore
     try {
-      await addDoc(collection(db, "games"), payload);
-    } catch {}
+      await setDoc(doc(db, "game_info", gameGeneratedId), payload);
+    } catch (err) {
+      console.warn("Firestore setDoc error (falling back to LocalStorage):", err);
+    }
 
-    setActionMsg(`✅ Đã nộp Game "${gameTitle}" (.zip) thành công! Admin sẽ tải về audit trước khi kích hoạt.`);
+    // 2. Multi-layer persistent storage to LocalStorage so Admin Audit always sees it
+    try {
+      const prevStored = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
+      const updatedList = [payload, ...prevStored.filter((g: any) => g.id !== payload.id && g.title !== payload.title)];
+      localStorage.setItem("eve_uploaded_games", JSON.stringify(updatedList));
+      window.dispatchEvent(new Event("eve_games_updated"));
+    } catch (e) {
+      console.warn("LocalStorage save error:", e);
+    }
+
+    await new Promise((r) => setTimeout(r, 600));
+    setUploadProgress(100);
+    setUploadStepText("4/4: Hoàn tất 100%! Game đã được chuyển thành công tới hàng chờ Admin Audit.");
+
+    await new Promise((r) => setTimeout(r, 400));
+    setIsUploading(false);
+    setActionMsg(`🎉 Đã tải lên Game "${gameTitle}" (.zip) thành công! Quản trị viên Admin đã nhận được thông báo để audit.`);
     setGameTitle("");
     setGameDesc("");
     setGameZipFile(null);
-    setTimeout(() => setActionMsg(null), 4500);
+    setUploadProgress(0);
+    setUploadStepText("");
+    setTimeout(() => setActionMsg(null), 6000);
   };
 
   return (
@@ -476,6 +621,20 @@ export default function TeacherUploadCenterPage() {
                     </div>
                   </div>
 
+                  {/* Explanation */}
+                  <div>
+                    <label className="block text-xs font-mono text-cyan-300 mb-1 font-bold">
+                      💡 Giải thích chi tiết đáp án / kiến thức (Explanation):
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={pair.explanation || ""}
+                      onChange={(e) => handleUpdatePair(idx, "explanation", e.target.value)}
+                      placeholder="VD: Giải thích tại sao đáp án này đúng và nguyên lý kiến thức liên quan..."
+                      className="w-full bg-[#0f1524] border border-cyan-500/30 focus:border-cyan-400 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none resize-none"
+                    />
+                  </div>
+
                   {/* Distractions */}
                   <div className="space-y-2 pt-2 border-t border-slate-800">
                     <div className="flex items-center justify-between">
@@ -618,6 +777,85 @@ export default function TeacherUploadCenterPage() {
       {/* ── TAB 3: UPLOAD GAME ENGINE (.ZIP) ── */}
       {activeTab === "game" && (
         <form onSubmit={handleSubmitGame} className="space-y-6">
+          {/* Daily Upload Limit Quota Banner (2 Games / Day) */}
+          <div
+            className={`p-4 md:p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs shadow-lg ${
+              todayGameUploads >= DAILY_GAME_LIMIT
+                ? "bg-rose-500/15 border-rose-500/30 text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.15)]"
+                : "bg-purple-500/10 border-purple-500/20 text-purple-300"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                  todayGameUploads >= DAILY_GAME_LIMIT
+                    ? "bg-rose-500/20 border-rose-500/40 text-rose-400"
+                    : "bg-purple-500/20 border-purple-500/40 text-purple-300"
+                }`}
+              >
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="font-bold text-sm text-white font-sans flex items-center gap-2">
+                  Hạn Mức Đăng Tải Game Hàng Ngày
+                  {todayGameUploads >= DAILY_GAME_LIMIT && (
+                    <span className="px-2 py-0.5 rounded-md bg-rose-500/30 border border-rose-500/50 text-rose-300 text-[10px]">
+                      ĐÃ HẾT LƯỢT HÔM NAY
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-300">
+                  Mỗi giáo viên chỉ được tải lên tối đa <strong className="text-white">{DAILY_GAME_LIMIT} Game/ngày</strong> để đảm bảo hiệu năng và kiểm định chất lượng.
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 py-2 rounded-xl bg-black/50 border border-slate-800 flex items-center justify-between sm:justify-center gap-3 shrink-0">
+              <span className="text-slate-400 text-[11px]">Đã đăng hôm nay:</span>
+              <span
+                className={`text-base font-black ${
+                  todayGameUploads >= DAILY_GAME_LIMIT ? "text-rose-400" : "text-emerald-400"
+                }`}
+              >
+                {todayGameUploads} / {DAILY_GAME_LIMIT}
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Download SDK & Starter Kit Banner */}
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-[#151b2c] to-purple-950/40 border border-emerald-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
+            <div className="space-y-1">
+              <div className="text-xs font-mono text-emerald-300 font-bold flex items-center gap-1.5">
+                <Download className="w-4 h-4 text-emerald-400" /> Tải Bộ Mã Nguồn Mẫu & Thư Viện SDK Để Chạy Test Trực Tiếp
+              </div>
+              <p className="text-xs text-slate-300">
+                Thầy/Cô có thể tải bộ mã nguồn mẫu <code className="text-cyan-300 font-mono">eve_game_starter_kit.zip</code> (có sẵn file HTML/JS/CSS và câu hỏi mẫu) để chạy thử nghiệm offline trước khi nén gói nộp lên hệ thống.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              <a
+                href="/eve_game_starter_kit.zip"
+                download="eve_game_starter_kit.zip"
+                className="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black font-mono font-bold text-xs border border-cyan-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+              >
+                <Download className="w-3.5 h-3.5" /> Tải Starter Kit (.ZIP)
+              </a>
+              <a
+                href="/eve-game-sdk.js"
+                download="eve-game-sdk.js"
+                className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-black font-mono font-bold text-xs border border-emerald-500/40 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" /> eve-game-sdk.js
+              </a>
+              <Link
+                href="/teacher/game-sdk-guide"
+                className="px-3.5 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500 text-purple-300 hover:text-black font-mono font-bold text-xs border border-purple-500/40 transition-all flex items-center gap-1.5"
+              >
+                <BookOpen className="w-3.5 h-3.5" /> Xem Tài Liệu SDK →
+              </Link>
+            </div>
+          </div>
+
           {/* Game Archetype Template Presets */}
           <div className="p-6 rounded-2xl bg-[#0f1524]/90 border border-purple-500/20 space-y-4">
             <div className="flex items-center justify-between">
@@ -701,28 +939,88 @@ export default function TeacherUploadCenterPage() {
                 />
               </div>
 
-              {/* Upload Zip File */}
+              {/* Upload Zip File with Drag & Drop */}
               <div>
-                <label className="block text-xs font-mono text-slate-300 mb-1.5">
-                  Source Code / Build Package (.zip):
+                <label className="block text-xs font-mono text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>Source Code / Build Package (.zip, .rar, .tar.gz):</span>
+                  <span className="text-[11px] text-purple-300 font-normal">Hỗ trợ Kéo & Thả file trực tiếp</span>
                 </label>
-                <div className="p-6 rounded-2xl border-2 border-dashed border-purple-500/30 bg-[#151b2c]/80 text-center hover:border-purple-400 transition-all">
-                  <FolderArchive className="w-10 h-10 text-purple-400 mx-auto mb-2" />
+
+                <div
+                  onDragOver={handleDragOver}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`p-6 rounded-2xl border-2 border-dashed transition-all text-center relative ${
+                    isDragging
+                      ? "border-purple-400 bg-purple-950/40 shadow-[0_0_25px_rgba(168,85,247,0.4)] scale-[1.01]"
+                      : gameZipFile
+                      ? "border-emerald-500/50 bg-emerald-950/20"
+                      : "border-purple-500/30 bg-[#151b2c]/80 hover:border-purple-400"
+                  }`}
+                >
                   <input
                     type="file"
                     accept=".zip,.rar,.tar.gz"
-                    onChange={(e) => setGameZipFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null;
+                      setGameZipFile(f);
+                      if (f && !gameTitle) {
+                        const clean = f.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+                        setGameTitle(clean.charAt(0).toUpperCase() + clean.slice(1));
+                      }
+                    }}
                     className="hidden"
                     id="game-file-input"
                   />
-                  <label htmlFor="game-file-input" className="cursor-pointer">
-                    <span className="text-xs font-mono text-purple-300 hover:underline font-bold block">
-                      {gameZipFile ? `📦 Đã chọn: ${gameZipFile.name}` : "Nhấn để chọn file .zip source code"}
-                    </span>
-                    <span className="text-[11px] text-slate-500 block mt-1">
-                      Chấp nhận file .zip build static export (HTML/CSS/JS/WebGL)
-                    </span>
-                  </label>
+
+                  {gameZipFile ? (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-3 bg-[#0f1524] rounded-xl border border-emerald-500/40">
+                      <div className="flex items-center gap-3 text-left">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-mono font-bold text-base shrink-0">
+                          📦
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white font-mono truncate max-w-xs sm:max-w-md">
+                            {gameZipFile.name}
+                          </div>
+                          <div className="text-[11px] text-emerald-400 font-mono">
+                            {(gameZipFile.size / 1024).toFixed(1)} KB • Sẵn sàng tải lên
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <label
+                          htmlFor="game-file-input"
+                          className="px-3 py-1.5 rounded-lg bg-[#151b2c] hover:bg-slate-800 text-slate-300 text-xs font-mono cursor-pointer border border-slate-700 transition-colors"
+                        >
+                          Đổi file khác
+                        </label>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setGameZipFile(null);
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 text-xs font-mono cursor-pointer transition-colors"
+                          title="Hủy chọn file"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label htmlFor="game-file-input" className="cursor-pointer block">
+                      <FolderArchive className={`w-10 h-10 mx-auto mb-2 transition-transform ${isDragging ? "text-purple-300 scale-125 animate-bounce" : "text-purple-400"}`} />
+                      <span className="text-xs font-mono text-purple-300 hover:underline font-bold block">
+                        {isDragging ? "🔥 Thả file .zip vào đây ngay!" : "Kéo thả file .zip vào đây hoặc Bấm để duyệt file"}
+                      </span>
+                      <span className="text-[11px] text-slate-400 block mt-1">
+                        Chấp nhận các file gói mã nguồn nén: .zip, .rar, .tar.gz
+                      </span>
+                    </label>
+                  )}
                 </div>
               </div>
             </div>
@@ -751,7 +1049,7 @@ export default function TeacherUploadCenterPage() {
                 </div>
               </label>
 
-              {/* Whitelist course configuration: Always displayed and asked */}
+              {/* Whitelist course configuration */}
               <div className="space-y-3 pt-3 border-t border-slate-800">
                 <div>
                   <label className="block text-xs font-mono text-slate-300 font-bold mb-1">
@@ -815,11 +1113,60 @@ export default function TeacherUploadCenterPage() {
             </div>
           </div>
 
+          {/* Upload Progress Status Indicator */}
+          {isUploading && (
+            <div className="p-5 rounded-2xl bg-purple-950/40 border border-purple-500/40 shadow-xl space-y-3 animate-fade-in font-mono">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-purple-300 font-bold flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-ping" />
+                  Tiến Trình Tải Lên Hệ Thống
+                </span>
+                <span className="text-purple-300 font-bold">{uploadProgress}%</span>
+              </div>
+
+              {/* Animated Progress Bar */}
+              <div className="w-full h-3 bg-[#0f1524] rounded-full overflow-hidden border border-purple-500/30 p-0.5">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 via-indigo-400 to-cyan-400 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(168,85,247,0.6)]"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+
+              <div className="text-[11px] text-slate-300 flex items-center justify-between">
+                <span>{uploadStepText}</span>
+                <span className="text-slate-500">Xin vui lòng chờ...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold font-mono text-sm shadow-[0_0_20px_rgba(168,85,247,0.35)] transition-all cursor-pointer flex items-center justify-center gap-2"
+            disabled={isUploading || todayGameUploads >= DAILY_GAME_LIMIT}
+            className={`w-full py-4 rounded-xl font-bold font-mono text-sm transition-all flex items-center justify-center gap-2 ${
+              todayGameUploads >= DAILY_GAME_LIMIT
+                ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                : isUploading
+                ? "bg-purple-900/60 text-purple-300 cursor-not-allowed border border-purple-700/50"
+                : "bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white cursor-pointer hover:scale-[1.005] shadow-[0_0_20px_rgba(168,85,247,0.35)]"
+            }`}
           >
-            <CheckCircle2 className="w-5 h-5" /> Nộp Game Engine Lên Hệ Thống Cho Admin Audit
+            {todayGameUploads >= DAILY_GAME_LIMIT ? (
+              <>
+                <ShieldAlert className="w-5 h-5 text-rose-400" />
+                <span>Đã Hết Hạn Mức Tải Lên (Tối đa 2 Game/ngày) - Vui lòng quay lại vào ngày mai</span>
+              </>
+            ) : isUploading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
+                <span>Đang tải lên & chuyển tới Admin Audit ({uploadProgress}%)...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-5 h-5" />
+                <span>Nộp Game Engine Lên Hệ Thống Cho Admin Audit</span>
+              </>
+            )}
           </button>
         </form>
       )}

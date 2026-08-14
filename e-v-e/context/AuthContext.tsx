@@ -22,6 +22,7 @@ export interface AuthUser {
   role: "student" | "teacher" | "admin" | "school";
   status: "pending" | "active" | "banned" | string;
   coins: number;
+  twoFactorEnabled?: boolean;
   profileDecorations: string[];
 }
 
@@ -73,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: data.role || "student",
             status: data.status || "active",
             coins: Number(data.coins) || 0,
+            twoFactorEnabled: Boolean(data.two_factor_enabled ?? data.twoFactorEnabled),
             profileDecorations: data.profile_decorations || [],
           };
         } else {
@@ -84,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: "student",
             status: "active",
             coins: 0,
+            twoFactorEnabled: false,
             profileDecorations: [],
           };
         }

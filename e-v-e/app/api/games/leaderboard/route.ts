@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/infrastructure/firebase/firebaseAdmin";
 
 // Mock fallbacks if collection is empty or during offline dev
 const MOCK_LEADERBOARDS: Record<string, Array<{ rank: number; name: string; score: number; playTime: string; accuracy: number; date: string; avatar?: string }>> = {
@@ -30,19 +29,18 @@ export async function GET(req: NextRequest) {
     let rankings: any[] = [];
 
     try {
-      const q = query(
-        collection(db, "game_results"),
-        where("gameId", "==", gameId),
-        where("courseId", "==", courseId),
-        where("isWin", "==", true),
-        orderBy("score", "desc"),
-        limit(20)
-      );
-      const snapshot = await getDocs(q);
+      const snapshot = await adminDb
+        .collection("game_results")
+        .where("gameId", "==", gameId)
+        .where("courseId", "==", courseId)
+        .where("isWin", "==", true)
+        .orderBy("score", "desc")
+        .limit(20)
+        .get();
 
       if (!snapshot.empty) {
         let currentRank = 1;
-        snapshot.forEach((docSnap) => {
+        snapshot.docs.forEach((docSnap) => {
           const d = docSnap.data();
           rankings.push({
             id: docSnap.id,
@@ -57,7 +55,7 @@ export async function GET(req: NextRequest) {
         });
       }
     } catch (e) {
-      console.warn("Firestore query error for game leaderboard:", e);
+      console.warn("Firestore query fallback for game leaderboard:", e);
     }
 
     // If no records yet, provide curated default leaderboard for this course & game combo

@@ -30,6 +30,7 @@ export interface CourseContentPair {
   right_answer: string;
   image?: string;
   wrong_answers: string[];
+  explanation?: string;
 }
 
 export interface FirestoreCourseDoc {
