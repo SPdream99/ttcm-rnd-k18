@@ -241,6 +241,40 @@ export default function StudentGamesArcadePage() {
           });
         }
 
+        // Merge with local storage games
+        try {
+          if (typeof window !== "undefined") {
+            const localGames = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
+            localGames.forEach((lg: any) => {
+              const existingIdx = fetchedGames.findIndex((g) => g.id === lg.id || g.title === lg.title);
+              const formatted: ArcadeGameItem = {
+                id: lg.id || lg.gameId,
+                title: lg.title || "Trò Chơi Tương Tác",
+                subtitle: lg.subtitle || "Minigame Tương Tác Học Tập",
+                genre: lg.genre || (lg.needExtraData || lg.need_extra_data ? "Dynamic Quiz Game" : "Standalone Lab"),
+                category: "custom",
+                description: lg.description || "Trò chơi học tập tích hợp ngân hàng câu hỏi.",
+                author: Array.isArray(lg.authors) ? lg.authors.join(", ") : (lg.authorName || "Giáo Viên"),
+                difficulty: "Trung Bình",
+                rewardCoins: 50,
+                needExtraData: Boolean(lg.needExtraData ?? lg.need_extra_data),
+                coursesAllowed: lg.coursesAllowed || lg.courses_allowed || "all",
+                thumbnailUrl: lg.thumbnailUrl || lg.thumbnail_url || "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80",
+                badge: (lg.isAccepted ?? lg.is_accepted) ? "ĐÃ DUYỆT ✅" : "CHỜ DUYỆT ⏳",
+                rating: 4.9,
+                playsCount: Number(lg.playsCount || lg.plays_count || 120),
+                tags: ["Giáo Trình", "Tương Tác"],
+              };
+
+              if (existingIdx === -1) {
+                fetchedGames.unshift(formatted);
+              } else {
+                fetchedGames[existingIdx] = { ...fetchedGames[existingIdx], ...formatted };
+              }
+            });
+          }
+        } catch {}
+
         // Merge without duplicating built-in games
         const existingIds = new Set(DEFAULT_GAMES.map((g) => g.id));
         const customUnique = fetchedGames.filter((g) => !existingIds.has(g.id));
@@ -280,6 +314,15 @@ export default function StudentGamesArcadePage() {
     }
 
     loadArcadeData();
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("eve_games_updated", loadArcadeData);
+      window.addEventListener("storage", loadArcadeData);
+      return () => {
+        window.removeEventListener("eve_games_updated", loadArcadeData);
+        window.removeEventListener("storage", loadArcadeData);
+      };
+    }
   }, []);
 
   // Filtered Games

@@ -18,7 +18,7 @@ import {
   Download,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CourseContentPair } from "@/core/entities/Course";
 
@@ -254,6 +254,9 @@ export default function TeacherUploadCenterPage() {
       title: gameTitle,
       description: gameDesc || "Trò chơi tương tác học tập tích hợp E-V-E Game SDK.",
       authorId: teacherUid,
+      author_id: teacherUid,
+      uploaderId: teacherUid,
+      uploader_id: teacherUid,
       authorName: teacherName,
       authors: [teacherName],
       needExtraData,
@@ -272,21 +275,22 @@ export default function TeacherUploadCenterPage() {
       isAccepted: false,
       is_accepted: false,
       playsCount: 0,
+      plays_count: 0,
       createdAt: new Date().toISOString(),
       created_at: new Date().toISOString(),
     };
 
     // 1. Save to Firestore
     try {
-      await addDoc(collection(db, "game_info"), payload);
+      await setDoc(doc(db, "game_info", gameGeneratedId), payload);
     } catch (err) {
-      console.warn("Firestore addDoc error (falling back to LocalStorage):", err);
+      console.warn("Firestore setDoc error (falling back to LocalStorage):", err);
     }
 
     // 2. Multi-layer persistent storage to LocalStorage so Admin Audit always sees it
     try {
       const prevStored = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
-      const updatedList = [payload, ...prevStored.filter((g: any) => g.title !== payload.title)];
+      const updatedList = [payload, ...prevStored.filter((g: any) => g.id !== payload.id && g.title !== payload.title)];
       localStorage.setItem("eve_uploaded_games", JSON.stringify(updatedList));
       window.dispatchEvent(new Event("eve_games_updated"));
     } catch (e) {

@@ -150,8 +150,10 @@ export default function AdminApprovalsPage() {
   const executeApproveGame = async (gameId: string, approved: boolean) => {
     setConfirmPrompt(null);
     try {
-      await updateDoc(doc(db, "games", gameId), { is_accepted: approved, isAccepted: approved });
-    } catch {}
+      await updateDoc(doc(db, "game_info", gameId), { is_accepted: approved, isAccepted: approved });
+    } catch (err) {
+      console.warn("Firestore updateDoc game_info warning:", err);
+    }
 
     try {
       if (typeof window !== "undefined") {
@@ -165,9 +167,9 @@ export default function AdminApprovalsPage() {
     } catch {}
 
     setGames((prev) =>
-      prev.map((g) => (g.id === gameId ? { ...g, isAccepted: approved, is_accepted: approved } : g))
+      prev.map((g) => (g.id === gameId || g.gameId === gameId ? { ...g, isAccepted: approved, is_accepted: approved } : g))
     );
-    setActionMsg(approved ? "✅ Đã phê duyệt Game Engine thành công!" : "⚠️ Đã từ chối Game.");
+    setActionMsg(approved ? "✅ Đã phê duyệt Game Engine thành công! Game đã sẵn sàng trên toàn hệ thống." : "⚠️ Đã từ chối / hủy duyệt Game.");
     setTimeout(() => setActionMsg(null), 3500);
   };
 

@@ -19,18 +19,26 @@ export class FirestoreGameRepo implements GamePort {
   private mapDocToGame(id: string, data: any): Game {
     return {
       id,
-      gameId: data.id || id,
-      authors: Array.isArray(data.authors) ? data.authors : [],
+      gameId: data.gameId || data.id || id,
+      authors: Array.isArray(data.authors) ? data.authors : (data.authorName ? [data.authorName] : []),
       title: data.title || "",
       description: data.description || "",
-      isAccepted: Boolean(data.is_accepted),
-      coursesAllowed: Array.isArray(data.courses_allowed) ? data.courses_allowed : [],
-      coursesBlocked: Array.isArray(data.courses_blocked) ? data.courses_blocked : [],
-      needExtraData: Boolean(data.need_extra_data),
-      sourceUrl: data.source_url || "",
-      uploaderId: data.uploader_id || "",
-      createdAt: data.created_at ? new Date(data.created_at) : undefined,
-      updatedAt: data.updated_at ? new Date(data.updated_at) : undefined,
+      isAccepted: Boolean(data.is_accepted ?? data.isAccepted),
+      coursesAllowed: Array.isArray(data.courses_allowed)
+        ? data.courses_allowed
+        : Array.isArray(data.coursesAllowed)
+        ? data.coursesAllowed
+        : [],
+      coursesBlocked: Array.isArray(data.courses_blocked)
+        ? data.courses_blocked
+        : Array.isArray(data.coursesBlocked)
+        ? data.coursesBlocked
+        : [],
+      needExtraData: Boolean(data.need_extra_data ?? data.needExtraData),
+      sourceUrl: data.source_url || data.sourceUrl || data.gameUrl || "",
+      uploaderId: data.uploader_id || data.uploaderId || data.authorId || data.author_id || "",
+      createdAt: data.created_at || data.createdAt ? new Date(data.created_at || data.createdAt) : undefined,
+      updatedAt: data.updated_at || data.updatedAt ? new Date(data.updated_at || data.updatedAt) : undefined,
     };
   }
 

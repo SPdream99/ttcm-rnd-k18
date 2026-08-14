@@ -102,8 +102,11 @@ export default function TeacherDashboardPage() {
           if (typeof window !== "undefined") {
             const localGames = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
             localGames.forEach((lg: any) => {
-              if (!gamesList.some((g: any) => g.title === lg.title || g.id === lg.id)) {
-                gamesList.push(lg);
+              const idx = gamesList.findIndex((g: any) => g.id === lg.id || g.title === lg.title);
+              if (idx === -1) {
+                gamesList.unshift(lg);
+              } else {
+                gamesList[idx] = { ...gamesList[idx], ...lg };
               }
             });
 
@@ -121,7 +124,16 @@ export default function TeacherDashboardPage() {
         }
 
         if (gamesList.length > 0) {
-          setMyGames(gamesList.slice(0, 4));
+          const formattedGames = gamesList.map((g: any) => ({
+            id: g.id || g.gameId,
+            title: g.title || "Game Quiz",
+            genre: g.genre || (g.needExtraData || g.need_extra_data ? "Dynamic Quiz Game" : "Standalone Engine"),
+            playsCount: Number(g.playsCount || g.plays_count || 120),
+            rating: 4.9,
+            badge: (g.isAccepted ?? g.is_accepted) ? "ĐÃ DUYỆT ✅" : "CHỜ DUYỆT ⏳",
+            authorName: g.authorName || "Thầy/Cô",
+          }));
+          setMyGames(formattedGames.slice(0, 4));
         }
 
         setStats({
@@ -138,6 +150,15 @@ export default function TeacherDashboardPage() {
     }
 
     loadTeacherData();
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("eve_games_updated", loadTeacherData);
+      window.addEventListener("storage", loadTeacherData);
+      return () => {
+        window.removeEventListener("eve_games_updated", loadTeacherData);
+        window.removeEventListener("storage", loadTeacherData);
+      };
+    }
   }, []);
 
   return (

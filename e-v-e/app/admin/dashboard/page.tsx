@@ -131,8 +131,11 @@ export default function AdminDashboardPage() {
         if (typeof window !== "undefined") {
           const localGames = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
           localGames.forEach((lg: any) => {
-            if (!gamesList.some((g: any) => g.title === lg.title || g.id === lg.id)) {
-              gamesList.push(lg);
+            const idx = gamesList.findIndex((g: any) => g.id === lg.id || g.title === lg.title);
+            if (idx === -1) {
+              gamesList.unshift(lg);
+            } else {
+              gamesList[idx] = { ...gamesList[idx], ...lg };
             }
           });
         }
@@ -164,6 +167,15 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     loadStats();
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("eve_games_updated", loadStats);
+      window.addEventListener("storage", loadStats);
+      return () => {
+        window.removeEventListener("eve_games_updated", loadStats);
+        window.removeEventListener("storage", loadStats);
+      };
+    }
   }, []);
 
   const handlePromptQuickApprove = (teacher: any) => {
