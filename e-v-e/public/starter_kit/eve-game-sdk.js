@@ -421,7 +421,7 @@
   }
 
   // Khởi tạo Singleton Instance & Export Class Constructor trên window / global
-  const defaultInstance = new EVEGameSDK();
+  var defaultInstance = new EVEGameSDK();
 
   if (typeof window !== "undefined") {
     window.EveSDK = defaultInstance;
@@ -432,11 +432,11 @@
   }
 
   if (typeof globalThis !== "undefined") {
-    (globalThis as any).EveSDK = defaultInstance;
-    (globalThis as any).EVEGameSDK = EVEGameSDK;
+    globalThis.EveSDK = defaultInstance;
+    globalThis.EVEGameSDK = EVEGameSDK;
   }
 
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { EVEGameSDK, EveSDK: defaultInstance };
+    module.exports = { EVEGameSDK: EVEGameSDK, EveSDK: defaultInstance };
   }
-})(typeof window !== "undefined" ? window : globalThis);
+})(typeof window !== "undefined" ? window : (typeof globalThis !== "undefined" ? globalThis : this));
