@@ -32,6 +32,9 @@ import {
   getMaskedAIKey,
 } from "@/lib/secureKeyStorage";
 
+import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+
 export default function StudentProfilePage() {
   const { currentUser, profile } = useAuthAdapter();
   const displayName = currentUser?.name || profile?.fullName || "Học Viên";
@@ -42,6 +45,11 @@ export default function StudentProfilePage() {
   const [activeFrame, setActiveFrame] = useState("frame_supernova_gold");
   const [activeBadge, setActiveBadge] = useState("badge_cosmic_legend");
   const [savedMsg, setSavedMsg] = useState("");
+
+  // Courses Progress State
+  const [activeCoursesList, setActiveCoursesList] = useState<any[]>([]);
+  const [completedCoursesList, setCompletedCoursesList] = useState<any[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
 
   // AI Key state
   const [keyInput, setKeyInput] = useState("");
@@ -68,6 +76,60 @@ export default function StudentProfilePage() {
     if (currentUser?.twoFactorEnabled) {
       setIs2FAEnabled(true);
     }
+
+    // Fetch user courses progress
+    async function loadStudentCourses() {
+      try {
+        setLoadingCourses(true);
+        const user = auth.currentUser;
+        if (user) {
+          const enrollSnap = await getDocs(
+            query(collection(db, "student_learning_path"), where("student_id", "==", user.uid))
+          );
+
+          const inProg: any[] = [];
+          const done: any[] = [];
+
+          for (const d of enrollSnap.docs) {
+            const eData = d.data();
+            const pDoc = await getDoc(doc(db, "learning_path", eData.learning_path_id));
+            if (pDoc.exists()) {
+              const pData = pDoc.data();
+              const item = {
+                id: pDoc.id,
+                title: pData.title || "Khóa học",
+                category: pData.category || "General",
+                progress: Number(eData.progress) || 0,
+                difficulty: pData.difficulty || "Intermediate",
+                teacherName: pData.authorName || pData.teacherName || "Giáo Viên E-V-E",
+              };
+              if (item.progress >= 100) {
+                done.push(item);
+              } else {
+                inProg.push(item);
+              }
+            }
+          }
+
+          setActiveCoursesList(inProg);
+          setCompletedCoursesList(done);
+        } else {
+          // Default demo preview
+          setActiveCoursesList([
+            { id: "lp_ai_mastery_2026", title: "Chuyên Gia Trí Tuệ Nhân Tạo & Generative AI 2026", category: "AI & Data", progress: 65, difficulty: "Advanced", teacherName: "Nguyễn Nhật Anh" },
+          ]);
+          setCompletedCoursesList([
+            { id: "lp_python_mastery", title: "Lập Trình Python Cơ Bản & Tư Duy Thuật Toán", category: "Programming", progress: 100, difficulty: "Beginner", teacherName: "Nguyễn Thành Đạt" },
+          ]);
+        }
+      } catch (err) {
+        console.warn("Course progress notice:", err);
+      } finally {
+        setLoadingCourses(false);
+      }
+    }
+
+    loadStudentCourses();
   }, [currentUser]);
 
   const ownedFrames = [
@@ -254,10 +316,105 @@ export default function StudentProfilePage() {
           <p className="text-xs text-[#8e9bb4] font-mono">{displayEmail} • Học sinh chính thức</p>
 
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2 text-xs font-mono text-slate-300">
-            <span><BookOpen className="w-3.5 h-3.5 inline mr-1 text-cyan-400" /> 6 Khóa Học</span>
+            <span><BookOpen className="w-3.5 h-3.5 inline mr-1 text-cyan-400" /> {activeCoursesList.length + completedCoursesList.length} Khóa Học</span>
             <span><Trophy className="w-3.5 h-3.5 inline mr-1 text-amber-400" /> 1,280 Điểm</span>
             <span><Coins className="w-3.5 h-3.5 inline mr-1 text-yellow-400" /> {displayCoins} Coins</span>
           </div>
+        </div>
+      </div>
+
+      {/* ── TIẾN ĐỘ KHÓA HỌC: ĐANG HỌC & ĐÃ HOÀN THÀNH ── */}
+      <div className="p-6 md:p-8 rounded-3xl bg-[#0f1524]/90 border border-[#7bd1fa]/20 shadow-xl space-y-6">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-cyan-400" /> Tiến Độ Các Khóa Học Của Tôi
+            </h3>
+            <p className="text-xs text-[#8e9bb4] mt-0.5">
+              Danh sách chi tiết các môn học đang theo dõi và đã hoàn thành chứng chỉ.
+            </p>
+          </div>
+        </div>
+
+        {/* 1. Môn Đang Học (In-Progress) */}
+        <div className="space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 font-mono">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" /> Đang Học ({activeCoursesList.length})
+          </h4>
+
+          {activeCoursesList.length === 0 ? (
+            <p className="text-xs text-slate-500 italic p-4 rounded-2xl bg-[#151b2c]">Không có khóa học nào đang diễn ra.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {activeCoursesList.map((c) => (
+                <div
+                  key={c.id}
+                  className="p-4 rounded-2xl bg-[#151b2c] border border-[#7bd1fa]/15 hover:border-cyan-500/40 transition-all flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                        {c.category}
+                      </span>
+                      <span className="text-xs font-mono font-bold text-cyan-300">{c.progress}%</span>
+                    </div>
+                    <h5 className="font-bold text-white text-xs md:text-sm">{c.title}</h5>
+                    <p className="text-[11px] text-[#8e9bb4]">Giảng viên: {c.teacherName}</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="h-1.5 w-full bg-[#0a0e1a] rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full" style={{ width: `${c.progress}%` }} />
+                    </div>
+                    <Link
+                      href={`/student/classes/${c.id}`}
+                      className="w-full py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-xs font-bold text-center block transition"
+                    >
+                      Tiếp Tục Học
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 2. Môn Đã Hoàn Thành (Completed) */}
+        <div className="space-y-3 pt-2">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-mono">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Đã Hoàn Thành ({completedCoursesList.length})
+          </h4>
+
+          {completedCoursesList.length === 0 ? (
+            <p className="text-xs text-slate-500 italic p-4 rounded-2xl bg-[#151b2c]">Chưa có khóa học nào đạt 100% hoàn thành.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {completedCoursesList.map((c) => (
+                <div
+                  key={c.id}
+                  className="p-4 rounded-2xl bg-[#151b2c] border border-emerald-500/30 flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                        {c.category}
+                      </span>
+                      <span className="text-xs font-mono font-bold text-emerald-400">100% ✓</span>
+                    </div>
+                    <h5 className="font-bold text-white text-xs md:text-sm">{c.title}</h5>
+                    <p className="text-[11px] text-[#8e9bb4]">Giảng viên: {c.teacherName}</p>
+                  </div>
+
+                  <Link
+                    href={`/student/classes/${c.id}`}
+                    className="w-full py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-bold text-center block transition border border-emerald-500/25"
+                  >
+                    Xem Lại Lộ Trình
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
