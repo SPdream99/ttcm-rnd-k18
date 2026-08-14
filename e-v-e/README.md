@@ -9,6 +9,10 @@ Tài liệu kỹ thuật và hướng dẫn khởi chạy ứng dụng web **E-V
 - 👨‍🏫 **Giáo Viên:** `dat1@gmail.com` / `123456`
 - 🛡️ **Quản Trị Viên:** `dat2@gmail.com` / `123456`
 
+### 📁 Tài Liệu & Báo Cáo Đồ Án:
+- 📂 [Google Drive Folder Tài Liệu Nhóm](https://drive.google.com/drive/folders/1clPPIeyvm3CkhCIhyYJAkFBPT7n_2v02)
+- 📊 [Google Sheets Báo Cáo Đồ Án](https://docs.google.com/spreadsheets/d/1XVPI0MKJFvKDSKv91b8vD7zJRsw2_1AHGjsWmiVpclA/edit?usp=sharing)
+
 Vui lòng xem tài liệu tổng quan và hướng dẫn đồ án chi tiết tại [README.md gốc của dự án](../README.md).
 
 ---

@@ -42,7 +42,14 @@ Truy cập và trải nghiệm toàn bộ tính năng của hệ thống E-V-E t
 
 ---
 
-## 🛠️ 3. Công Nghệ Sử Dụng
+## 📁 3. Tài Liệu Đồ Án & Báo Cáo
+
+- 📂 **Folder Tài Liệu Nhóm (Google Drive):** [https://drive.google.com/drive/folders/1clPPIeyvm3CkhCIhyYJAkFBPT7n_2v02](https://drive.google.com/drive/folders/1clPPIeyvm3CkhCIhyYJAkFBPT7n_2v02)
+- 📊 **Báo Cáo Tiến Độ & Kế Hoạch (Google Sheets):** [https://docs.google.com/spreadsheets/d/1XVPI0MKJFvKDSKv91b8vD7zJRsw2_1AHGjsWmiVpclA/edit?usp=sharing](https://docs.google.com/spreadsheets/d/1XVPI0MKJFvKDSKv91b8vD7zJRsw2_1AHGjsWmiVpclA/edit?usp=sharing)
+
+---
+
+## 🛠️ 4. Công Nghệ Sử Dụng
 
 - **Frontend**: [Next.js 16 (App Router)](https://nextjs.org), React 19, TypeScript, Tailwind CSS, Lucide Icons.
 - **Backend & Database**: Next.js Server Route Handlers, [Firebase Firestore](https://firebase.google.com), Firebase Admin SDK.
@@ -52,7 +59,7 @@ Truy cập và trải nghiệm toàn bộ tính năng của hệ thống E-V-E t
 
 ---
 
-## 🚀 4. Hướng Dẫn Cài Đặt Cục Bộ (Local Setup)
+## 🚀 5. Hướng Dẫn Cài Đặt Cục Bộ (Local Setup)
 
 ### Yêu Cầu Môi Trường (Prerequisites)
 - [Node.js](https://nodejs.org) phiên bản **18.x** hoặc **20.x** trở lên.
@@ -106,7 +113,7 @@ Mở trình duyệt và truy cập: **`http://localhost:3000`**
 
 ---
 
-## 🖥️ 5. Hướng Dẫn Sử Dụng Ứng Dụng
+## 🖥️ 6. Hướng Dẫn Sử Dụng Ứng Dụng
 
 ### 🎓 A. Dành Cho Học Sinh (Student Role)
 1. **Đăng nhập / Đăng ký**: Truy cập `/login` hoặc `/register` (hỗ trợ bật 2FA bảo mật qua Email).
@@ -138,7 +145,7 @@ Mở trình duyệt và truy cập: **`http://localhost:3000`**
 
 ---
 
-## 🌐 6. Hướng Dẫn Triển Khai Lên Production (Deploy)
+## 🌐 7. Hướng Dẫn Triển Khai Lên Production (Deploy)
 
 ### Cách 1: Triển Khai Lên Vercel (Khuyên Dùng)
 1. Đẩy mã nguồn lên kho chứa GitHub.
@@ -172,7 +179,7 @@ npm run start
 
 ---
 
-## 📜 7. Bản Quyền & Giấy Phép
+## 📜 8. Bản Quyền & Giấy Phép
 
 Đồ án thuộc bản quyền nghiên cứu của **Nhóm 1 — Lớp TTCM - RnD - K18**.  
 Phát hành theo giấy phép [Creative Commons Attribution-NonCommercial 4.0 (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/).  
