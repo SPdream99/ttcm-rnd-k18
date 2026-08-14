@@ -11,6 +11,7 @@ import GameOver from "@/components/game/MemoryMatchingGame/GameOver";
 
 import type { MemoryCardData } from "@/components/game/MemoryMatchingGame/CardGame";
 
+
 const baseCards: MemoryCardData[] = [
   {
     id: 1,

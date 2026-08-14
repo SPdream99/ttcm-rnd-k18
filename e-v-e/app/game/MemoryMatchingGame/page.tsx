@@ -1,22 +1,28 @@
 "use client";
 
-import { useState } from "react";
-export default function MemoryMatchPage() {
-  const [sound, setSound] = useState(true);
-  const [music, setMusic] = useState(true);
+import { useRef, useEffect, useState } from "react"; export default function MemoryMatchPage() {
+  const [music, setMusic] = useState(false);
+
+const audioRef = useRef<HTMLAudioElement | null>(null);
+
+useEffect(() => {
+  const audio = new Audio("/sounds/BGM_MemoryMatchingGame.mp3");
+
+  audio.loop = true;
+  audio.volume = 0.3;
+
+  audioRef.current = audio;
+
+  return () => {
+    audio.pause();
+    audio.currentTime = 0;
+  };
+}, []);
 
   const handlePlay = () => {
     console.log("Start game");
     location.href = "/game/MemoryMatchingGame/play";
     // router.push("/memory-match/game");
-  };
-
-  const handleLevels = () => {
-    console.log("Open levels");
-  };
-
-  const handleSettings = () => {
-    console.log("Open settings");
   };
 
   return (
@@ -28,19 +34,16 @@ export default function MemoryMatchPage() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center p-container-padding z-10 w-full max-w-md mx-auto relative">
-        
+
         {/* Logo Area */}
         <div className="flex flex-col items-center mb-16 animate-float">
-          
+
           <div className="w-32 h-32 bg-white rounded-3xl shadow-[0_8px_32px_rgba(107,56,212,0.15)] flex items-center justify-center mb-6 border border-surface-dim transform rotate-3">
-            <span
-              className="material-symbols-outlined text-[72px] text-primary"
-              style={{
-                fontVariationSettings: "'FILL' 1",
-              }}
-            >
-              psychology
-            </span>
+            <img
+              src="/game_content/Logo_MemoryMatchingGame.png"
+              alt="Memory Match Icon"
+              className="h-20 w-20 object-contain"
+            />
           </div>
 
           <h1 className="font-display text-display text-on-background text-center drop-shadow-sm">
@@ -52,7 +55,7 @@ export default function MemoryMatchPage() {
 
         {/* Navigation Buttons */}
         <div className="w-full flex flex-col gap-5 px-6">
-          
+
           {/* PLAY */}
 
           <button
@@ -69,7 +72,7 @@ export default function MemoryMatchPage() {
             >
               play_arrow
             </span>
-      
+
             <span className="text-lg tracking-widest relative z-10">
               PLAY
             </span>
@@ -79,38 +82,38 @@ export default function MemoryMatchPage() {
 
       {/* Footer Audio Controls */}
       <footer className="absolute bottom-8 w-full flex justify-center gap-6 z-10">
-        
-        {/* Sound */}
-        <button
-          aria-label="Toggle Sound"
-          onClick={() => setSound(!sound)}
-          className="w-14 h-14 bg-surface rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-surface-dim flex items-center justify-center text-primary hover:bg-primary-fixed hover:scale-105 active:scale-95 transition-all duration-200"
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{
-              fontVariationSettings: "'FILL' 1",
-            }}
-          >
-            {sound ? "volume_up" : "volume_off"}
-          </span>
-        </button>
 
-        {/* Music */}
-        <button
-          aria-label="Toggle Music"
-          onClick={() => setMusic(!music)}
-          className="w-14 h-14 bg-surface rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-surface-dim flex items-center justify-center text-primary hover:bg-primary-fixed hover:scale-105 active:scale-95 transition-all duration-200"
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{
-              fontVariationSettings: "'FILL' 1",
-            }}
-          >
-            {music ? "music_note" : "music_off"}
-          </span>
-        </button>
+        {/* Sound */}
+<button
+  aria-label="Toggle Music"
+  onClick={async () => {
+    const nextMusic = !music;
+    setMusic(nextMusic);
+
+    if (!audioRef.current) return;
+
+    try {
+      if (nextMusic) {
+        await audioRef.current.play();
+      } else {
+        audioRef.current.pause();
+      }
+    } catch (error) {
+      console.error("Không thể phát nhạc:", error);
+      setMusic(false);
+    }
+  }}
+  className="w-14 h-14 bg-surface rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-surface-dim flex items-center justify-center text-primary hover:bg-primary-fixed hover:scale-105 active:scale-95 transition-all duration-200"
+>
+  <span
+    className="material-symbols-outlined"
+    style={{
+      fontVariationSettings: "'FILL' 1",
+    }}
+  >
+    {music ? "music_note" : "music_off"}
+  </span>
+</button>
 
       </footer>
     </main>
