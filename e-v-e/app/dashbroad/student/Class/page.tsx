@@ -1,6 +1,5 @@
 "use client";
 
-<<<<<<< HEAD
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -13,12 +12,6 @@ import {
   User,
   CheckCircle2,
 } from "lucide-react";
-=======
-import React from "react";
-import Link from "next/link";
-import { useStudentAdapter } from "@/hooks/useStudentAdapter";
-import { Users, Clock, Plus, ArrowRight, GraduationCap } from "lucide-react";
->>>>>>> 2fcf8dedec09ac29b7897fe3730ba5313afb7611
 
 import {
   collection,
@@ -49,7 +42,6 @@ interface ClassItem {
 }
 
 export default function StudentClassPage() {
-<<<<<<< HEAD
 
   const [classes, setClasses] =
     useState<ClassItem[]>([]);
@@ -325,17 +317,6 @@ export default function StudentClassPage() {
           <p className="text-sm text-[#8e9bb4]">
             Đang tải lớp học...
           </p>
-=======
-  const { courses, loading } = useStudentAdapter();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0e1a] text-[#e1e2ec] flex items-center justify-center font-sans">
-        <p className="text-cyan-400 font-medium">Đang tải danh sách lớp học...</p>
-      </div>
-    );
-  }
->>>>>>> 2fcf8dedec09ac29b7897fe3730ba5313afb7611
 
         </div>
 
@@ -376,7 +357,6 @@ export default function StudentClassPage() {
 
       </header>
 
-<<<<<<< HEAD
       {/* =====================================================
           EMPTY
       ===================================================== */}
@@ -401,30 +381,11 @@ export default function StudentClassPage() {
             className="mx-auto mt-6 inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-500"
           >
             Khám phá Learning Path
-=======
-      {/* Grid of Classes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {courses.map((cls) => (
-          <div
-            key={cls.id}
-            className="p-5 rounded-2xl bg-[#0f1524]/60 backdrop-blur-md border border-[#7bd1fa]/15 hover:border-cyan-500/40 hover-card-lift transition-all flex flex-col justify-between space-y-4"
-          >
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="px-2.5 py-0.5 rounded-md bg-blue-500/10 text-cyan-300 border border-blue-500/20 text-xs font-medium">
-                  {cls.tag}
-                </span>
-                <span className="text-xs text-[#8e9bb4] flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5" /> 40 Học sinh
-                </span>
-              </div>
->>>>>>> 2fcf8dedec09ac29b7897fe3730ba5313afb7611
 
             <ArrowRight className="h-4 w-4" />
 
           </Link>
 
-<<<<<<< HEAD
         </div>
 
       ) : (
@@ -441,16 +402,6 @@ export default function StudentClassPage() {
               <div
                 key={cls.id}
                 className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-[#7bd1fa]/15 bg-[#0f1524]/60 p-5 backdrop-blur-md transition-all hover:border-cyan-500/40 hover:shadow-[0_0_30px_rgba(34,211,238,0.08)]"
-=======
-            {/* Actions */}
-            <div className="pt-3 border-t border-[#7bd1fa]/10 flex items-center justify-between text-xs">
-              <span className="text-[#8e9bb4] flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-cyan-400" /> {cls.nextLesson}
-              </span>
-              <Link
-                href={`/dashbroad/student/Class/Assignment`}
-                className="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-cyan-300 font-medium border border-blue-500/30 transition-all flex items-center gap-1"
->>>>>>> 2fcf8dedec09ac29b7897fe3730ba5313afb7611
               >
 
                 <div>
