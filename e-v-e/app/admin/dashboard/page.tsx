@@ -123,7 +123,14 @@ export default function AdminDashboardPage() {
       try {
         const gamesSnap = await getDocs(collection(db, "game_info"));
         if (!gamesSnap.empty) {
-          gamesList = gamesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          gamesList = gamesSnap.docs.map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              gameId: data.gameId || d.id,
+              ...data,
+            };
+          });
         }
       } catch {}
 
@@ -131,7 +138,14 @@ export default function AdminDashboardPage() {
         if (typeof window !== "undefined") {
           const localGames = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
           localGames.forEach((lg: any) => {
-            const idx = gamesList.findIndex((g: any) => g.id === lg.id || g.title === lg.title);
+            const idx = gamesList.findIndex(
+              (g: any) =>
+                g.id === lg.id ||
+                g.gameId === lg.id ||
+                g.id === lg.gameId ||
+                g.gameId === lg.gameId ||
+                (g.title && lg.title && g.title.toLowerCase().trim() === lg.title.toLowerCase().trim())
+            );
             if (idx === -1) {
               gamesList.unshift(lg);
             } else {
@@ -140,6 +154,16 @@ export default function AdminDashboardPage() {
           });
         }
       } catch {}
+
+      // Deduplicate games by unique identifier or title
+      const uniqueGamesMap = new Map<string, any>();
+      gamesList.forEach((g) => {
+        const key = (g.id || g.gameId || g.title || "").toLowerCase().trim();
+        if (key && !uniqueGamesMap.has(key)) {
+          uniqueGamesMap.set(key, g);
+        }
+      });
+      gamesList = Array.from(uniqueGamesMap.values());
 
       const pendingGamesList = gamesList.filter(
         (g: any) => !g.is_accepted && !g.isAccepted
@@ -425,9 +449,9 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
             ) : (
-              pendingGames.map((game) => (
+              pendingGames.map((game, idx) => (
                 <div
-                  key={game.id}
+                  key={`${game.id || game.gameId || idx}_${idx}`}
                   className="p-3.5 rounded-xl bg-[#151b2c] border border-slate-800 flex items-center justify-between gap-3 hover:border-purple-500/30 transition-all"
                 >
                   <div className="min-w-0">

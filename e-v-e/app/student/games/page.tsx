@@ -569,9 +569,9 @@ export default function StudentGamesArcadePage() {
           3. ARCADE GAME CARDS GRID
          ══════════════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredGames.map((game) => (
+        {filteredGames.map((game, idx) => (
           <div
-            key={game.id}
+            key={`${game.id || idx}_${idx}`}
             className="rounded-3xl bg-[#0f1524]/90 border border-slate-800 hover:border-cyan-500/50 transition-all duration-300 flex flex-col justify-between overflow-hidden group shadow-xl hover:shadow-[0_0_30px_rgba(6,182,212,0.2)] hover:-translate-y-1"
           >
             {/* Card Header & Thumbnail */}

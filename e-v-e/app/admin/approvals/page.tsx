@@ -80,14 +80,25 @@ export default function AdminApprovalsPage() {
         if (typeof window !== "undefined") {
           const localGames = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
           localGames.forEach((lg: any) => {
-            const existingIdx = combinedGames.findIndex((g) => g.id === lg.id || g.title === lg.title);
+            const existingIdx = combinedGames.findIndex(
+              (g) =>
+                g.id === lg.id ||
+                g.gameId === lg.id ||
+                g.id === lg.gameId ||
+                (g.title && lg.title && g.title.toLowerCase().trim() === lg.title.toLowerCase().trim())
+            );
+            const formatted = {
+              id: lg.id || lg.gameId,
+              ...lg,
+              isAccepted: lg.isAccepted ?? lg.is_accepted ?? false,
+              needExtraData: lg.needExtraData ?? lg.need_extra_data ?? true,
+              downloadSourceUrl: lg.downloadSourceUrl ?? lg.download_source_url ?? "/boss_battle_quiz.zip",
+            };
+
             if (existingIdx === -1) {
-              combinedGames.unshift({
-                ...lg,
-                isAccepted: lg.isAccepted ?? lg.is_accepted ?? false,
-                needExtraData: lg.needExtraData ?? lg.need_extra_data ?? true,
-                downloadSourceUrl: lg.downloadSourceUrl ?? lg.download_source_url ?? "/boss_battle_quiz.zip",
-              });
+              combinedGames.unshift(formatted);
+            } else {
+              combinedGames[existingIdx] = { ...combinedGames[existingIdx], ...formatted };
             }
           });
         }
@@ -95,7 +106,16 @@ export default function AdminApprovalsPage() {
         console.warn("LocalStorage games read:", e);
       }
 
-      setGames(combinedGames);
+      // Strict deduplication by unique identifier or title
+      const uniqueGamesMap = new Map<string, any>();
+      combinedGames.forEach((g) => {
+        const key = (g.id || g.gameId || g.title || "").toLowerCase().trim();
+        if (key && !uniqueGamesMap.has(key)) {
+          uniqueGamesMap.set(key, g);
+        }
+      });
+
+      setGames(Array.from(uniqueGamesMap.values()));
     }
 
     loadData();
@@ -392,9 +412,9 @@ export default function AdminApprovalsPage() {
               Hiện không có Game nào cần duyệt.
             </div>
           ) : (
-            games.map((game) => (
+            games.map((game, idx) => (
               <div
-                key={game.id}
+                key={`${game.id || game.gameId || idx}_${idx}`}
                 className="p-6 rounded-2xl bg-[#0f1524]/90 border border-purple-500/20 shadow-lg space-y-4"
               >
                 <div className="flex items-start justify-between gap-4">

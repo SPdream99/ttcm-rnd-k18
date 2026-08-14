@@ -382,9 +382,9 @@ export default function TeacherMyContentsPage() {
       {/* ── TAB 3: GAMES ── */}
       {activeTab === "games" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {games.map((game) => (
+          {games.map((game, idx) => (
             <div
-              key={game.id}
+              key={`${game.id || game.gameId || idx}_${idx}`}
               className="p-6 rounded-2xl bg-[#0f1524]/90 border border-slate-800 hover:border-purple-500/40 transition-all flex flex-col justify-between space-y-4"
             >
               <div className="space-y-2">
