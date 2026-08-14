@@ -1,9 +1,19 @@
 "use client";
 
+import React, { useState } from "react";
 import Link from "next/link";
-import { Clock, ShieldAlert, ArrowLeft } from "lucide-react";
+import { Clock, ShieldAlert, ArrowLeft, RefreshCw } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function PendingApprovalPage() {
+  const { signOut } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleSignOutAndRedirect = async () => {
+    setIsLoggingOut(true);
+    await signOut();
+  };
+
   return (
     <main className="bg-background text-on-surface min-h-screen flex items-center justify-center bg-nebula p-margin-mobile md:p-margin-desktop overflow-hidden relative">
       {/* Background Stars Effect */}
@@ -37,12 +47,15 @@ export default function PendingApprovalPage() {
         </div>
 
         <div className="pt-4 border-t border-slate-800/80">
-          <Link
-            href="/public/login"
-            className="inline-flex items-center gap-2 text-xs font-mono text-cyan-400 hover:underline"
+          <button
+            type="button"
+            disabled={isLoggingOut}
+            onClick={handleSignOutAndRedirect}
+            className="inline-flex items-center gap-2 text-xs font-mono text-cyan-400 hover:underline cursor-pointer disabled:opacity-50"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> Quay lại trang Đăng Nhập
-          </Link>
+            {isLoggingOut ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ArrowLeft className="w-3.5 h-3.5" />}
+            {isLoggingOut ? "Đang đăng xuất..." : "Quay lại trang Đăng Nhập"}
+          </button>
         </div>
       </div>
     </main>

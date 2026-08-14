@@ -21,95 +21,10 @@ import { db } from "@/lib/firebase";
 import { Course, CourseContentPair } from "@/core/entities/Course";
 import { Game } from "@/core/entities/Game";
 
-const MOCK_PENDING_COURSES: Course[] = [
-  {
-    id: "crs_quantum_101",
-    title: "Vật Lý Lượng Tử Cơ Bản (Quantum 101)",
-    description: "Nhập môn lưỡng tính sóng hạt, nguyên lý bất định Heisenberg và hàm sóng Schrödinger.",
-    authorId: "usr_teacher_001",
-    authorName: "ThS. Phạm Hoàng Nam",
-    isAccepted: false,
-    contentData: {
-      pairs: [
-        {
-          id: "p1",
-          title: "Hiện tượng quang điện chứng minh tính chất gì của ánh sáng?",
-          description: "Tính chất hạt (Photon)",
-          distractions: ["Tính chất sóng", "Tính chất phản xạ", "Tính chất tán sắc"],
-          image_url: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600",
-        },
-        {
-          id: "p2",
-          title: "Ai là người đề xuất phương trình hàm sóng mô tả trạng thái lượng tử?",
-          description: "Erwin Schrödinger",
-          distractions: ["Albert Einstein", "Niels Bohr", "Isaac Newton"],
-        },
-        {
-          id: "p3",
-          title: "Hằng số Planck có ký hiệu là gì?",
-          description: "h",
-          distractions: ["c", "e", "k"],
-        },
-      ],
-    },
-    createdAt: "14/08/2026",
-  },
-  {
-    id: "crs_astrophysics",
-    title: "Thiên Văn Học & Hố Đen Vũ Trụ",
-    description: "Khám phá chân trời sự kiện, bức xạ Hawking và các thiên hà xa xôi.",
-    authorId: "usr_teacher_003",
-    authorName: "GS. Nguyễn Văn An",
-    isAccepted: false,
-    contentData: {
-      pairs: [
-        {
-          id: "p4",
-          title: "Ranh giới mà không vật chất nào có thể thoát khỏi hố đen gọi là gì?",
-          description: "Chân trời sự kiện (Event Horizon)",
-          distractions: ["Điểm kỳ dị", "Vùng bồi tụ", "Vành đai Kuiper"],
-        },
-      ],
-    },
-    createdAt: "13/08/2026",
-  },
-];
-
-const MOCK_PENDING_GAMES: Game[] = [
-  {
-    id: "game_space_quiz_3d",
-    title: "Quiz Runner 3D - Trắc Nghiệm Tốc Độ",
-    description: "Minigame tương tác vượt chướng ngại vật bằng cách chọn đúng đáp án tương ứng với nội dung bài học.",
-    authorName: "GS. Nguyễn Văn An",
-    gameUrl: "/games/space_quiz_3d/index.html",
-    downloadSourceUrl: "https://github.com/SPdream99/ttcm-rnd-k18/raw/main/games/space_quiz_3d_source.zip",
-    needExtraData: true,
-    coursesAllowed: "all",
-    coursesBlocked: [],
-    isAccepted: false,
-    playsCount: 145,
-    createdAt: "14/08/2026",
-  },
-  {
-    id: "game_card_match_vr",
-    title: "Quantum Memory Matrix",
-    description: "Trò chơi ghép cặp thẻ bài nhớ nhanh thuật ngữ và đáp án khoa học.",
-    authorName: "ThS. Phạm Hoàng Nam",
-    gameUrl: "/games/card_match_vr/index.html",
-    downloadSourceUrl: "https://github.com/SPdream99/ttcm-rnd-k18/raw/main/games/card_match_source.zip",
-    needExtraData: true,
-    coursesAllowed: ["crs_quantum_101", "crs_astrophysics"],
-    coursesBlocked: [],
-    isAccepted: false,
-    playsCount: 89,
-    createdAt: "12/08/2026",
-  },
-];
-
 export default function AdminApprovalsPage() {
   const [activeTab, setActiveTab] = useState<"courses" | "games">("courses");
-  const [courses, setCourses] = useState<Course[]>(MOCK_PENDING_COURSES);
-  const [games, setGames] = useState<Game[]>(MOCK_PENDING_GAMES);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
@@ -118,24 +33,73 @@ export default function AdminApprovalsPage() {
       try {
         const cSnap = await getDocs(collection(db, "courses"));
         if (!cSnap.empty) {
-          const list: any[] = cSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          const list: any[] = cSnap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+            isAccepted: d.data().isAccepted ?? d.data().is_accepted ?? false,
+          }));
           setCourses(list);
-        }
-        const gSnap = await getDocs(collection(db, "games"));
-        if (!gSnap.empty) {
-          const list: any[] = gSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-          setGames(list);
+        } else {
+          setCourses([]);
         }
       } catch (e) {
-        console.warn("Using fallback approvals data:", e);
+        console.warn("Error loading courses:", e);
       }
+
+      let combinedGames: any[] = [];
+      try {
+        const gSnap = await getDocs(collection(db, "games"));
+        if (!gSnap.empty) {
+          combinedGames = gSnap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+            isAccepted: d.data().isAccepted ?? d.data().is_accepted ?? false,
+            needExtraData: d.data().needExtraData ?? d.data().need_extra_data ?? true,
+            downloadSourceUrl: d.data().downloadSourceUrl ?? d.data().download_source_url ?? "/boss_battle_quiz.zip",
+          }));
+        }
+      } catch (e) {
+        console.warn("Firestore games fetch:", e);
+      }
+
+      // Read from LocalStorage persistent cache
+      try {
+        if (typeof window !== "undefined") {
+          const localGames = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
+          localGames.forEach((lg: any) => {
+            const existingIdx = combinedGames.findIndex((g) => g.id === lg.id || g.title === lg.title);
+            if (existingIdx === -1) {
+              combinedGames.unshift({
+                ...lg,
+                isAccepted: lg.isAccepted ?? lg.is_accepted ?? false,
+                needExtraData: lg.needExtraData ?? lg.need_extra_data ?? true,
+                downloadSourceUrl: lg.downloadSourceUrl ?? lg.download_source_url ?? "/boss_battle_quiz.zip",
+              });
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("LocalStorage games read:", e);
+      }
+
+      setGames(combinedGames);
     }
+
     loadData();
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("eve_games_updated", loadData);
+      window.addEventListener("storage", loadData);
+      return () => {
+        window.removeEventListener("eve_games_updated", loadData);
+        window.removeEventListener("storage", loadData);
+      };
+    }
   }, []);
 
   const handleApproveCourse = async (courseId: string, approved: boolean) => {
     try {
-      await updateDoc(doc(db, "courses", courseId), { is_accepted: approved });
+      await updateDoc(doc(db, "courses", courseId), { is_accepted: approved, isAccepted: approved });
     } catch {}
     setCourses((prev) =>
       prev.map((c) => (c.id === courseId ? { ...c, isAccepted: approved } : c))
@@ -146,24 +110,37 @@ export default function AdminApprovalsPage() {
 
   const handleApproveGame = async (gameId: string, approved: boolean) => {
     try {
-      await updateDoc(doc(db, "games", gameId), { is_accepted: approved });
+      await updateDoc(doc(db, "games", gameId), { is_accepted: approved, isAccepted: approved });
     } catch {}
+
+    try {
+      if (typeof window !== "undefined") {
+        const local = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
+        const updated = local.map((g: any) =>
+          g.id === gameId || g.gameId === gameId ? { ...g, isAccepted: approved, is_accepted: approved } : g
+        );
+        localStorage.setItem("eve_uploaded_games", JSON.stringify(updated));
+        window.dispatchEvent(new Event("eve_games_updated"));
+      }
+    } catch {}
+
     setGames((prev) =>
-      prev.map((g) => (g.id === gameId ? { ...g, isAccepted: approved } : g))
+      prev.map((g) => (g.id === gameId ? { ...g, isAccepted: approved, is_accepted: approved } : g))
     );
     setActionMsg(approved ? "✅ Đã phê duyệt Game Engine thành công!" : "⚠️ Đã từ chối Game.");
     setTimeout(() => setActionMsg(null), 3500);
   };
 
-  const handleDownloadSource = (game: Game) => {
-    // Simulate/Trigger download of zip source
-    const downloadUrl = game.downloadSourceUrl || game.download_source_url || `#download-${game.id}`;
+  const handleDownloadSource = (game: any) => {
+    const downloadUrl = game.downloadSourceUrl || game.download_source_url || "/boss_battle_quiz.zip";
     const a = document.createElement("a");
     a.href = downloadUrl;
-    a.download = `${game.id}_source_code.zip`;
+    a.download = `${game.id || "game"}_source_code.zip`;
     a.target = "_blank";
+    document.body.appendChild(a);
     a.click();
-    setActionMsg(`📥 Đang tải source code của "${game.title}" về máy để audit...`);
+    document.body.removeChild(a);
+    setActionMsg(`📥 Đang tải source code của "${game.title}" (.zip) về máy để audit...`);
     setTimeout(() => setActionMsg(null), 4000);
   };
 

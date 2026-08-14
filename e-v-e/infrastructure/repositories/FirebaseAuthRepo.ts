@@ -63,6 +63,7 @@ export class FirebaseAuthRepo implements AuthPort {
         role: userData.role || "student",
         status: userData.status || "active",
         coins: Number(userData.coins) || 0,
+        twoFactorEnabled: Boolean(userData.two_factor_enabled ?? userData.twoFactorEnabled),
         profileDecorations: userData.profile_decorations || [],
         activeDecorations: userData.active_decorations || {},
       };
@@ -91,6 +92,7 @@ export class FirebaseAuthRepo implements AuthPort {
             role: userData.role || "student",
             status: userData.status || "active",
             coins: Number(userData.coins) || 0,
+            twoFactorEnabled: Boolean(userData.two_factor_enabled ?? userData.twoFactorEnabled),
             profileDecorations: userData.profile_decorations || [],
             activeDecorations: userData.active_decorations || {},
           };
@@ -134,11 +136,26 @@ export class FirebaseAuthRepo implements AuthPort {
         role: credentials.role,
         status: initialStatus,
         coins: 0,
+        schoolCode: credentials.schoolCode,
+        departmentOrClass: credentials.role === "teacher" ? (credentials.schoolCode ? `Mã trường: ${credentials.schoolCode}` : "Giáo viên mới") : undefined,
         profile_decorations: [],
         createdAt: new Date().toISOString(),
       };
 
       await setDoc(doc(db, "users", user.uid), payload);
+
+      if (typeof window !== "undefined") {
+        try {
+          const registeredUsers = JSON.parse(localStorage.getItem("eve_registered_users") || "[]");
+          const existingIdx = registeredUsers.findIndex((u: any) => u.email === credentials.email || u.uid === user.uid);
+          if (existingIdx >= 0) {
+            registeredUsers[existingIdx] = payload;
+          } else {
+            registeredUsers.unshift(payload);
+          }
+          localStorage.setItem("eve_registered_users", JSON.stringify(registeredUsers));
+        } catch {}
+      }
 
       const returnUser: User = {
         id: user.uid,

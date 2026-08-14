@@ -30,66 +30,20 @@ interface AdminUserItem {
   createdAt?: string;
 }
 
-const FALLBACK_USERS: AdminUserItem[] = [
-  {
-    id: "usr_teacher_001",
-    name: "ThS. Phạm Hoàng Nam",
-    email: "nam.ph@eve.edu.vn",
-    role: "teacher",
-    status: "pending",
-    departmentOrClass: "Tổ Toán - Tin Học",
-    createdAt: "14/08/2026",
-  },
-  {
-    id: "usr_teacher_002",
-    name: "TS. Lê Thị Mai",
-    email: "mai.le@school.edu.vn",
-    role: "teacher",
-    status: "pending",
-    departmentOrClass: "Bộ Môn Vật Lý",
-    createdAt: "13/08/2026",
-  },
-  {
-    id: "usr_teacher_003",
-    name: "GS. Nguyễn Văn An",
-    email: "an.nguyen@eve.edu.vn",
-    role: "teacher",
-    status: "active",
-    departmentOrClass: "Khoa Học Tự Nhiên & Công Nghệ",
-    createdAt: "10/08/2026",
-  },
-  {
-    id: "usr_student_001",
-    name: "Đạt Student",
-    email: "student@eve.edu.vn",
-    role: "student",
-    status: "active",
-    coins: 250,
-    createdAt: "12/08/2026",
-  },
-  {
-    id: "usr_student_002",
-    name: "Trần Minh Quân",
-    email: "quan.tm@student.edu.vn",
-    role: "student",
-    status: "active",
-    coins: 420,
-    createdAt: "11/08/2026",
-  },
-];
-
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<AdminUserItem[]>(FALLBACK_USERS);
-  const [activeFilter, setActiveFilter] = useState<"all" | "pending" | "teacher" | "student">("pending");
+  const [users, setUsers] = useState<AdminUserItem[]>([]);
+  const [activeFilter, setActiveFilter] = useState<"all" | "pending" | "teacher" | "student">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchUsers() {
+      let list: AdminUserItem[] = [];
       try {
         const snap = await getDocs(collection(db, "users"));
         if (!snap.empty) {
-          const list: AdminUserItem[] = snap.docs.map((d) => {
+          list = snap.docs.map((d) => {
             const data = d.data();
             return {
               id: d.id,
@@ -99,16 +53,45 @@ export default function AdminUsersPage() {
               email: data.email || "",
               role: data.role || "student",
               status: data.status || "active",
-              departmentOrClass: data.departmentOrClass || "",
+              departmentOrClass: data.departmentOrClass || (data.schoolCode ? `Mã trường: ${data.schoolCode}` : ""),
               coins: Number(data.coins) || 0,
               createdAt: data.createdAt || "2026",
             };
           });
-          setUsers(list);
         }
       } catch (err) {
-        console.warn("Using fallback user list for admin page:", err);
+        console.warn("Error fetching real users:", err);
       }
+
+      // Merge with localStorage registered users
+      try {
+        if (typeof window !== "undefined") {
+          const localList = JSON.parse(localStorage.getItem("eve_registered_users") || "[]");
+          localList.forEach((lu: any) => {
+            const idx = list.findIndex((u) => u.email === lu.email || (lu.uid && u.uid === lu.uid));
+            if (idx === -1) {
+              list.push({
+                id: lu.id || lu.uid || `usr_${Date.now()}`,
+                uid: lu.uid || lu.id,
+                name: lu.name || lu.fullName || "Giáo viên mới",
+                fullName: lu.fullName || lu.name || "Giáo viên mới",
+                email: lu.email,
+                role: lu.role || "teacher",
+                status: lu.status || "pending",
+                departmentOrClass: lu.departmentOrClass || (lu.schoolCode ? `Mã trường: ${lu.schoolCode}` : ""),
+                coins: Number(lu.coins) || 0,
+                createdAt: lu.createdAt || "Hôm nay",
+              });
+            } else {
+              // Priority given to status updates
+              list[idx] = { ...list[idx], ...lu };
+            }
+          });
+        }
+      } catch {}
+
+      setUsers(list);
+      setLoading(false);
     }
     fetchUsers();
   }, []);
@@ -120,8 +103,25 @@ export default function AdminUsersPage() {
       // Local state fallback update
     }
 
+    if (typeof window !== "undefined") {
+      try {
+        const localList = JSON.parse(localStorage.getItem("eve_registered_users") || "[]");
+        const idx = localList.findIndex((u: any) => u.id === userId || u.uid === userId);
+        if (idx >= 0) {
+          localList[idx].status = newStatus;
+          localStorage.setItem("eve_registered_users", JSON.stringify(localList));
+        }
+
+        const sessionUser = JSON.parse(localStorage.getItem("eve_user") || "null");
+        if (sessionUser && (sessionUser.id === userId || sessionUser.uid === userId)) {
+          sessionUser.status = newStatus;
+          localStorage.setItem("eve_user", JSON.stringify(sessionUser));
+        }
+      } catch {}
+    }
+
     setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u))
+      prev.map((u) => (u.id === userId || u.uid === userId ? { ...u, status: newStatus } : u))
     );
 
     setActionMsg(

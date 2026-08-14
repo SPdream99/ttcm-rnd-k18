@@ -55,6 +55,31 @@ export default function RegisterPage() {
     // Save auth cookie
     setAuthCookie(res.user, true);
 
+    if (typeof window !== "undefined") {
+      try {
+        const userObj = {
+          id: res.user.id || res.user.uid,
+          uid: res.user.uid || res.user.id,
+          name: fullName,
+          fullName,
+          email,
+          role,
+          status: role === "teacher" ? "pending" : "active",
+          schoolCode: role === "teacher" ? schoolCode : undefined,
+          departmentOrClass: role === "teacher" ? (schoolCode ? `Mã trường: ${schoolCode}` : "Giáo viên mới") : undefined,
+          createdAt: new Date().toLocaleDateString("vi-VN"),
+        };
+        const localList = JSON.parse(localStorage.getItem("eve_registered_users") || "[]");
+        const exists = localList.findIndex((u: any) => u.email === email || u.uid === userObj.uid);
+        if (exists >= 0) {
+          localList[exists] = userObj;
+        } else {
+          localList.unshift(userObj);
+        }
+        localStorage.setItem("eve_registered_users", JSON.stringify(localList));
+      } catch {}
+    }
+
     if (role === "teacher") {
       setMessage("Đăng ký tài khoản Giáo viên thành công! Đang chuyển hướng sang trang chờ Ban Quản trị phê duyệt...");
       setTimeout(() => {
