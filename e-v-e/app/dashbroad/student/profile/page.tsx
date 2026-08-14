@@ -33,7 +33,7 @@ const { userData, loading } = GetUserData();
 
         <div className="space-y-1 text-center sm:text-left">
           <h2 className="text-xl font-bold text-white flex items-center justify-center sm:justify-start gap-2">
-            {userData?.full_name} <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-xs border border-cyan-500/30"> {userData?.role}</span>
+            {userData?.name} <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-xs border border-cyan-500/30"> {userData?.role}</span>
           </h2>
           <p className="text-xs text-[#8e9bb4]">Mã SV: EVE-2026-8890 • Lớp: 12A1 Chuyên Lý</p>
           <div className="flex items-center justify-center sm:justify-start gap-3 pt-1 text-xs text-amber-400 font-semibold">
@@ -54,7 +54,7 @@ const { userData, loading } = GetUserData();
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-[#8e9bb4] block mb-1.5 font-medium">Name</label>
-            <input type="text" defaultValue={userData?.full_name} className="w-full bg-[#151b2c] border border-[#7bd1fa]/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400" />
+            <input type="text" defaultValue={userData?.name} className="w-full bg-[#151b2c] border border-[#7bd1fa]/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400" />
           </div>
           <div>
             <label className="text-xs text-[#8e9bb4] block mb-1.5 font-medium">Email</label>
@@ -66,7 +66,7 @@ const { userData, loading } = GetUserData();
           </div>
           <div>
             <label className="text-xs text-[#8e9bb4] block mb-1.5 font-medium">Address</label>
-            <input type="text" defaultValue={userData.address} className="w-full bg-[#151b2c] border border-[#7bd1fa]/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400" />
+            <input type="text" defaultValue={userData?.coin} className="w-full bg-[#151b2c] border border-[#7bd1fa]/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400" />
           </div>
         </div>
 

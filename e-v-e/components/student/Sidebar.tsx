@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Calendar,
+  Brain,
+  Gamepad2 ,
   Compass,
   GraduationCap,
   Bot,
@@ -13,6 +15,7 @@ import {
 } from "lucide-react";
 
 export default function Sidebar() {
+  const pathname = usePathname();
   return (
           <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-64 bg-[#0f1524]/80 backdrop-blur-xl border-r border-[#7bd1fa]/15 z-40 p-5 justify-between">
         <div className="space-y-8">
@@ -34,23 +37,30 @@ export default function Sidebar() {
           {/* Navigation Links */}
           <nav className="space-y-1.5">
             {[
-              { label: "Dashboard", icon: LayoutDashboard, href: "/dashbroad/student", active: true },
-              { label: "Ai Tutor", icon: Calendar, href: "/dashbroad/student/AITutor", active: false },
-              { label: "Learning Path", icon: Compass, href: "/dashbroad/student/LearningPath", active: false },
-              { label: "Class", icon: GraduationCap, href: "/dashbroad/student/Class", active: false },
-            ].map((item, idx) => (
-              <a
-                key={idx}
-                href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${item.active
-                    ? "bg-gradient-to-r from-blue-600/25 to-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(59,130,246,0.25)]"
-                    : "text-[#8e9bb4] hover:text-white hover:bg-white/5"
-                  }`}
-              >
-                <item.icon className={`w-5 h-5 ${item.active ? "text-cyan-400" : "text-[#8e9bb4]"}`} />
-                {item.label}
-              </a>
-            ))}
+              { label: "Dashboard", icon: LayoutDashboard, href: "/dashbroad/student" },
+              { label: "Ai Tutor", icon: Brain, href: "/dashbroad/student/AITutor" },
+              { label: "Learning Path", icon: Compass, href: "/dashbroad/student/LearningPath" },
+              { label: "Game", icon: Gamepad2, href: "/dashbroad/student/MainListGame" },
+              { label: "My Class", icon: GraduationCap, href: "/dashbroad/student/Class" },
+            ].map((item, idx) => {
+              const isActive =
+                item.href === "/dashbroad/student"
+                  ? pathname === item.href
+                  : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={idx}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${isActive
+                      ? "bg-gradient-to-r from-blue-600/25 to-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(59,130,246,0.25)]"
+                      : "text-[#8e9bb4] hover:text-white hover:bg-white/5"
+                    }`}
+                >
+                  <item.icon className={`w-5 h-5 ${isActive ? "text-cyan-400" : "text-[#8e9bb4]"}`} />
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
@@ -67,7 +77,7 @@ export default function Sidebar() {
             <button className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium text-xs shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all flex items-center justify-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" /> Trò Chuyện Ngay
             </button>
-          </div>
+          </div> 
 
           <div className="flex items-center justify-between px-2 text-[#8e9bb4]">
             <a href="#" className="hover:text-white transition-colors flex items-center gap-2 text-xs">
@@ -82,3 +92,4 @@ export default function Sidebar() {
 
   );
 }
+
