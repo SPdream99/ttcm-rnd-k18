@@ -615,11 +615,13 @@ function handleVictory() {
 }
 
 function notifyParentFinish() {
-  if (window.parent && window.parent !== window) {
-    window.parent.postMessage({ type: "EVE_GAME_FINISHED", payload: { score: GameState.score, isWin: true } }, "*");
-  } else {
-    alert("Cảm ơn bạn đã hoàn thành màn chơi thử thách!");
-  }
+  try {
+    if (typeof window !== "undefined" && window.self !== window.top && window.parent) {
+      window.parent.postMessage({ type: "EVE_GAME_FINISHED", payload: { score: GameState.score, isWin: true } }, "*");
+      return;
+    }
+  } catch (e) {}
+  alert("🎉 Cảm ơn bạn đã hoàn thành xuất sắc màn chơi thử thách!");
 }
 
 // ── 11. KEYBOARD LISTENERS (1-4 for questions, Arrows & WASD for dodge) ──

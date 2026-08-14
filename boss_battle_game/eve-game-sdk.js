@@ -139,6 +139,12 @@
      * 1. Khởi tạo phiên chơi: Tự động lấy câu hỏi Realtime từ server E-V-E
      * Nếu chạy Offline không có server, tự động kích hoạt Mock Simulator
      */
+    /**
+     * 1. Khởi tạo phiên chơi (Session Initialization)
+     * Tự động nhận diện môi trường:
+     * - Nếu chạy trong iframe E-V-E LMS: Giao tiếp qua postMessage & API Realtime
+     * - Nếu chạy Offline cục bộ (file://): Kích hoạt ngay Offline Mock Simulator không gây lỗi CORS
+     */
     async initSession(customConfig = {}) {
       if (customConfig.gameId) this.gameId = customConfig.gameId;
       if (customConfig.courseId) this.courseId = customConfig.courseId;
@@ -146,6 +152,21 @@
 
       // Nếu đã nhận data từ postMessage của LMS Host
       if (this.gameData && this.gameData.pairs && this.gameData.pairs.length > 0) {
+        return this.gameData;
+      }
+
+      const isHttp = typeof window !== "undefined" && window.location && window.location.protocol.startsWith("http");
+
+      // Nếu chạy file:// cục bộ, nạp thẳng Offline Mock Simulator (tránh CORS fetch đỏ trên console)
+      if (!isHttp) {
+        console.log("[E-V-E SDK] 🧪 Phát hiện môi trường Offline Local (file://). Kích hoạt Mock Simulator thành công với 5 câu hỏi mẫu.");
+        this.gameData = OFFLINE_MOCK_DATA;
+        this.sessionToken = OFFLINE_MOCK_DATA.sessionToken;
+        this.isRealtimeConnected = false;
+
+        if (typeof this.onDataReadyCallback === "function") {
+          this.onDataReadyCallback(this.gameData);
+        }
         return this.gameData;
       }
 
@@ -175,7 +196,7 @@
         }
         throw new Error(result.error || "Không thể lấy dữ liệu khóa học");
       } catch (err) {
-        // Kích hoạt Offline Simulator Mode
+        // Kích hoạt Offline Simulator Mode dự phòng
         console.warn("[E-V-E SDK] ⚠️ Chạy trong môi trường Offline / Simulator. Tự động nạp bộ câu hỏi mẫu:", err.message);
         this.gameData = OFFLINE_MOCK_DATA;
         this.sessionToken = OFFLINE_MOCK_DATA.sessionToken;
@@ -189,28 +210,41 @@
     }
 
     /**
+     * Helper kiểm tra iframe an toàn
+     */
+    _isEmbedded() {
+      try {
+        return typeof window !== "undefined" && window.self !== window.top && window.parent;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    /**
      * 2. Báo cáo tiến độ chơi thời gian thực (Live Progress)
      */
     async updateProgress({ score = 0, currentStreak = 0, progressPercent = 0, currentQuestion = 0, totalQuestions = 0 }) {
-      // Báo cáo qua postMessage lên LMS Container
-      if (typeof window !== "undefined" && window.parent && window.parent !== window) {
-        window.parent.postMessage(
-          {
-            type: "EVE_GAME_PROGRESS",
-            payload: {
-              gameId: this.gameId,
-              score,
-              currentStreak,
-              progressPercent,
-              currentQuestion,
-              totalQuestions,
+      // Báo cáo qua postMessage lên LMS Container nếu đang nhúng trong iframe
+      if (this._isEmbedded()) {
+        try {
+          window.parent.postMessage(
+            {
+              type: "EVE_GAME_PROGRESS",
+              payload: {
+                gameId: this.gameId,
+                score,
+                currentStreak,
+                progressPercent,
+                currentQuestion,
+                totalQuestions,
+              },
             },
-          },
-          "*"
-        );
+            "*"
+          );
+        } catch (e) {}
       }
 
-      // Gửi API lên máy chủ E-V-E (nếu có kết nối)
+      // Gửi API lên máy chủ E-V-E (nếu có kết nối HTTP)
       if (this.isRealtimeConnected) {
         try {
           await fetch(`${this.apiBase}/progress`, {
@@ -240,59 +274,65 @@
         this.playSound("win");
       }
 
-      // Gửi qua postMessage
-      if (typeof window !== "undefined" && window.parent && window.parent !== window) {
-        window.parent.postMessage(
-          {
-            type: "EVE_GAME_FINISHED",
-            payload: {
+      // Gửi qua postMessage nếu đang nhúng iframe
+      if (this._isEmbedded()) {
+        try {
+          window.parent.postMessage(
+            {
+              type: "EVE_GAME_FINISHED",
+              payload: {
+                gameId: this.gameId,
+                courseId: this.courseId,
+                pathId: this.pathId,
+                sessionToken: this.sessionToken,
+                score,
+                isWin,
+                accuracyPercent,
+                playTimeSeconds,
+                details,
+              },
+            },
+            "*"
+          );
+        } catch (e) {}
+      }
+
+      // Gửi API lên máy chủ nếu có kết nối
+      if (this.isRealtimeConnected) {
+        try {
+          const response = await fetch(`${this.apiBase}/finish`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
               gameId: this.gameId,
               courseId: this.courseId,
               pathId: this.pathId,
+              userId: this.userId,
               sessionToken: this.sessionToken,
               score,
               isWin,
               accuracyPercent,
               playTimeSeconds,
               details,
-            },
-          },
-          "*"
-        );
+            }),
+          });
+
+          const data = await response.json();
+          return data;
+        } catch (err) {
+          // fallback
+        }
       }
 
-      // Gửi API lên máy chủ
-      try {
-        const response = await fetch(`${this.apiBase}/finish`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            gameId: this.gameId,
-            courseId: this.courseId,
-            pathId: this.pathId,
-            userId: this.userId,
-            sessionToken: this.sessionToken,
-            score,
-            isWin,
-            accuracyPercent,
-            playTimeSeconds,
-            details,
-          }),
-        });
-
-        const data = await response.json();
-        return data;
-      } catch (err) {
-        return {
-          success: true,
-          isOfflineSimulated: true,
-          data: {
-            earnedCoins: isWin ? 50 : 10,
-            score,
-            message: "Hoàn thành trong chế độ Offline Simulator.",
-          },
-        };
-      }
+      return {
+        success: true,
+        isOfflineSimulated: true,
+        data: {
+          earnedCoins: isWin ? 50 : 10,
+          score,
+          message: "Hoàn thành trong chế độ Offline Simulator.",
+        },
+      };
     }
 
     /**
