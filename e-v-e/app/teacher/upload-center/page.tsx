@@ -319,7 +319,17 @@ export default function TeacherUploadCenterPage() {
 
     const gameGeneratedId = `game_${Date.now()}`;
     const slugName = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-    const downloadUrl = gameZipFile ? `/boss_battle_quiz.zip` : "https://github.com/SPdream99/ttcm-rnd-k18";
+    const zipName = gameZipFile ? gameZipFile.name.toLowerCase() : "";
+    let downloadUrl = "/memory_matching_game.zip";
+    if (zipName.includes("boss")) {
+      downloadUrl = "/boss_battle_quiz.zip";
+    } else if (zipName.includes("starter")) {
+      downloadUrl = "/eve_game_starter_kit.zip";
+    } else if (zipName.includes("memory") || zipName.includes("match")) {
+      downloadUrl = "/memory_matching_game.zip";
+    } else if (!gameZipFile) {
+      downloadUrl = "/memory_matching_game.zip";
+    }
 
     const payload = {
       id: gameGeneratedId,
@@ -341,9 +351,12 @@ export default function TeacherUploadCenterPage() {
       gameUrl: `/games/${slugName}/index.html`,
       sourceUrl: `/games/${slugName}/index.html`,
       source_url: `/games/${slugName}/index.html`,
+      downloadUrl,
+      download_url: downloadUrl,
       downloadSourceUrl: downloadUrl,
       download_source_url: downloadUrl,
-      fileName: gameZipFile ? gameZipFile.name : "boss_battle_quiz.zip",
+      fileName: gameZipFile ? gameZipFile.name : "memory_matching_game.zip",
+      file_name: gameZipFile ? gameZipFile.name : "memory_matching_game.zip",
       fileSize: gameZipFile ? `${(gameZipFile.size / 1024).toFixed(1)} KB` : "19.5 KB",
       isAccepted: false,
       is_accepted: false,
@@ -863,22 +876,29 @@ export default function TeacherUploadCenterPage() {
               <a
                 href="/eve_game_starter_kit.zip"
                 download="eve_game_starter_kit.zip"
-                className="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black font-mono font-bold text-xs border border-cyan-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+                className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black font-mono font-bold text-xs border border-cyan-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.2)]"
               >
-                <Download className="w-3.5 h-3.5" /> Tải Starter Kit (.ZIP)
+                <Download className="w-3.5 h-3.5" /> Starter Kit
               </a>
               <a
-                href="/eve-game-sdk.js"
-                download="eve-game-sdk.js"
-                className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-black font-mono font-bold text-xs border border-emerald-500/40 transition-all flex items-center gap-1.5 cursor-pointer"
+                href="/memory_matching_game.zip"
+                download="memory_matching_game.zip"
+                className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black font-mono font-bold text-xs border border-amber-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_10px_rgba(245,158,11,0.2)]"
               >
-                <Download className="w-3.5 h-3.5" /> eve-game-sdk.js
+                <Download className="w-3.5 h-3.5" /> Memory Game (.ZIP)
+              </a>
+              <a
+                href="/boss_battle_quiz.zip"
+                download="boss_battle_quiz.zip"
+                className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500 text-purple-300 hover:text-black font-mono font-bold text-xs border border-purple-500/40 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" /> Boss Battle (.ZIP)
               </a>
               <Link
                 href="/teacher/game-sdk-guide"
-                className="px-3.5 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500 text-purple-300 hover:text-black font-mono font-bold text-xs border border-purple-500/40 transition-all flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-black font-mono font-bold text-xs border border-emerald-500/40 transition-all flex items-center gap-1.5"
               >
-                <BookOpen className="w-3.5 h-3.5" /> Xem Tài Liệu SDK →
+                <BookOpen className="w-3.5 h-3.5" /> Tài Liệu SDK →
               </Link>
             </div>
           </div>

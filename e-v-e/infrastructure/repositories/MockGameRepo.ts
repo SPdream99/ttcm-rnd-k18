@@ -2,36 +2,7 @@ import { Game } from "@/core/entities/Game";
 import { GamePort, CreateGameInput } from "@/core/ports/GamePort";
 
 export class MockGameRepo implements GamePort {
-  private mockGames: Game[] = [
-    {
-      id: "game_space_quiz_3d",
-      gameId: "game_space_quiz_3d",
-      authors: ["GS. Nguyễn Văn An", "Nhóm Dev EVE"],
-      title: "Bắn Tháp Vũ Trụ Quiz 3D",
-      description: "Game bắn tháp câu hỏi trắc nghiệm không gian 3D tương tác.",
-      isAccepted: true,
-      coursesAllowed: ["crs_quantum_101", "crs_astrophysics"],
-      coursesBlocked: [],
-      needExtraData: true,
-      sourceUrl: "https://storage.eve.edu.vn/games/space_quiz_3d/index.html",
-      uploaderId: "usr_teacher_001",
-      createdAt: new Date("2026-01-15"),
-    },
-    {
-      id: "game_schrodinger_cat_lab",
-      gameId: "game_schrodinger_cat_lab",
-      authors: ["Thầy Trần Văn Bình"],
-      title: "Thí Nghiệm Con Mèo Schrödinger 2D",
-      description: "Mô phỏng 2D giải thích nguyên lý chồng đo lường trạng thái lượng tử.",
-      isAccepted: false,
-      coursesAllowed: ["crs_quantum_101"],
-      coursesBlocked: [],
-      needExtraData: true,
-      sourceUrl: "https://storage.eve.edu.vn/games/cat_lab_2d/index.html",
-      uploaderId: "usr_teacher_pending",
-      createdAt: new Date("2026-02-20"),
-    },
-  ];
+  private mockGames: Game[] = [];
 
   async getGameById(gameId: string): Promise<Game | null> {
     const found = this.mockGames.find((g) => g.gameId === gameId || g.id === gameId);

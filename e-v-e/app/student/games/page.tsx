@@ -52,68 +52,7 @@ interface ArcadeGameItem {
   tags: string[];
 }
 
-const DEFAULT_GAMES: ArcadeGameItem[] = [
-  {
-    id: "boss_battle_quiz",
-    title: "Boss Slayer Marathon Quiz",
-    subtitle: "Đấu Trùm Marathon Kiến Thức 1000 HP",
-    genre: "Action QTE & Marathon Quiz",
-    category: "boss",
-    description:
-      "Game hành động diệt Boss thời gian thực: Trả lời nhanh các câu hỏi trích xuất từ bài học trong 10 giây marathon, tích luỹ combo sát thương và thực hiện Quick Time Event (QTE) né đòn phản công!",
-    author: "Ban Học Thuật E-V-E",
-    difficulty: "Thử Thách",
-    rewardCoins: 100,
-    needExtraData: true,
-    coursesAllowed: "all",
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80",
-    badge: "ACTION QUIZ 🔥",
-    rating: 5.0,
-    playsCount: 0,
-    tags: ["Action", "Boss Battle", "Marathon 10s", "QTE Reflex"],
-  },
-  {
-    id: "game_card_match_vr",
-    title: "Quantum Memory Card Matrix",
-    subtitle: "Ghép Cặp Thẻ Bài Khái Niệm & Định Nghĩa",
-    genre: "Memory Card Matrix 3D",
-    category: "memory",
-    description:
-      "Trò chơi lật thẻ bài kinh điển: Tìm và ghép đôi thẻ chứa Khái niệm (Thuật ngữ) với thẻ chứa Định nghĩa chính xác tương ứng của bài học trong số lượt lật ít nhất.",
-    author: "Ban Học Thuật E-V-E",
-    difficulty: "Dễ",
-    rewardCoins: 40,
-    needExtraData: true,
-    coursesAllowed: "all",
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80",
-    badge: "TRÍ TUỆ 💡",
-    rating: 5.0,
-    playsCount: 0,
-    tags: ["Memory Card", "Logic", "Terminology Matching"],
-  },
-  {
-    id: "game_hardware_3d_lab",
-    title: "Phòng Thí Nghiệm Lắp Ráp Máy Tính 3D",
-    subtitle: "Mô Phỏng Kiến Trúc Phần Cứng Trực Quan",
-    genre: "3D Hardware Assembly Simulator",
-    category: "simulation",
-    description:
-      "Khám phá cấu tạo bên trong thùng máy PC: Chọn linh kiện quan trọng (CPU, RAM, GPU, SSD M.2, Bộ Nguồn PSU) và lắp ráp chuẩn xác vào Bo mạch chủ để kích nguồn kiểm tra POST OS.",
-    author: "Ban Học Thuật E-V-E",
-    difficulty: "Trung Bình",
-    rewardCoins: 60,
-    needExtraData: false,
-    coursesAllowed: "all",
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=800&auto=format&fit=crop&q=80",
-    badge: "MÔ PHỎNG 💻",
-    rating: 5.0,
-    playsCount: 0,
-    tags: ["Hardware 3D", "PC Building", "Motherboard Simulation"],
-  },
-];
+const DEFAULT_GAMES: ArcadeGameItem[] = [];
 
 export default function StudentGamesArcadePage() {
   const router = useRouter();

@@ -54,7 +54,7 @@ const { userData } = GetUserData();
 
             {/* User Profile Avatar */}
             <div className="flex items-center gap-3 pl-2 border-l border-[#7bd1fa]/15">
-              <Link href="/dashbroad/student/profile" className="flex items-center gap-2">
+              <Link href="/dashboard/student/profile" className="flex items-center gap-2">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full bg-linear-to-tr from-cyan-400 to-blue-600 p-[2px]">
                     <div className="w-full h-full rounded-full bg-[#0a0e1a] flex items-center justify-center overflow-hidden">

@@ -33,8 +33,8 @@ export default function Sidebar() {
         {/* Navigation Links */}
         <nav className="space-y-1.5">
           {[
-            { label: "Dashboard", icon: LayoutDashboard, href: "/dashbroad/student", active: true },
-            { label: "Learning Path", icon: Compass, href: "/dashbroad/student/LearningPath", active: false },
+            { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard/student", active: true },
+            { label: "Learning Path", icon: Compass, href: "/dashboard/student/LearningPath", active: false },
           ].map((item, idx) => (
             <a
               key={idx}
