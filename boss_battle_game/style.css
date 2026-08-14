@@ -149,7 +149,7 @@ body, html {
 }
 
 .screen.active {
-  display: flex;
+  display: flex !important;
 }
 
 .center-panel {
@@ -301,7 +301,6 @@ body, html {
    SCREEN 2: BATTLE ARENA
    ========================================================================== */
 #screen-battle {
-  display: none;
   flex-direction: column;
   justify-content: space-between;
   padding: 12px 18px;

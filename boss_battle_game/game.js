@@ -120,70 +120,89 @@ const GameState = {
 
 // ── 3. DOM ELEMENT REFERENCES ──
 const UI = {
-  screens: {
+  screens: {},
+  phases: {},
+  header: {},
+  boss: {},
+  combatSubbar: {},
+  marathon: {},
+  attackRelease: {},
+  dodge: {},
+  victory: {},
+  defeat: {},
+};
+
+function initUI() {
+  UI.screens = {
     weaponSelect: document.getElementById("screen-weapon-select"),
     battle: document.getElementById("screen-battle"),
     victory: document.getElementById("screen-victory"),
     defeat: document.getElementById("screen-defeat"),
-  },
-  phases: {
+  };
+  UI.phases = {
     marathon: document.getElementById("phase-marathon"),
     attackRelease: document.getElementById("phase-attack-release"),
     dodge: document.getElementById("phase-dodge"),
-  },
-  header: {
+  };
+  UI.header = {
     courseTitle: document.getElementById("course-title"),
     score: document.getElementById("hud-score"),
     combo: document.getElementById("hud-combo"),
     btnSound: document.getElementById("btn-sound"),
-  },
-  boss: {
+  };
+  UI.boss = {
     hpNumber: document.getElementById("boss-current-hp"),
     hpBar: document.getElementById("boss-hp-bar"),
     figure: document.getElementById("boss-figure"),
     phaseTag: document.getElementById("boss-phase-tag"),
     dmgContainer: document.getElementById("floating-damage-container"),
-  },
-  combatSubbar: {
+  };
+  UI.combatSubbar = {
     weaponIcon: document.getElementById("equipped-icon"),
     weaponName: document.getElementById("equipped-name"),
     accDamage: document.getElementById("hud-acc-damage"),
-  },
-  marathon: {
+  };
+  UI.marathon = {
     timerText: document.getElementById("timer-text"),
     timerBar: document.getElementById("timer-bar-inner"),
     qNum: document.getElementById("q-number"),
     qText: document.getElementById("question-text"),
     answersGrid: document.getElementById("answers-grid"),
-  },
-  attackRelease: {
+  };
+  UI.attackRelease = {
     summaryText: document.getElementById("attack-summary-text"),
-  },
-  dodge: {
+  };
+  UI.dodge = {
     barInner: document.getElementById("dodge-bar-inner"),
     targetIcon: document.getElementById("target-direction-icon"),
     targetName: document.getElementById("target-direction-name"),
-  },
-  victory: {
+  };
+  UI.victory = {
     score: document.getElementById("res-win-score"),
     time: document.getElementById("res-win-time"),
     acc: document.getElementById("res-win-acc"),
     coins: document.getElementById("res-win-coins"),
-  },
-  defeat: {
+  };
+  UI.defeat = {
     bossHp: document.getElementById("res-defeat-boss-hp"),
     score: document.getElementById("res-defeat-score"),
     reason: document.getElementById("defeat-reason-text"),
-  },
-};
+  };
+}
 
 // ── 4. INITIALIZATION & SDK INTEGRATION ──
 document.addEventListener("DOMContentLoaded", () => {
+  initUI();
   initSDK();
   initFXCanvas();
   setupKeyboardListeners();
   setupSoundButton();
 });
+
+// Run initUI immediately as well
+if (typeof document !== "undefined" && document.readyState !== "loading") {
+  initUI();
+}
 
 function initSDK() {
   try {
@@ -198,7 +217,7 @@ function initSDK() {
     if (GameState.sdk) {
       GameState.sdk.onDataReady((data) => {
         console.log("[Boss Slayer] Course data loaded via SDK:", data);
-        if (data.courseTitle) {
+        if (data.courseTitle && UI.header.courseTitle) {
           UI.header.courseTitle.innerText = `Khóa học: ${data.courseTitle}`;
         }
         if (Array.isArray(data.pairs) && data.pairs.length > 0) {
@@ -212,35 +231,37 @@ function initSDK() {
       GameState.sdk.initSession({ gameId: "boss_battle_quiz" }).then((data) => {
         if (data && data.pairs && data.pairs.length > 0) {
           GameState.questionBank = data.pairs;
-          if (data.courseTitle) {
+          if (data.courseTitle && UI.header.courseTitle) {
             UI.header.courseTitle.innerText = `Khóa học: ${data.courseTitle}`;
           }
         } else if (GameState.questionBank.length === 0) {
           GameState.questionBank = DEFAULT_FALLBACK_PAIRS;
-          UI.header.courseTitle.innerText = "Khóa học: Lập Trình Cơ Bản (Thử Nghiệm)";
+          if (UI.header.courseTitle) UI.header.courseTitle.innerText = "Khóa học: Lập Trình Cơ Bản (Thử Nghiệm)";
         }
       }).catch(() => {
         if (GameState.questionBank.length === 0) {
           GameState.questionBank = DEFAULT_FALLBACK_PAIRS;
-          UI.header.courseTitle.innerText = "Khóa học: Lập Trình Cơ Bản (Offline)";
+          if (UI.header.courseTitle) UI.header.courseTitle.innerText = "Khóa học: Lập Trình Cơ Bản (Offline)";
         }
       });
     } else {
       GameState.questionBank = DEFAULT_FALLBACK_PAIRS;
-      UI.header.courseTitle.innerText = "Khóa học: Lập Trình Cơ Bản (Offline)";
+      if (UI.header.courseTitle) UI.header.courseTitle.innerText = "Khóa học: Lập Trình Cơ Bản (Offline)";
     }
   } catch (err) {
     console.warn("EVE SDK initialization fallback:", err);
     GameState.questionBank = DEFAULT_FALLBACK_PAIRS;
-    UI.header.courseTitle.innerText = "Khóa học: Lập Trình Cơ Bản (Offline)";
+    if (UI.header.courseTitle) UI.header.courseTitle.innerText = "Khóa học: Lập Trình Cơ Bản (Offline)";
   }
 }
 
 function setupSoundButton() {
-  UI.header.btnSound.addEventListener("click", () => {
-    GameState.isMuted = !GameState.isMuted;
-    UI.header.btnSound.innerText = GameState.isMuted ? "🔇" : "🔊";
-  });
+  if (UI.header.btnSound) {
+    UI.header.btnSound.addEventListener("click", () => {
+      GameState.isMuted = !GameState.isMuted;
+      UI.header.btnSound.innerText = GameState.isMuted ? "🔇" : "🔊";
+    });
+  }
 }
 
 function playSound(type) {
@@ -252,24 +273,54 @@ function playSound(type) {
 
 // ── 5. SCREEN MANAGEMENT ──
 function showScreen(screenKey) {
-  Object.values(UI.screens).forEach((screen) => screen.classList.remove("active"));
-  UI.screens[screenKey].classList.add("active");
+  initUI();
+  document.querySelectorAll(".screen").forEach((screen) => {
+    screen.classList.remove("active");
+  });
+
+  const screenIdMap = {
+    weaponSelect: "screen-weapon-select",
+    battle: "screen-battle",
+    victory: "screen-victory",
+    defeat: "screen-defeat",
+  };
+
+  const targetId = screenIdMap[screenKey] || screenKey;
+  const targetElem = document.getElementById(targetId);
+  if (targetElem) {
+    targetElem.classList.add("active");
+  }
 }
 
 function showPhase(phaseKey) {
-  Object.values(UI.phases).forEach((phase) => phase.classList.remove("active-phase"));
-  UI.phases[phaseKey].classList.add("active-phase");
+  initUI();
+  document.querySelectorAll(".combat-phase").forEach((phase) => {
+    phase.classList.remove("active-phase");
+  });
+
+  const phaseIdMap = {
+    marathon: "phase-marathon",
+    attackRelease: "phase-attack-release",
+    dodge: "phase-dodge",
+  };
+
+  const targetId = phaseIdMap[phaseKey] || phaseKey;
+  const targetElem = document.getElementById(targetId);
+  if (targetElem) {
+    targetElem.classList.add("active-phase");
+  }
 }
 
 // ── 6. WEAPON SELECTION & GAME START ──
 function selectWeapon(weaponType) {
+  initUI();
   GameState.selectedWeapon = weaponType;
   if (weaponType === "sword") {
-    UI.combatSubbar.weaponIcon.innerText = "⚔️";
-    UI.combatSubbar.weaponName.innerText = "Kiếm Diệt Thần (+40 DMG & 2x Điểm)";
+    if (UI.combatSubbar.weaponIcon) UI.combatSubbar.weaponIcon.innerText = "⚔️";
+    if (UI.combatSubbar.weaponName) UI.combatSubbar.weaponName.innerText = "Kiếm Diệt Thần (+40 DMG & 2x Điểm)";
   } else {
-    UI.combatSubbar.weaponIcon.innerText = "🪄";
-    UI.combatSubbar.weaponName.innerText = "Trượng Thời Gian (+1.5s/câu đúng)";
+    if (UI.combatSubbar.weaponIcon) UI.combatSubbar.weaponIcon.innerText = "🪄";
+    if (UI.combatSubbar.weaponName) UI.combatSubbar.weaponName.innerText = "Trượng Thời Gian (+1.5s/câu đúng)";
   }
 
   startGame();
