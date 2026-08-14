@@ -17,6 +17,8 @@ Truy cập và trải nghiệm toàn bộ tính năng của hệ thống E-V-E t
 | 👨‍🏫 **Giáo Viên (Teacher)** | `dat1@gmail.com` | `123456` | Quản lý lớp học, sổ điểm, giao bài tập AI, Upload Game Engine |
 | 🛡️ **Quản Trị Viên (Admin)** | `dat2@gmail.com` | `123456` | Kiểm duyệt game, phê duyệt lộ trình, quản lý người dùng |
 
+> ⚠️ **Lưu ý quan trọng:** Một số tính năng và dữ liệu trong dự án hiện đang trong giai đoạn mẫu (prototype) và thử nghiệm nghiên cứu, do đó một số luồng tương tác có thể sử dụng dữ liệu mô phỏng và chưa thực sự hoạt động hoàn chỉnh 100% như trên môi trường thực tế.
+
 ---
 
 ## 📖 1. Giới Thiệu Dự Án

@@ -13,6 +13,8 @@ Tài liệu kỹ thuật và hướng dẫn khởi chạy ứng dụng web **E-V
 - 📂 [Google Drive Folder Tài Liệu Nhóm](https://drive.google.com/drive/folders/1clPPIeyvm3CkhCIhyYJAkFBPT7n_2v02)
 - 📊 [Google Sheets Báo Cáo Đồ Án](https://docs.google.com/spreadsheets/d/1XVPI0MKJFvKDSKv91b8vD7zJRsw2_1AHGjsWmiVpclA/edit?usp=sharing)
 
+> ⚠️ **Lưu ý:** Một số tính năng vẫn đang trong giai đoạn mẫu (prototype) và thử nghiệm nghiên cứu nên có thể chưa thực sự hoạt động hoàn chỉnh 100% như thực tế.
+
 Vui lòng xem tài liệu tổng quan và hướng dẫn đồ án chi tiết tại [README.md gốc của dự án](../README.md).
 
 ---
