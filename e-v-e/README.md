@@ -4,6 +4,11 @@ Tài liệu kỹ thuật và hướng dẫn khởi chạy ứng dụng web **E-V
 
 🌐 **Trải nghiệm demo trực tiếp tại:** [https://ttcm-rnd-k18.vercel.app/](https://ttcm-rnd-k18.vercel.app/)
 
+### 🔑 Tài Khoản Thử Nghiệm:
+- 🎓 **Học Sinh:** `dat@gmail.com` / `123456`
+- 👨‍🏫 **Giáo Viên:** `dat1@gmail.com` / `123456`
+- 🛡️ **Quản Trị Viên:** `dat2@gmail.com` / `123456`
+
 Vui lòng xem tài liệu tổng quan và hướng dẫn đồ án chi tiết tại [README.md gốc của dự án](../README.md).
 
 ---

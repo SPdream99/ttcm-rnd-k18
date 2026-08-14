@@ -9,6 +9,14 @@
 Truy cập và trải nghiệm toàn bộ tính năng của hệ thống E-V-E trực tuyến tại:  
 👉 **[https://ttcm-rnd-k18.vercel.app/](https://ttcm-rnd-k18.vercel.app/)**
 
+### 🔑 Danh Sách Tài Khoản Thử Nghiệm (Demo Accounts):
+
+| Vai Trò (Role) | Email Đăng Nhập | Mật Khẩu (Password) | Quyền Hạn Trải Nghiệm |
+|:---|:---|:---:|:---|
+| 🎓 **Học Sinh (Student)** | `dat@gmail.com` | `123456` | Học tập, nộp bài, làm bài tập, hỏi AI Tutor, chơi Minigame |
+| 👨‍🏫 **Giáo Viên (Teacher)** | `dat1@gmail.com` | `123456` | Quản lý lớp học, sổ điểm, giao bài tập AI, Upload Game Engine |
+| 🛡️ **Quản Trị Viên (Admin)** | `dat2@gmail.com` | `123456` | Kiểm duyệt game, phê duyệt lộ trình, quản lý người dùng |
+
 ---
 
 ## 📖 1. Giới Thiệu Dự Án
