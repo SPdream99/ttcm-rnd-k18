@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   UploadCloud,
   BookOpen,
@@ -14,6 +15,7 @@ import {
   FolderArchive,
   Info,
   ShieldAlert,
+  Download,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { collection, addDoc, getDocs } from "firebase/firestore";
@@ -39,6 +41,7 @@ export default function TeacherUploadCenterPage() {
       id: "pair_1",
       title: "Lệnh print() trong Python dùng để làm gì?",
       description: "In văn bản hoặc kết quả ra màn hình",
+      explanation: "Hàm print() là hàm tích hợp sẵn trong Python dùng để xuất dữ liệu hoặc chuỗi thông báo ra màn hình console.",
       distractions: ["Nhập dữ liệu từ bàn phím", "Tạo một biến số mới", "Dừng chương trình"],
       image_url: "",
     },
@@ -74,6 +77,7 @@ export default function TeacherUploadCenterPage() {
         id: `pair_${Date.now()}`,
         title: "",
         description: "",
+        explanation: "",
         distractions: [""],
         image_url: "",
       },
@@ -185,7 +189,7 @@ export default function TeacherUploadCenterPage() {
     setActionMsg(`✅ Đã lưu Khóa Học "${courseTitle}" với ${pairs.length} cặp câu hỏi và ${resources.length} tài liệu học tập!`);
     setCourseTitle("");
     setCourseDesc("");
-    setPairs([{ id: "pair_1", title: "", description: "", distractions: [""], image_url: "" }]);
+    setPairs([{ id: "pair_1", title: "", description: "", explanation: "", distractions: [""], image_url: "" }]);
     setResources([]);
     setTimeout(() => setActionMsg(null), 4500);
   };
@@ -274,7 +278,7 @@ export default function TeacherUploadCenterPage() {
 
     // 1. Save to Firestore
     try {
-      await addDoc(collection(db, "games"), payload);
+      await addDoc(collection(db, "game_info"), payload);
     } catch (err) {
       console.warn("Firestore addDoc error (falling back to LocalStorage):", err);
     }
@@ -567,6 +571,20 @@ export default function TeacherUploadCenterPage() {
                     </div>
                   </div>
 
+                  {/* Explanation */}
+                  <div>
+                    <label className="block text-xs font-mono text-cyan-300 mb-1 font-bold">
+                      💡 Giải thích chi tiết đáp án / kiến thức (Explanation):
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={pair.explanation || ""}
+                      onChange={(e) => handleUpdatePair(idx, "explanation", e.target.value)}
+                      placeholder="VD: Giải thích tại sao đáp án này đúng và nguyên lý kiến thức liên quan..."
+                      className="w-full bg-[#0f1524] border border-cyan-500/30 focus:border-cyan-400 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none resize-none"
+                    />
+                  </div>
+
                   {/* Distractions */}
                   <div className="space-y-2 pt-2 border-t border-slate-800">
                     <div className="flex items-center justify-between">
@@ -709,6 +727,40 @@ export default function TeacherUploadCenterPage() {
       {/* ── TAB 3: UPLOAD GAME ENGINE (.ZIP) ── */}
       {activeTab === "game" && (
         <form onSubmit={handleSubmitGame} className="space-y-6">
+          {/* Quick Download SDK & Starter Kit Banner */}
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-[#151b2c] to-purple-950/40 border border-emerald-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
+            <div className="space-y-1">
+              <div className="text-xs font-mono text-emerald-300 font-bold flex items-center gap-1.5">
+                <Download className="w-4 h-4 text-emerald-400" /> Tải Bộ Mã Nguồn Mẫu & Thư Viện SDK Để Chạy Test Trực Tiếp
+              </div>
+              <p className="text-xs text-slate-300">
+                Thầy/Cô có thể tải bộ mã nguồn mẫu <code className="text-cyan-300 font-mono">eve_game_starter_kit.zip</code> (có sẵn file HTML/JS/CSS và câu hỏi mẫu) để chạy thử nghiệm offline trước khi nén gói nộp lên hệ thống.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              <a
+                href="/eve_game_starter_kit.zip"
+                download="eve_game_starter_kit.zip"
+                className="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black font-mono font-bold text-xs border border-cyan-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+              >
+                <Download className="w-3.5 h-3.5" /> Tải Starter Kit (.ZIP)
+              </a>
+              <a
+                href="/eve-game-sdk.js"
+                download="eve-game-sdk.js"
+                className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-black font-mono font-bold text-xs border border-emerald-500/40 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" /> eve-game-sdk.js
+              </a>
+              <Link
+                href="/teacher/game-sdk-guide"
+                className="px-3.5 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500 text-purple-300 hover:text-black font-mono font-bold text-xs border border-purple-500/40 transition-all flex items-center gap-1.5"
+              >
+                <BookOpen className="w-3.5 h-3.5" /> Xem Tài Liệu SDK →
+              </Link>
+            </div>
+          </div>
+
           {/* Game Archetype Template Presets */}
           <div className="p-6 rounded-2xl bg-[#0f1524]/90 border border-purple-500/20 space-y-4">
             <div className="flex items-center justify-between">

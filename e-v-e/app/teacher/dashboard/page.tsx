@@ -94,7 +94,7 @@ export default function TeacherDashboardPage() {
         const coursesList = coursesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
         // Load games from Firestore
-        const gamesSnap = await getDocs(collection(db, "games"));
+        const gamesSnap = await getDocs(collection(db, "game_info"));
         let gamesList = gamesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
         // Merge with local storage games

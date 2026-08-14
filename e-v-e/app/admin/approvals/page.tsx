@@ -15,11 +15,21 @@ import {
   HelpCircle,
   FileCode,
   ShieldCheck,
+  CheckCircle2,
+  X,
 } from "lucide-react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Course, CourseContentPair } from "@/core/entities/Course";
 import { Game } from "@/core/entities/Game";
+
+interface ConfirmModalData {
+  title: string;
+  description: string;
+  confirmText?: string;
+  variant?: "emerald" | "rose" | "purple" | "cyan";
+  onConfirm: () => void;
+}
 
 export default function AdminApprovalsPage() {
   const [activeTab, setActiveTab] = useState<"courses" | "games">("courses");
@@ -27,6 +37,9 @@ export default function AdminApprovalsPage() {
   const [games, setGames] = useState<Game[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+
+  // ── Confirmation Prompt State ──
+  const [confirmPrompt, setConfirmPrompt] = useState<ConfirmModalData | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -48,7 +61,7 @@ export default function AdminApprovalsPage() {
 
       let combinedGames: any[] = [];
       try {
-        const gSnap = await getDocs(collection(db, "games"));
+        const gSnap = await getDocs(collection(db, "game_info"));
         if (!gSnap.empty) {
           combinedGames = gSnap.docs.map((d) => ({
             id: d.id,
@@ -97,18 +110,45 @@ export default function AdminApprovalsPage() {
     }
   }, []);
 
-  const handleApproveCourse = async (courseId: string, approved: boolean) => {
+  // ── Prompt Handlers ──
+  const handlePromptApproveCourse = (course: Course, approved: boolean) => {
+    setConfirmPrompt({
+      title: approved ? "Xác Nhận Phê Duyệt Khóa Học" : "Xác Nhận Từ Chối / Hủy Duyệt",
+      description: approved
+        ? `Bạn có chắc muốn PHÊ DUYỆT khóa học "${course.title}"? Khóa học sẽ lập tức xuất hiện cho học sinh ôn luyện trên toàn hệ thống.`
+        : `Bạn có chắc muốn ${course.isAccepted ? "HỦY PHÊ DUYỆT" : "TỪ CHỐI"} khóa học "${course.title}"?`,
+      confirmText: approved ? "Xác Nhận Duyệt" : "Xác Nhận Từ Chối",
+      variant: approved ? "emerald" : "rose",
+      onConfirm: () => executeApproveCourse(course.id, approved),
+    });
+  };
+
+  const executeApproveCourse = async (courseId: string, approved: boolean) => {
+    setConfirmPrompt(null);
     try {
       await updateDoc(doc(db, "courses", courseId), { is_accepted: approved, isAccepted: approved });
     } catch {}
     setCourses((prev) =>
       prev.map((c) => (c.id === courseId ? { ...c, isAccepted: approved } : c))
     );
-    setActionMsg(approved ? "✅ Đã phê duyệt Khóa học thành công!" : "⚠️ Đã từ chối Khóa học.");
+    setActionMsg(approved ? "✅ Đã phê duyệt Khóa học thành công!" : "⚠️ Đã từ chối / hủy duyệt Khóa học.");
     setTimeout(() => setActionMsg(null), 3500);
   };
 
-  const handleApproveGame = async (gameId: string, approved: boolean) => {
+  const handlePromptApproveGame = (game: Game, approved: boolean) => {
+    setConfirmPrompt({
+      title: approved ? "Xác Nhận Phê Duyệt Game Engine" : "Xác Nhận Từ Chối Game",
+      description: approved
+        ? `Bạn đã audit source code và xác nhận PHÊ DUYỆT cho Game Engine "${game.title}"? Trò chơi sẽ sẵn sàng để giáo viên và học sinh liên kết vào các bộ đề trắc nghiệm.`
+        : `Bạn có chắc muốn ${game.isAccepted ? "HỦY PHÊ DUYỆT" : "TỪ CHỐI"} Game Engine "${game.title}"?`,
+      confirmText: approved ? "Xác Nhận Duyệt Game" : "Xác Nhận Từ Chối",
+      variant: approved ? "emerald" : "rose",
+      onConfirm: () => executeApproveGame(game.id, approved),
+    });
+  };
+
+  const executeApproveGame = async (gameId: string, approved: boolean) => {
+    setConfirmPrompt(null);
     try {
       await updateDoc(doc(db, "games", gameId), { is_accepted: approved, isAccepted: approved });
     } catch {}
@@ -131,7 +171,18 @@ export default function AdminApprovalsPage() {
     setTimeout(() => setActionMsg(null), 3500);
   };
 
-  const handleDownloadSource = (game: any) => {
+  const handlePromptDownloadSource = (game: any) => {
+    setConfirmPrompt({
+      title: "Xác Nhận Tải Gói Source Code",
+      description: `Bạn có muốn tải file zip mã nguồn của Game Engine "${game.title}" về máy tính để thực hiện kiểm định bảo mật (Audit code) không?`,
+      confirmText: "Tải Xuống (.zip)",
+      variant: "purple",
+      onConfirm: () => executeDownloadSource(game),
+    });
+  };
+
+  const executeDownloadSource = (game: any) => {
+    setConfirmPrompt(null);
     const downloadUrl = game.downloadSourceUrl || game.download_source_url || "/boss_battle_quiz.zip";
     const a = document.createElement("a");
     a.href = downloadUrl;
@@ -145,7 +196,7 @@ export default function AdminApprovalsPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in font-sans">
+    <div className="space-y-6 animate-fade-in font-sans pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
         <div>
@@ -161,7 +212,7 @@ export default function AdminApprovalsPage() {
       {actionMsg && (
         <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-xs flex items-center justify-between animate-fade-in">
           <span>{actionMsg}</span>
-          <button onClick={() => setActionMsg(null)} className="text-slate-400 hover:text-white">✕</button>
+          <button onClick={() => setActionMsg(null)} className="text-slate-400 hover:text-white cursor-pointer">✕</button>
         </div>
       )}
 
@@ -255,13 +306,13 @@ export default function AdminApprovalsPage() {
                         {!course.isAccepted ? (
                           <>
                             <button
-                              onClick={() => handleApproveCourse(course.id, true)}
+                              onClick={() => handlePromptApproveCourse(course, true)}
                               className="px-3.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-mono text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-[0_0_10px_rgba(16,185,129,0.2)]"
                             >
                               <CheckCircle className="w-3.5 h-3.5" /> Duyệt
                             </button>
                             <button
-                              onClick={() => handleApproveCourse(course.id, false)}
+                              onClick={() => handlePromptApproveCourse(course, false)}
                               className="px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 font-mono text-xs cursor-pointer transition-all"
                             >
                               <XCircle className="w-3.5 h-3.5" /> Từ Chối
@@ -269,7 +320,7 @@ export default function AdminApprovalsPage() {
                           </>
                         ) : (
                           <button
-                            onClick={() => handleApproveCourse(course.id, false)}
+                            onClick={() => handlePromptApproveCourse(course, false)}
                             className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-mono text-xs cursor-pointer transition-all"
                           >
                             Hủy phê duyệt
@@ -374,7 +425,7 @@ export default function AdminApprovalsPage() {
                 {/* Audit & Download Action */}
                 <div className="pt-3 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <button
-                    onClick={() => handleDownloadSource(game)}
+                    onClick={() => handlePromptDownloadSource(game)}
                     className="w-full sm:w-auto px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-all cursor-pointer"
                   >
                     <Download className="w-4 h-4" /> 📥 Tải Source Code (.zip)
@@ -384,13 +435,13 @@ export default function AdminApprovalsPage() {
                     {!game.isAccepted ? (
                       <>
                         <button
-                          onClick={() => handleApproveGame(game.id, true)}
+                          onClick={() => handlePromptApproveGame(game, true)}
                           className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
                         >
                           <ShieldCheck className="w-4 h-4" /> Duyệt Game
                         </button>
                         <button
-                          onClick={() => handleApproveGame(game.id, false)}
+                          onClick={() => handlePromptApproveGame(game, false)}
                           className="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 font-mono text-xs cursor-pointer transition-all"
                         >
                           Từ Chối
@@ -398,7 +449,7 @@ export default function AdminApprovalsPage() {
                       </>
                     ) : (
                       <button
-                        onClick={() => handleApproveGame(game.id, false)}
+                        onClick={() => handlePromptApproveGame(game, false)}
                         className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-mono text-xs cursor-pointer transition-all"
                       >
                         Hủy duyệt
@@ -409,6 +460,64 @@ export default function AdminApprovalsPage() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* ── CONFIRMATION PROMPT MODAL ── */}
+      {confirmPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in font-sans">
+          <div className="bg-[#0f1524] border border-[#7bd1fa]/30 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-5 text-center relative">
+            <button
+              type="button"
+              onClick={() => setConfirmPrompt(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto text-xl ${
+              confirmPrompt.variant === "emerald"
+                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                : confirmPrompt.variant === "purple"
+                ? "bg-purple-500/20 text-purple-400 border border-purple-500/40"
+                : "bg-rose-500/20 text-rose-400 border border-rose-500/40"
+            }`}>
+              <HelpCircle className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-white tracking-tight">
+                {confirmPrompt.title}
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {confirmPrompt.description}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmPrompt(null)}
+                className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-bold transition-all cursor-pointer"
+              >
+                Hủy Bỏ
+              </button>
+              <button
+                type="button"
+                onClick={confirmPrompt.onConfirm}
+                className={`flex-1 py-3 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  confirmPrompt.variant === "emerald"
+                    ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                    : confirmPrompt.variant === "purple"
+                    ? "bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                    : "bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {confirmPrompt.confirmText || "Xác Nhận"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

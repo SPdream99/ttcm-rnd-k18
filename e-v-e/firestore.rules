@@ -27,12 +27,7 @@ service cloud.firestore {
 
     function isTeacher() {
       return isSignedIn() && 
-        getUserData().role == 'teacher' && 
-        getUserData().status == 'active';
-    }
-
-    function isStudent() {
-      return isSignedIn() && getUserData().role == 'student';
+        (getUserData().role == 'teacher' || getUserData().role == 'admin');
     }
 
     // ==========================================
@@ -41,57 +36,57 @@ service cloud.firestore {
 
     // 1. Users Collection
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && (request.auth.uid == userId || request.auth.uid == request.resource.data._id || isAdmin());
-      allow update: if isOwner(userId) || isAdmin();
+      allow read: if true;
+      allow create: if true;
+      allow update: if isOwner(userId) || isAdmin() || isSignedIn();
       allow delete: if isAdmin();
     }
 
     // 2. Shop Items Collection
     match /shop_items/{itemId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() || isTeacher();
     }
 
     // 3. Courses Collection
     match /courses/{courseId} {
-      allow read: if resource.data.is_accepted == true || isAdmin() || (isSignedIn() && request.auth.uid == resource.data.author_id);
-      allow create: if isTeacher() || isAdmin();
-      allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.author_id);
+      allow read: if true;
+      allow create, update: if isTeacher() || isAdmin() || isSignedIn();
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.author_id);
     }
 
     // 4. Learning Path Collection
     match /learning_path/{lpathId} {
-      allow read: if resource.data.is_accepted == true || isAdmin() || (isSignedIn() && request.auth.uid == resource.data.author_id);
-      allow create: if isTeacher() || isAdmin();
-      allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.author_id);
+      allow read: if true;
+      allow create, update: if isTeacher() || isAdmin() || isSignedIn();
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.author_id);
     }
 
     // 5. Resources Collection
     match /resources/{resourceId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isTeacher() || isAdmin();
+      allow read: if true;
+      allow create, update, delete: if isTeacher() || isAdmin() || isSignedIn();
     }
 
     // 6. Game Info Collection
     match /game_info/{gameId} {
-      allow read: if resource.data.is_accepted == true || isAdmin() || (isSignedIn() && request.auth.uid == resource.data.uploader_id);
-      allow create: if isTeacher() || isAdmin();
-      allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.uploader_id);
+      allow read: if true;
+      allow create, update: if isTeacher() || isAdmin() || isSignedIn();
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.uploader_id);
     }
 
     // 7. Game Results Collection
     match /game_results/{resultId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.uid;
-      allow update, delete: if isAdmin();
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin();
     }
 
     // 8. Enrollments Collection
     match /enrollments/{enrollmentId} {
-      allow read: if isSignedIn() && (request.auth.uid == resource.data.uid || isAdmin());
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.uid;
-      allow update, delete: if isSignedIn() && (request.auth.uid == resource.data.uid || isAdmin());
+      allow read: if true;
+      allow create, update: if isSignedIn() || true;
+      allow delete: if isAdmin();
     }
 
   }

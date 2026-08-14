@@ -4,16 +4,17 @@ import { verifyOTP } from "@/lib/twoFactorService";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, otp, purpose } = body;
+    const { email, otp, code, otpCode, purpose } = body;
+    const submittedOtp = (otp || code || otpCode || "").trim();
 
-    if (!email || !otp) {
+    if (!email || !submittedOtp) {
       return NextResponse.json(
         { success: false, error: "Vui lòng cung cấp đầy đủ email và mã OTP." },
         { status: 400 }
       );
     }
 
-    const verification = verifyOTP(email, otp, purpose);
+    const verification = verifyOTP(email, submittedOtp, purpose);
 
     if (!verification.valid) {
       return NextResponse.json(

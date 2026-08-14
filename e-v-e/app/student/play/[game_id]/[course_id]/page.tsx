@@ -58,24 +58,28 @@ const FALLBACK_COURSE_DATA: Record<string, { title: string; pairs: CourseContent
         id: "cb1",
         title: "Biến số (Variable) trong lập trình dùng để làm gì?",
         description: "Dùng để lưu trữ giá trị dữ liệu và có thể thay đổi trong quá trình chạy chương trình.",
+        explanation: "Biến số là ô nhớ trong bộ nhớ RAM được đặt tên để lưu trữ các giá trị (số, chuỗi, boolean) và có thể tái sử dụng hoặc cập nhật giá trị trong suốt quá trình thực thi.",
         distractions: ["Dùng để tắt máy tính", "Dùng để in ra giấy", "Dùng để xóa mã nguồn"],
       },
       {
         id: "cb2",
         title: "Cấu trúc điều kiện IF - ELSE có chức năng gì?",
         description: "Kiểm tra điều kiện đúng/sai để quyết định luồng rẽ nhánh thực thi của thuật toán.",
+        explanation: "Cấu trúc rẽ nhánh IF - ELSE cho phép chương trình đưa ra quyết định thực thi khối lệnh A nếu điều kiện thỏa mãn (True), ngược lại thực thi khối lệnh B (False).",
         distractions: ["Lặp lại vô tận câu lệnh", "Khai báo hàm mới", "Lưu trữ dữ liệu vào ổ cứng"],
       },
       {
         id: "cb3",
         title: "Vòng lặp (Loop) sinh ra để giải quyết bài toán nào?",
         description: "Tự động hóa việc lặp đi lặp lại một khối lệnh nhiều lần mà không cần viết lại mã.",
+        explanation: "Vòng lặp (For, While) giúp tối ưu mã nguồn, giảm trùng lặp bằng cách tự động thực hiện lại một nhóm lệnh cho đến khi thỏa mãn điều kiện dừng.",
         distractions: ["Thay đổi độ phân giải màn hình", "Nâng cấp phần cứng", "Tăng tốc độ mạng"],
       },
       {
         id: "cb4",
         title: "Thuật toán (Algorithm) là gì?",
         description: "Tập hợp các bước chỉ dẫn tuần tự, rõ ràng nhằm giải quyết một vấn đề cụ thể.",
+        explanation: "Thuật toán là quy trình hữu hạn các bước logic, có đầu vào (Input) và đầu ra (Output) xác định nhằm giải quyết một bài toán cụ thể.",
         distractions: ["Tên của một loại máy tính", "Bộ nhớ tạm thời RAM", "Trình duyệt web"],
       },
     ],
@@ -87,6 +91,7 @@ const FALLBACK_COURSE_DATA: Record<string, { title: string; pairs: CourseContent
         id: "hw1",
         title: "CPU (Central Processing Unit)",
         description: "Bộ vi xử lý trung tâm, đóng vai trò bộ não thực thi các lệnh và tính toán số học/logic của hệ thống.",
+        explanation: "CPU là linh kiện quan trọng nhất của máy tính, điều khiển mọi hoạt động, giải mã lệnh và thực hiện các phép toán số học ALU.",
         distractions: ["Bộ nhớ tạm thời RAM", "Card hiển thị đồ họa GPU", "Khối nguồn PSU"],
         image_url: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=600",
       },
@@ -94,6 +99,7 @@ const FALLBACK_COURSE_DATA: Record<string, { title: string; pairs: CourseContent
         id: "hw2",
         title: "GPU (Graphics Processing Unit)",
         description: "Bộ xử lý đồ họa chuyên dụng với hàng ngàn lõi song song để kết xuất hình ảnh 3D và tính toán AI.",
+        explanation: "GPU được thiết kế kiến trúc song song khổng lồ, chuyên dụng cho việc xử lý ma trận điểm ảnh 3D, dựng hình đồ họa và huấn luyện mô hình AI.",
         distractions: ["Ổ cứng thể rắn SSD", "Bo mạch chủ Motherboard", "Quạt tản nhiệt"],
         image_url: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=600",
       },
@@ -101,12 +107,14 @@ const FALLBACK_COURSE_DATA: Record<string, { title: string; pairs: CourseContent
         id: "hw3",
         title: "RAM (Random Access Memory)",
         description: "Bộ nhớ truy xuất ngẫu nhiên tốc độ cao, lưu trữ dữ liệu tạm thời khi các ứng dụng đang chạy.",
+        explanation: "RAM là bộ nhớ bay hơi (volatile memory) có tốc độ truy xuất cực nhanh, chứa dữ liệu làm việc của hệ điều hành và phần mềm đang mở.",
         distractions: ["Lưu trữ vĩnh viễn ROM", "Cổng kết nối USB", "Chipset bán cầu nam"],
       },
       {
         id: "hw4",
         title: "SSD M.2 NVMe",
         description: "Ổ lưu trữ thể rắn chuẩn giao tiếp PCIe siêu tốc, lưu trữ hệ điều hành và file dữ liệu không bị mất khi tắt nguồn.",
+        explanation: "SSD sử dụng chip nhớ flash NAND non-volatile với giao thức NVMe qua làn PCIe, cho tốc độ đọc ghi lên tới hàng nghìn MB/s.",
         distractions: ["Bộ nhớ đệm L3 Cache", "Thanh RAM DDR5", "Khối nguồn PSU"],
       },
     ],
@@ -118,12 +126,14 @@ const FALLBACK_COURSE_DATA: Record<string, { title: string; pairs: CourseContent
         id: "py1",
         title: "Hàm `print()` trong Python có tác dụng gì?",
         description: "Xuất dữ liệu hoặc chuỗi thông báo ra màn hình console.",
+        explanation: "Hàm print() là hàm tích hợp sẵn (built-in function) chuẩn trong Python dùng để in các đối tượng, chuỗi văn bản ra luồng xuất chuẩn stdout.",
         distractions: ["Nhập dữ liệu từ bàn phím", "Xóa biến số", "Đóng chương trình"],
       },
       {
         id: "py2",
         title: "Kiểu dữ liệu Boolean trong Python nhận những giá trị nào?",
         description: "True hoặc False",
+        explanation: "Kiểu Boolean (bool) trong Python là kiểu logic chỉ có 2 giá trị phân biệt được viết hoa chữ cái đầu là True và False.",
         distractions: ["1 hoặc 0", "Yes hoặc No", "Chuỗi văn bản"],
       },
     ],
@@ -135,12 +145,14 @@ const FALLBACK_COURSE_DATA: Record<string, { title: string; pairs: CourseContent
         id: "ai1",
         title: "Học máy (Machine Learning) là gì?",
         description: "Phương pháp cho phép máy tính tự học hỏi từ dữ liệu mẫu để đưa ra dự đoán.",
+        explanation: "Machine Learning là nhánh con của AI, huấn luyện các thuật toán dựa trên tập dữ liệu lịch sử để tự động nhận dạng quy luật mà không cần lập trình luật cứng.",
         distractions: ["Viết code thủ công từng dòng", "Phần cứng lưu trữ", "Hệ điều hành"],
       },
       {
         id: "ai2",
         title: "Mạng nơ-ron nhân tạo (Neural Network) mô phỏng cơ chế nào?",
         description: "Mô phỏng mạng lưới tế bào thần kinh sinh học trong não người.",
+        explanation: "Artificial Neural Networks (ANN) gồm nhiều lớp nơ-ron liên kết với các trọng số (weights) và hàm kích hoạt, mô phỏng cách não người truyền và xử lý tín hiệu.",
         distractions: ["Hệ thống mạng internet", "Động cơ đốt trong", "Bánh răng đồng hồ"],
       },
     ],
@@ -152,18 +164,21 @@ const FALLBACK_COURSE_DATA: Record<string, { title: string; pairs: CourseContent
         id: "p1",
         title: "Hiện tượng quang điện chứng minh tính chất gì của ánh sáng?",
         description: "Tính chất hạt (Photon)",
+        explanation: "Hiện tượng quang điện (Einstein 1905) chứng minh năng lượng ánh sáng được hấp thụ và phát xạ dưới dạng các gói năng lượng rời rạc gọi là photon.",
         distractions: ["Tính chất sóng", "Tính chất phản xạ", "Tính chất tán sắc"],
       },
       {
         id: "p2",
         title: "Ai là người đề xuất phương trình hàm sóng mô tả trạng thái lượng tử?",
         description: "Erwin Schrödinger",
+        explanation: "Nhà vật lý học người Áo Erwin Schrödinger đã đề xuất phương trình vi phân hàm sóng Psi mô tả xác suất tìm thấy hạt lượng tử theo không gian và thời gian.",
         distractions: ["Albert Einstein", "Niels Bohr", "Isaac Newton"],
       },
       {
         id: "p3",
         title: "Hằng số Planck có ký hiệu là gì?",
         description: "h",
+        explanation: "Hằng số Planck (h = 6.626 x 10^-34 J.s) do Max Planck khám phá, là hằng số nền tảng biểu diễn quy mô năng lượng lượng tử E = hf.",
         distractions: ["c", "e", "k"],
       },
     ],
@@ -309,6 +324,23 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   useEffect(() => {
     async function loadCourse() {
       try {
+        // Try server API first (which uses adminDb)
+        const res = await fetch("/api/games/init", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gameId, courseId, userId: uid }),
+        });
+        const data = await res.json();
+        if (data.success && Array.isArray(data.pairs) && data.pairs.length > 0) {
+          setCourseTitle(data.courseTitle || "Khóa Học E-V-E");
+          setPairs(data.pairs);
+          return;
+        }
+      } catch {
+        // Fallback to client getDoc
+      }
+
+      try {
         const cSnap = await getDoc(doc(db, "courses", courseId));
         if (cSnap.exists()) {
           const data = cSnap.data();
@@ -322,7 +354,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           }
         }
       } catch (e) {
-        console.warn("Using fallback course pairs for game injection:", e);
+        // Fallback
       }
 
       // Fallback pairs
@@ -331,7 +363,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
       setPairs(fallback.pairs);
     }
     loadCourse();
-  }, [courseId]);
+  }, [gameId, courseId, uid]);
 
   // 2. Fetch Leaderboard for THIS game in THIS course
   const loadLeaderboard = async () => {
@@ -609,8 +641,9 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
       <div className="p-4 md:p-5 rounded-2xl bg-[#0f1524]/90 border border-cyan-500/25 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-wrap">
           <Link
-            href="/student/learning-paths"
+            href="/student/games"
             className="p-2 rounded-xl bg-[#151b2c] hover:bg-slate-800 text-slate-300 hover:text-white transition-all cursor-pointer border border-slate-700"
+            title="Quay lại Kho Trò Chơi Arcade"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
@@ -972,6 +1005,18 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                           );
                         })}
                       </div>
+
+                      {/* Knowledge Explanation Banner */}
+                      {selectedAnswer !== null && (currentPair.explanation || (currentPair as any).explain) && (
+                        <div className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-200 text-xs space-y-1.5 animate-fade-in shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                          <div className="font-bold font-mono text-[11px] text-cyan-300 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Giải thích kiến thức:
+                          </div>
+                          <p className="leading-relaxed text-slate-200">
+                            {currentPair.explanation || (currentPair as any).explain}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

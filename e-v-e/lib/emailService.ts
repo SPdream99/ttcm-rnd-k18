@@ -4,7 +4,7 @@ interface Send2FAEmailParams {
   toEmail: string;
   recipientName?: string;
   otpCode: string;
-  purpose: "login" | "enable_2fa" | "disable_2fa";
+  purpose: "login" | "enable_2fa" | "disable_2fa" | "register";
 }
 
 /**
@@ -12,7 +12,9 @@ interface Send2FAEmailParams {
  */
 function get2FAEmailHTML(name: string, otpCode: string, purpose: string): string {
   const purposeTitle =
-    purpose === "enable_2fa"
+    purpose === "register"
+      ? "Xác Thực Đăng Ký Tài Khoản Mới"
+      : purpose === "enable_2fa"
       ? "Kích Hoạt Bảo Mật 2 Lớp (2FA)"
       : purpose === "disable_2fa"
       ? "Hủy Kích Hoạt Bảo Mật 2 Lớp (2FA)"
@@ -193,8 +195,12 @@ export async function send2FAEmail({
       });
 
       const subject =
-        purpose === "enable_2fa"
+        purpose === "register"
+          ? `[E-V-E] Mã OTP xác thực đăng ký tài khoản: ${otpCode}`
+          : purpose === "enable_2fa"
           ? `[E-V-E] Mã OTP kích hoạt 2FA: ${otpCode}`
+          : purpose === "disable_2fa"
+          ? `[E-V-E] Mã OTP hủy kích hoạt 2FA: ${otpCode}`
           : `[E-V-E] Mã xác thực đăng nhập 2FA: ${otpCode}`;
 
       await transporter.sendMail({

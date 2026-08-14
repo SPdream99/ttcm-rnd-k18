@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/infrastructure/firebase/firebaseAdmin";
 import { verifyOTP } from "@/lib/twoFactorService";
 
 export async function POST(req: NextRequest) {
@@ -33,19 +32,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Update in Firestore
+    // Update in Firestore using Admin SDK
     try {
-      const userRef = doc(db, "users", userId);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        await updateDoc(userRef, {
+      const userRef = adminDb.collection("users").doc(userId);
+      const userSnap = await userRef.get();
+      if (userSnap.exists) {
+        await userRef.update({
           two_factor_enabled: enabled,
           twoFactorEnabled: enabled,
           updated_at: new Date().toISOString(),
         });
       }
     } catch (dbErr) {
-      console.warn("[2FA Toggle] Firestore update warning:", dbErr);
+      console.warn("[2FA Toggle] Admin Firestore update warning:", dbErr);
     }
 
     return NextResponse.json({

@@ -94,7 +94,7 @@ export default function StudentDashboardPage() {
   useEffect(() => {
     async function loadGamesAndCourses() {
       try {
-        const gamesSnap = await getDocs(collection(db, "games"));
+        const gamesSnap = await getDocs(collection(db, "game_info"));
         let gamesList: any[] = gamesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
         try {
@@ -224,12 +224,20 @@ export default function StudentDashboardPage() {
             </p>
           </div>
 
-          <Link
-            href="/student/leaderboard"
-            className="text-xs font-mono text-purple-400 hover:underline flex items-center gap-1"
-          >
-            Xem BXH Điểm Thưởng <Trophy className="w-3.5 h-3.5 text-amber-400" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/student/games"
+              className="text-xs font-mono text-cyan-400 hover:text-cyan-300 font-bold hover:underline flex items-center gap-1"
+            >
+              Vào Kho Trò Chơi Arcade →
+            </Link>
+            <Link
+              href="/student/leaderboard"
+              className="text-xs font-mono text-purple-400 hover:underline flex items-center gap-1"
+            >
+              BXH <Trophy className="w-3.5 h-3.5 text-amber-400" />
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">

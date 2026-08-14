@@ -6,7 +6,7 @@
 export interface OTPRecord {
   email: string;
   code: string;
-  purpose: "login" | "enable_2fa" | "disable_2fa";
+  purpose: "login" | "enable_2fa" | "disable_2fa" | "register";
   expiresAt: number;
   attempts: number;
   createdAt: number;
@@ -27,12 +27,12 @@ export function generateNumericOTP(length = 6): string {
 /**
  * Creates and stores a new OTP for an email address
  * @param email User's email address
- * @param purpose Purpose of the OTP ("login" | "enable_2fa" | "disable_2fa")
+ * @param purpose Purpose of the OTP ("login" | "enable_2fa" | "disable_2fa" | "register")
  * @param ttlSeconds Time-to-live in seconds (default: 300s = 5 mins)
  */
 export function createAndStoreOTP(
   email: string,
-  purpose: "login" | "enable_2fa" | "disable_2fa" = "login",
+  purpose: "login" | "enable_2fa" | "disable_2fa" | "register" = "login",
   ttlSeconds = 300
 ): { code: string; expiresAt: number; expiresIn: number } {
   const normalizedEmail = email.trim().toLowerCase();
@@ -67,7 +67,7 @@ export function createAndStoreOTP(
 export function verifyOTP(
   email: string,
   inputCode: string,
-  purpose?: "login" | "enable_2fa" | "disable_2fa"
+  purpose?: "login" | "enable_2fa" | "disable_2fa" | "register"
 ): { valid: boolean; error?: string } {
   const normalizedEmail = email.trim().toLowerCase();
   const record = otpMemoryCache.get(normalizedEmail);

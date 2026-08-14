@@ -179,6 +179,7 @@ const SEED_DATA = {
             id: "pair_1",
             title: "Phương trình Schrödinger dùng để làm gì?",
             right_answer: "Mô tả trạng thái lượng tử của hệ thống",
+            explanation: "Phương trình Schrödinger mô tả sự thay đổi của hàm sóng lượng tử theo thời gian, là nền tảng của cơ học lượng tử phi tương đối tính.",
             image: "https://example.com/schrodinger.png",
             wrong_answers: [
               "Tính vận tốc ánh sáng",
@@ -190,6 +191,7 @@ const SEED_DATA = {
             id: "pair_2",
             title: "Hiện tượng vướng víu lượng tử là gì?",
             right_answer: "Sự liên kết siêu xa giữa các hạt lượng tử",
+            explanation: "Vướng víu lượng tử (Quantum Entanglement) là hiện tượng hai hay nhiều hạt liên kết trạng thái với nhau bất kể khoảng cách không gian.",
             image: "",
             wrong_answers: [
               "Hạt nhân tự phân rã",
@@ -212,6 +214,7 @@ const SEED_DATA = {
             id: "pair_astro_1",
             title: "Ranh giới không thể thoát khỏi hố đen gọi là gì?",
             right_answer: "Chân trời sự kiện (Event Horizon)",
+            explanation: "Chân trời sự kiện là biên giới mà tại đó vận tốc vũ trụ cấp 2 vượt quá vận tốc ánh sáng, không vật chất hay bức xạ nào có thể thoát ra.",
             image: "",
             wrong_answers: [
               "Điểm kỳ dị (Singularity)",

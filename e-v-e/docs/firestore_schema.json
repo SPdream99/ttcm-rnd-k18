@@ -75,6 +75,7 @@
               "id": "pair_1",
               "title": "Phương trình Schrödinger dùng để làm gì?",
               "right_answer": "Mô tả trạng thái lượng tử của hệ thống",
+              "explanation": "Phương trình Schrödinger là phương trình cơ bản trong cơ học lượng tử, mô tả sự biến thiên của hàm sóng theo thời gian và không gian.",
               "image": "https://example.com/schrodinger.png",
               "wrong_answers": [
                 "Tính vận tốc ánh sáng",

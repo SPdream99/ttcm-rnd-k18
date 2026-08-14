@@ -19,9 +19,19 @@ import {
   UserCheck,
   Check,
   RefreshCw,
+  X,
+  HelpCircle,
 } from "lucide-react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+
+interface ConfirmModalData {
+  title: string;
+  description: string;
+  confirmText?: string;
+  variant?: "emerald" | "rose" | "purple" | "cyan";
+  onConfirm: () => void;
+}
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -40,6 +50,9 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+
+  // ── Confirmation Prompt State ──
+  const [confirmPrompt, setConfirmPrompt] = useState<ConfirmModalData | null>(null);
 
   const loadStats = async () => {
     try {
@@ -65,12 +78,10 @@ export default function AdminDashboardPage() {
             if (existingIdx === -1) {
               usersList.push(lu);
             } else {
-              // Merge details
               usersList[existingIdx] = { ...usersList[existingIdx], ...lu };
             }
           });
 
-          // Check if there is an active pending user session
           const sessionUser = JSON.parse(localStorage.getItem("eve_user") || "null");
           if (sessionUser && (sessionUser.role === "teacher" || sessionUser.role === "instructor")) {
             if (!usersList.some((u: any) => u.email === sessionUser.email)) {
@@ -80,7 +91,6 @@ export default function AdminDashboardPage() {
         }
       } catch {}
 
-      // Calculate teacher statuses flexibly
       const isTeacher = (u: any) => {
         const r = (u.role || "").toLowerCase();
         return r === "teacher" || r === "instructor";
@@ -111,7 +121,7 @@ export default function AdminDashboardPage() {
       // Games
       let gamesList: any[] = [];
       try {
-        const gamesSnap = await getDocs(collection(db, "games"));
+        const gamesSnap = await getDocs(collection(db, "game_info"));
         if (!gamesSnap.empty) {
           gamesList = gamesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         }
@@ -156,7 +166,19 @@ export default function AdminDashboardPage() {
     loadStats();
   }, []);
 
-  const handleQuickApproveTeacher = async (teacher: any) => {
+  const handlePromptQuickApprove = (teacher: any) => {
+    const teacherName = teacher.name || teacher.fullName || teacher.email;
+    setConfirmPrompt({
+      title: "Xác Nhận Phê Duyệt Giáo Viên",
+      description: `Bạn có chắc chắn muốn PHÊ DUYỆT và cấp toàn quyền Educator Studio cho tài khoản "${teacherName}" (${teacher.email})?`,
+      confirmText: "Xác Nhận Phê Duyệt",
+      variant: "emerald",
+      onConfirm: () => executeQuickApprove(teacher),
+    });
+  };
+
+  const executeQuickApprove = async (teacher: any) => {
+    setConfirmPrompt(null);
     const id = teacher.id || teacher.uid;
     setApprovingId(id);
 
@@ -176,7 +198,6 @@ export default function AdminDashboardPage() {
           localStorage.setItem("eve_registered_users", JSON.stringify(localList));
         }
 
-        // If active session belongs to this teacher, update it too
         const sessionUser = JSON.parse(localStorage.getItem("eve_user") || "null");
         if (sessionUser && (sessionUser.email === teacher.email || sessionUser.uid === id)) {
           sessionUser.status = "active";
@@ -343,7 +364,7 @@ export default function AdminDashboardPage() {
                     <button
                       type="button"
                       disabled={approvingId === (teacher.id || teacher.uid)}
-                      onClick={() => handleQuickApproveTeacher(teacher)}
+                      onClick={() => handlePromptQuickApprove(teacher)}
                       className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-mono text-xs font-bold border border-emerald-500/40 cursor-pointer transition-all flex items-center gap-1 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
                     >
                       {approvingId === (teacher.id || teacher.uid) ? (
@@ -414,6 +435,58 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ── GLOBAL CONFIRMATION PROMPT MODAL ── */}
+      {confirmPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in font-sans">
+          <div className="bg-[#0f1524] border border-[#7bd1fa]/30 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-5 text-center relative">
+            <button
+              type="button"
+              onClick={() => setConfirmPrompt(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-14 h-14 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-xl">
+              <HelpCircle className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-white tracking-tight">
+                {confirmPrompt.title}
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {confirmPrompt.description}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmPrompt(null)}
+                className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-bold transition-all cursor-pointer"
+              >
+                Hủy Bỏ
+              </button>
+              <button
+                type="button"
+                onClick={confirmPrompt.onConfirm}
+                className={`flex-1 py-3 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  confirmPrompt.variant === "emerald"
+                    ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                    : confirmPrompt.variant === "rose"
+                    ? "bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+                    : "bg-cyan-600 hover:bg-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {confirmPrompt.confirmText || "Xác Nhận"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

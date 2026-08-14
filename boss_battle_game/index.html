@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Đại Chiến Trùm Hư Không - Marathon Quiz Boss Slayer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-app">
+    <!-- Background Canvas for dynamic particles & combat FX -->
+    <canvas id="fx-canvas"></canvas>
+
+    <!-- Header / Top Bar -->
+    <header class="game-header">
+      <div class="header-left">
+        <div class="game-badge">⚔️ E-V-E BOSS SLAYER</div>
+        <div id="course-title" class="course-badge">Đang kết nối Khóa Học...</div>
+      </div>
+      <div class="header-right">
+        <div class="stat-pill"><span class="label">ĐIỂM:</span> <span id="hud-score" class="value text-cyan">0</span></div>
+        <div class="stat-pill"><span class="label">COMBO:</span> <span id="hud-combo" class="value text-gold">x0</span></div>
+        <button id="btn-sound" class="btn-icon" title="Bật/Tắt Âm Thanh">🔊</button>
+      </div>
+    </header>
+
+    <!-- Screen 1: WEAPON SELECTION -->
+    <section id="screen-weapon-select" class="screen active">
+      <div class="screen-content center-panel">
+        <h1 class="glow-title">CHỌN VŨ KHÍ GIMMICK</h1>
+        <p class="subtitle">Trang bị bảo khí huyền thoại trước khi đối đầu với Ma Thần Hư Không (1000 HP)</p>
+
+        <div class="weapons-grid">
+          <!-- Weapon 1: Sword -->
+          <div class="weapon-card" id="card-sword" onclick="selectWeapon('sword')">
+            <div class="weapon-glow sword-glow"></div>
+            <div class="weapon-icon">⚔️</div>
+            <h2 class="weapon-name">Thanh Kiếm Diệt Thần</h2>
+            <div class="weapon-tagline text-orange">Chuyên Gia Sát Thương & Điểm Số</div>
+            <ul class="weapon-perks">
+              <li><span class="bullet">✦</span> <strong>+40 Sát Thương</strong> thêm mỗi câu trả lời đúng</li>
+              <li><span class="bullet">✦</span> <strong>Tăng 2x Điểm Số</strong> tích lũy mỗi đòn chém</li>
+              <li><span class="bullet">✦</span> Tối ưu để hạ gục Boss với ít lượt né nhất!</li>
+            </ul>
+            <button class="btn-select-weapon btn-orange">CHỌN KIẾM CHIẾN ĐẤU</button>
+          </div>
+
+          <!-- Weapon 2: Magic Staff -->
+          <div class="weapon-card" id="card-staff" onclick="selectWeapon('staff')">
+            <div class="weapon-glow staff-glow"></div>
+            <div class="weapon-icon">🪄</div>
+            <h2 class="weapon-name">Trượng Phép Thời Gian</h2>
+            <div class="weapon-tagline text-cyan">Bẻ Cong Thời Gian & Kéo Dài Marathon</div>
+            <ul class="weapon-perks">
+              <li><span class="bullet">✦</span> <strong>+1.5 Giây</strong> vào đồng hồ mỗi câu trả lời đúng</li>
+              <li><span class="bullet">✦</span> Kéo dài thời gian marathon 10s vô hạn nếu trả lời chuẩn</li>
+              <li><span class="bullet">✦</span> Thích hợp cho người chơi thích combo chuỗi dài!</li>
+            </ul>
+            <button class="btn-select-weapon btn-cyan">CHỌN TRƯỢNG PHÉP</button>
+          </div>
+        </div>
+
+        <div class="game-guide-box">
+          <div class="guide-header">📜 LUẬT CHIẾN ĐẤU CHÍNH:</div>
+          <div class="guide-steps">
+            <span><strong>1. Marathon (10s):</strong> Trả lời liên tục câu hỏi random để tích lũy sát thương cực đại.</span>
+            <span><strong>2. Tổng Tấn Công:</strong> Xả toàn bộ sát thương tích lũy làm sụt thanh máu 1000 HP của Boss.</span>
+            <span><strong>3. Né Đòn Phản Công:</strong> Trùm sẽ phản công bất ngờ! Bấm đúng phím mũi tên (⬆️ ⬇️ ⬅️ ➡️) trong 1.8s để sống sót. Bấm trượt là thua ngay lập tức!</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 2: MAIN BATTLE ARENA -->
+    <section id="screen-battle" class="screen">
+      <!-- Boss Stage Area -->
+      <div class="boss-arena-top">
+        <div class="boss-hud">
+          <div class="boss-info-row">
+            <div class="boss-name-group">
+              <span class="boss-skull">💀</span>
+              <div>
+                <span class="boss-title">MA THẦN HƯ KHÔNG (VOID OVERLORD)</span>
+                <span id="boss-phase-tag" class="badge-phase">GIAI ĐOẠN 1: TÍCH SÁT THƯƠNG</span>
+              </div>
+            </div>
+            <div class="boss-hp-number">
+              <span id="boss-current-hp" class="text-rose">1000</span> / 1000 HP
+            </div>
+          </div>
+
+          <!-- Boss HP Bar -->
+          <div class="hp-bar-outer">
+            <div id="boss-hp-bar" class="hp-bar-inner"></div>
+            <div class="hp-bar-glow"></div>
+          </div>
+        </div>
+
+        <!-- Animated Boss Visual -->
+        <div id="boss-avatar-wrapper" class="boss-avatar-wrapper">
+          <div id="boss-aura" class="boss-aura"></div>
+          <div id="boss-figure" class="boss-figure">
+            <div class="boss-core">
+              <div class="eye left-eye"></div>
+              <div class="eye right-eye"></div>
+              <div class="boss-mouth"></div>
+            </div>
+            <div class="boss-horns">
+              <div class="horn left-horn"></div>
+              <div class="horn right-horn"></div>
+            </div>
+            <div class="boss-wings">
+              <div class="wing left-wing"></div>
+              <div class="wing right-wing"></div>
+            </div>
+          </div>
+          <!-- Floating Damage Popup Container -->
+          <div id="floating-damage-container"></div>
+        </div>
+      </div>
+
+      <!-- Battle Status & Weapon Gimmick HUD -->
+      <div class="combat-subbar">
+        <div class="equipped-weapon-pill">
+          <span id="equipped-icon">⚔️</span>
+          <span id="equipped-name">Kiếm Diệt Thần (+40 DMG/câu)</span>
+        </div>
+        <div class="accumulated-damage-pill">
+          <span class="label">SÁT THƯƠNG ĐANG TÍCH LŨY:</span>
+          <span id="hud-acc-damage" class="value text-orange font-bold">0 DMG</span>
+        </div>
+      </div>
+
+      <!-- ── PHASE A: 10s QUESTION MARATHON ── -->
+      <div id="phase-marathon" class="combat-phase active-phase">
+        <!-- Timer Bar -->
+        <div class="marathon-timer-box">
+          <div class="timer-label-row">
+            <span>⚡ MARATHON TRẢ LỜI CÂU HỎI NHANH</span>
+            <span id="timer-text" class="timer-countdown">10.0s</span>
+          </div>
+          <div class="timer-bar-outer">
+            <div id="timer-bar-inner" class="timer-bar-inner"></div>
+          </div>
+        </div>
+
+        <!-- Question Card -->
+        <div class="question-container">
+          <div class="question-header">
+            <span class="q-badge">CÂU HỎI TRÍCH XUẤT TỪ BÀI HỌC</span>
+            <span id="q-number" class="q-num">CÂU #1</span>
+          </div>
+          <div id="question-text" class="question-text">
+            Đang tải câu hỏi...
+          </div>
+          <div id="answers-grid" class="answers-grid">
+            <!-- 4 answer buttons dynamically injected -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PHASE B: ATTACK EXECUTION CUTSCENE ── -->
+      <div id="phase-attack-release" class="combat-phase">
+        <div class="attack-banner">
+          <h2 class="attack-title animate-zoom">💥 TỔNG LỰC TẤN CÔNG! 💥</h2>
+          <p id="attack-summary-text" class="attack-desc">Xả toàn bộ sát thương tích lũy lên Trùm Hư Không...</p>
+          <div id="attack-slash-fx" class="slash-animation"></div>
+        </div>
+      </div>
+
+      <!-- ── PHASE C: BOSS COUNTERATTACK & DODGE QTE ── -->
+      <div id="phase-dodge" class="combat-phase">
+        <div class="dodge-container">
+          <div class="danger-header">
+            <span class="skull-pulse">⚠️</span>
+            <h2 class="danger-title">TRÙM PHẢN CÔNG HỦY DIỆT!</h2>
+            <span class="skull-pulse">⚠️</span>
+          </div>
+          <p class="dodge-instructions">
+            BẤM ĐÚNG PHÍM MŨI TÊN (HOẶC NÚT TRÊN MÀN HÌNH) TRONG THỜI GIAN ĐẾM NGƯỢC ĐỂ NÉ ĐÒN!
+          </p>
+
+          <!-- Dodge Reaction Countdown Bar -->
+          <div class="dodge-bar-outer">
+            <div id="dodge-bar-inner" class="dodge-bar-inner"></div>
+          </div>
+
+          <!-- Required Direction Prompt -->
+          <div class="required-direction-box">
+            <div class="prompt-sub">HƯỚNG NÉ BẮT BUỘC:</div>
+            <div id="target-direction-icon" class="target-arrow">⬆️</div>
+            <div id="target-direction-name" class="target-name">MŨI TÊN LÊN (UP / W)</div>
+          </div>
+
+          <!-- On-screen D-Pad Controls for touch/mouse -->
+          <div class="dpad-controls">
+            <button class="dpad-btn dpad-up" onclick="handleDodgeInput('ArrowUp')">⬆️ LÊN</button>
+            <div class="dpad-middle-row">
+              <button class="dpad-btn dpad-left" onclick="handleDodgeInput('ArrowLeft')">⬅️ TRÁI</button>
+              <div class="dpad-center-core">🎯</div>
+              <button class="dpad-btn dpad-right" onclick="handleDodgeInput('ArrowRight')">PHẢI ➡️</button>
+            </div>
+            <button class="dpad-btn dpad-down" onclick="handleDodgeInput('ArrowDown')">⬇️ XUỐNG</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 3: VICTORY SCREEN -->
+    <section id="screen-victory" class="screen">
+      <div class="screen-content center-panel">
+        <div class="victory-trophy-ring">
+          <div class="trophy-icon">🏆</div>
+        </div>
+        <h1 class="victory-title glow-gold">CHIẾN THẮNG HUYỀN THOẠI!</h1>
+        <p class="subtitle">Bạn đã tiêu diệt thành công Ma Thần Hư Không (1000 HP) và bảo vệ tri thức vũ trụ!</p>
+
+        <div class="result-stats-card">
+          <div class="result-row">
+            <span>Tổng Điểm Đạt Được:</span>
+            <strong id="res-win-score" class="text-cyan">0 PTS</strong>
+          </div>
+          <div class="result-row">
+            <span>Thời Gian Chiến Đấu:</span>
+            <strong id="res-win-time" class="text-white">0s</strong>
+          </div>
+          <div class="result-row">
+            <span>Độ Chính Xác Trả Lời:</span>
+            <strong id="res-win-acc" class="text-emerald">100%</strong>
+          </div>
+          <div class="result-row">
+            <span>Coins Thưởng E-V-E:</span>
+            <strong id="res-win-coins" class="text-gold font-bold">+50 🪙</strong>
+          </div>
+        </div>
+
+        <div class="actions-row">
+          <button class="btn-action btn-secondary" onclick="restartGame()">🔄 ĐẤU LẠI</button>
+          <button class="btn-action btn-primary" onclick="notifyParentFinish()">🚀 HOÀN THÀNH & TIẾP TỤC</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 4: DEFEAT SCREEN -->
+    <section id="screen-defeat" class="screen">
+      <div class="screen-content center-panel">
+        <div class="defeat-skull-ring">
+          <div class="skull-icon">💀</div>
+        </div>
+        <h1 class="defeat-title glow-rose">BỊ TRÙM TIÊU DIỆT!</h1>
+        <p id="defeat-reason-text" class="subtitle">Bạn đã né đòn thất bại hoặc trúng đòn phản công hủy diệt của Ma Thần.</p>
+
+        <div class="result-stats-card">
+          <div class="result-row">
+            <span>Máu Còn Lại Của Trùm:</span>
+            <strong id="res-defeat-boss-hp" class="text-rose">500 / 1000 HP</strong>
+          </div>
+          <div class="result-row">
+            <span>Điểm Số Đã Ghi:</span>
+            <strong id="res-defeat-score" class="text-cyan">0 PTS</strong>
+          </div>
+        </div>
+
+        <div class="actions-row">
+          <button class="btn-action btn-orange" onclick="restartGame()">⚔️ THỬ THÁCH LẠI</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Scripts -->
+  <script src="eve-game-sdk.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
