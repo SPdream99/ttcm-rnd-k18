@@ -11,10 +11,10 @@ import {
   Gamepad2,
   BookOpen,
   Coins,
-  Star,
-  CheckCircle2,
-  Shield,
+  Radio,
+  Terminal,
   Zap,
+  Shield,
 } from "lucide-react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -31,7 +31,8 @@ interface StudentRank {
   badge: string;
   title: string;
   frameType: string;
-  frameRingClass: string;
+  borderTheme: string;
+  badgeBg: string;
 }
 
 interface TeacherRank {
@@ -62,11 +63,6 @@ export default function StudentLeaderboardPage() {
         const gameResSnap = await getDocs(collection(db, "game_results"));
         const gameResults: any[] = gameResSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-        // 3. Fetch courses
-        const coursesSnap = await getDocs(collection(db, "courses"));
-        const allCourses: any[] = coursesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-        // Student map
         const studentMap = new Map<
           string,
           { name: string; score: number; coins: number; courses: number; gamesWon: number; streak: number }
@@ -119,7 +115,8 @@ export default function StudentLeaderboardPage() {
               badge: "",
               title: "",
               frameType: "",
-              frameRingClass: "",
+              borderTheme: "",
+              badgeBg: "",
               rank: 1,
             };
           })
@@ -128,29 +125,34 @@ export default function StudentLeaderboardPage() {
             const rank = idx + 1;
             let badge = "Học Viên Tiềm Năng ⭐";
             let title = "Tập Sự Vũ Trụ";
-            let frameType = "Khung Mặc Định";
-            let frameRingClass = "ring-2 ring-slate-700";
+            let frameType = "Khung Tiêu Chuẩn";
+            let borderTheme = "border-zinc-800 shadow-[4px_4px_0px_0px_#000]";
+            let badgeBg = "bg-zinc-800 text-zinc-300";
 
             if (rank === 1) {
-              badge = "🥇 Đại Sư Phụ AI (Gold)";
+              badge = "🥇 ĐẠI SƯ PHỤ AI (GOLD)";
               title = "Bậc Thầy Lượng Tử AI";
               frameType = "Hoàng Kim Supernova";
-              frameRingClass = "ring-4 ring-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.8)] border-2 border-amber-300";
+              borderTheme = "border-2 border-[#E2F952] shadow-[6px_6px_0px_0px_#E2F952]";
+              badgeBg = "bg-[#E2F952] text-black font-black";
             } else if (rank === 2) {
-              badge = "🥈 Chiến Binh Thuật Toán (Silver)";
+              badge = "🥈 CHIẾN BINH THUẬT TOÁN";
               title = "Thiên Tài Lượng Tử";
               frameType = "Neon Cyberpunk";
-              frameRingClass = "ring-4 ring-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.8)] border-2 border-cyan-300";
+              borderTheme = "border-2 border-[#00F0FF] shadow-[6px_6px_0px_0px_#00F0FF]";
+              badgeBg = "bg-[#00F0FF] text-black font-black";
             } else if (rank === 3) {
-              badge = "🥉 Nhà Khám Phá Vũ Trụ (Bronze)";
+              badge = "🥉 NHÀ KHÁM PHÁ VŨ TRỤ";
               title = "Nhà Thám Hiểm Không Gian";
               frameType = "Ngọc Bích Emerald";
-              frameRingClass = "ring-4 ring-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.8)] border-2 border-emerald-300";
+              borderTheme = "border-2 border-[#FF4F00] shadow-[6px_6px_0px_0px_#FF4F00]";
+              badgeBg = "bg-[#FF4F00] text-white font-black";
             } else if (rank <= 5) {
               badge = "Chuyên Gia Logic 💡";
               title = "Cao Thủ Thuật Toán";
               frameType = "Tím Cosmic Violet";
-              frameRingClass = "ring-2 ring-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.5)]";
+              borderTheme = "border-2 border-purple-500 shadow-[4px_4px_0px_0px_#000]";
+              badgeBg = "bg-purple-500/20 text-purple-300";
             }
 
             return {
@@ -159,7 +161,8 @@ export default function StudentLeaderboardPage() {
               badge,
               title,
               frameType,
-              frameRingClass,
+              borderTheme,
+              badgeBg,
             };
           });
 
@@ -190,7 +193,7 @@ export default function StudentLeaderboardPage() {
 
         setTeachers(sortedTeachers);
       } catch (err) {
-        console.error("Leaderboard error:", err);
+        console.error("// Telemetry: Leaderboard error", err);
       } finally {
         setLoading(false);
       }
@@ -200,111 +203,109 @@ export default function StudentLeaderboardPage() {
   }, []);
 
   return (
-    <div className="space-y-8 pb-12 font-sans">
+    <div className="space-y-10 pb-16 font-sans">
       {/* ================= HERO HEADER ================= */}
-      <div className="relative overflow-hidden rounded-3xl border border-[#7bd1fa]/25 bg-gradient-to-r from-[#0f1524] via-[#151c30] to-[#0a0e1a] p-6 md:p-8 backdrop-blur-xl shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
+      <div className="relative rounded-3xl border-2 border-zinc-800 bg-[#0c1017] p-6 md:p-10 shadow-[8px_8px_0px_0px_#000] overflow-hidden font-mono">
+        <div className="absolute -top-3 right-10 bg-[#FF4F00] text-white px-4 py-0.5 text-[10px] font-black tracking-widest uppercase rotate-[2deg] border border-black shadow-[2px_2px_0px_0px_#000]">
+          LEADERBOARD // SYNCHRONIZED
+        </div>
+
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pt-2">
+          <div className="space-y-2 max-w-2xl">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs font-semibold">
-                <Trophy className="w-3.5 h-3.5" /> Bảng Vinh Danh E-V-E Hall of Fame
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-[#E2F952]/15 border border-[#E2F952]/60 text-[#E2F952] text-xs font-black tracking-wider">
+                <Radio className="w-3.5 h-3.5 animate-pulse" /> E-V-E HALL OF FAME
               </span>
             </div>
-            <h1 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight">
-              Bảng Xếp Hạng Toàn Hệ Sinh Thái 🏆
+            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight">
+              BẢNG VINH DANH CHIẾN BINH 🏆
             </h1>
-            <p className="text-xs md:text-sm text-[#8e9bb4] max-w-2xl leading-relaxed">
-              Vinh danh những học viên và giảng viên có thành tích xuất sắc nhất. Hover chuột vào từng thẻ để xem trang trí avatar và thông tin học tập chi tiết!
+            <p className="text-xs md:text-sm text-zinc-400 font-sans leading-relaxed">
+              Xếp hạng thời gian thực dựa trên tổng điểm EXP, số minigame đã thắng và chuỗi ngày học liên tục. <strong className="text-[#00F0FF]">Rê chuột vào học viên</strong> để mở cửa sổ Telemetry thông tin học tập!
             </p>
           </div>
 
-          {/* Tab switcher */}
-          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-[#0a0e1a] border border-[#7bd1fa]/20 self-start md:self-auto">
+          {/* Tactical Tab Switcher */}
+          <div className="flex items-center gap-2 p-1.5 rounded-xl bg-black border-2 border-zinc-800 shadow-[4px_4px_0px_0px_#000]">
             <button
               onClick={() => setActiveTab("students")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-2 ${
+              className={`px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "students"
-                  ? "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#E2F952] text-black border-2 border-black shadow-[2px_2px_0px_0px_#000]"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
-              <Crown className="w-4 h-4" /> Top Học Sinh
+              <Crown className="w-4 h-4" /> HỌC SINH
             </button>
             <button
               onClick={() => setActiveTab("teachers")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-2 ${
+              className={`px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "teachers"
-                  ? "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#00F0FF] text-black border-2 border-black shadow-[2px_2px_0px_0px_#000]"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
-              <GraduationCap className="w-4 h-4" /> Top Giảng Viên
+              <GraduationCap className="w-4 h-4" /> GIẢNG VIÊN
             </button>
           </div>
         </div>
       </div>
 
-      {/* ================= TOP 3 PODIUM ================= */}
+      {/* ================= TOP 3 BRUTALIST PODIUM ================= */}
       {activeTab === "students" && students.length >= 3 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-          {/* #2 Silver */}
-          <div className="order-2 md:order-1 relative rounded-3xl border border-cyan-400/40 bg-gradient-to-b from-[#151c30] to-[#0f1524] p-6 text-center shadow-xl space-y-4">
-            <div className="w-8 h-8 mx-auto -mt-10 rounded-full bg-slate-300 text-slate-900 font-black font-mono flex items-center justify-center shadow-lg border-2 border-white text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 font-mono">
+          {/* #2 Silver Cyberpunk */}
+          <div className="order-2 md:order-1 relative rounded-tl-3xl rounded-br-3xl bg-[#121620] border-2 border-[#00F0FF] p-6 text-center shadow-[6px_6px_0px_0px_#00F0FF] space-y-4 rotate-[-1.5deg] hover:rotate-0 transition-transform">
+            <div className="w-8 h-8 mx-auto -mt-10 rounded-lg bg-[#00F0FF] text-black font-black flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_0px_#000] text-sm">
               2
             </div>
-            <div className={`w-20 h-20 mx-auto rounded-full bg-slate-800 p-1 flex items-center justify-center ${students[1].frameRingClass}`}>
-              <div className="w-full h-full rounded-full bg-[#0a0e1a] flex items-center justify-center text-2xl font-bold text-cyan-300 font-mono">
-                {students[1].name.charAt(0)}
-              </div>
+            <div className="w-20 h-20 mx-auto rounded-2xl bg-slate-900 border-2 border-[#00F0FF] p-1 flex items-center justify-center shadow-[3px_3px_0px_0px_#00F0FF]">
+              <span className="text-2xl font-black text-[#00F0FF]">{students[1].name.charAt(0)}</span>
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-white">{students[1].name}</h3>
-              <span className="text-[11px] font-bold text-cyan-300 block">{students[1].title}</span>
-              <span className="text-xs font-mono font-bold text-amber-300">{students[1].score} EXP • {students[1].coins} 🪙</span>
+              <h3 className="text-base font-black text-white font-sans">{students[1].name}</h3>
+              <span className="text-[11px] font-bold text-[#00F0FF] block">{students[1].title}</span>
+              <span className="text-sm font-black text-[#E2F952]">{students[1].score} EXP • {students[1].coins} 🪙</span>
             </div>
-            <div className="pt-2 border-t border-slate-800 text-[11px] text-[#8e9bb4] flex justify-center gap-4">
+            <div className="pt-2 border-t border-zinc-800 text-[11px] text-zinc-400 flex justify-center gap-4">
               <span>🔥 {students[1].streakDays} Ngày</span>
               <span>🎮 {students[1].gamesWon} Game Thắng</span>
             </div>
           </div>
 
-          {/* #1 Gold Champion */}
-          <div className="order-1 md:order-2 relative rounded-3xl border-2 border-amber-400/70 bg-gradient-to-b from-amber-500/10 via-[#151c30] to-[#0f1524] p-7 text-center shadow-[0_0_35px_rgba(245,158,11,0.25)] space-y-4 md:-translate-y-4">
-            <div className="w-10 h-10 mx-auto -mt-12 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 text-slate-950 font-black font-mono flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.6)] border-2 border-white text-base">
+          {/* #1 Gold Supernova Champion */}
+          <div className="order-1 md:order-2 relative rounded-tr-3xl rounded-bl-3xl bg-[#161c12] border-2 border-[#E2F952] p-8 text-center shadow-[8px_8px_0px_0px_#E2F952] space-y-4 md:-translate-y-4">
+            <div className="w-10 h-10 mx-auto -mt-13 rounded-xl bg-[#E2F952] text-black font-black flex items-center justify-center border-2 border-black shadow-[3px_3px_0px_0px_#000] text-base">
               👑 1
             </div>
-            <div className={`w-24 h-24 mx-auto rounded-full bg-slate-800 p-1 flex items-center justify-center ${students[0].frameRingClass}`}>
-              <div className="w-full h-full rounded-full bg-[#0a0e1a] flex items-center justify-center text-3xl font-black text-amber-400 font-mono">
-                {students[0].name.charAt(0)}
-              </div>
+            <div className="w-24 h-24 mx-auto rounded-3xl bg-slate-900 border-3 border-[#E2F952] p-1 flex items-center justify-center shadow-[4px_4px_0px_0px_#E2F952] animate-pulse">
+              <span className="text-3xl font-black text-[#E2F952]">{students[0].name.charAt(0)}</span>
             </div>
             <div className="space-y-1">
-              <h3 className="text-lg font-extrabold text-white">{students[0].name}</h3>
-              <span className="text-xs font-extrabold text-amber-400 block">{students[0].title}</span>
-              <span className="text-sm font-mono font-extrabold text-amber-300">{students[0].score} EXP • {students[0].coins} 🪙</span>
+              <h3 className="text-xl font-black text-white font-sans">{students[0].name}</h3>
+              <span className="text-xs font-black text-[#E2F952] block">{students[0].title}</span>
+              <span className="text-base font-black text-[#E2F952]">{students[0].score} EXP • {students[0].coins} 🪙</span>
             </div>
-            <div className="pt-2 border-t border-amber-500/20 text-xs text-[#8e9bb4] flex justify-center gap-4 font-semibold">
-              <span className="text-amber-300">🔥 {students[0].streakDays} Ngày Streak</span>
-              <span className="text-cyan-300">🎮 {students[0].gamesWon} Trò Chơi Thắng</span>
+            <div className="pt-3 border-t border-zinc-800 text-xs text-zinc-300 flex justify-center gap-5 font-bold">
+              <span className="text-[#FF4F00]">🔥 {students[0].streakDays} Ngày Streak</span>
+              <span className="text-[#00F0FF]">🎮 {students[0].gamesWon} Game Thắng</span>
             </div>
           </div>
 
-          {/* #3 Bronze */}
-          <div className="order-3 relative rounded-3xl border border-emerald-400/40 bg-gradient-to-b from-[#151c30] to-[#0f1524] p-6 text-center shadow-xl space-y-4">
-            <div className="w-8 h-8 mx-auto -mt-10 rounded-full bg-amber-700 text-white font-black font-mono flex items-center justify-center shadow-lg border-2 border-white text-sm">
+          {/* #3 Bronze Safety Orange */}
+          <div className="order-3 relative rounded-tr-3xl rounded-bl-3xl bg-[#1c1412] border-2 border-[#FF4F00] p-6 text-center shadow-[6px_6px_0px_0px_#FF4F00] space-y-4 rotate-[1.5deg] hover:rotate-0 transition-transform">
+            <div className="w-8 h-8 mx-auto -mt-10 rounded-lg bg-[#FF4F00] text-white font-black flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_0px_#000] text-sm">
               3
             </div>
-            <div className={`w-20 h-20 mx-auto rounded-full bg-slate-800 p-1 flex items-center justify-center ${students[2].frameRingClass}`}>
-              <div className="w-full h-full rounded-full bg-[#0a0e1a] flex items-center justify-center text-2xl font-bold text-emerald-300 font-mono">
-                {students[2].name.charAt(0)}
-              </div>
+            <div className="w-20 h-20 mx-auto rounded-2xl bg-slate-900 border-2 border-[#FF4F00] p-1 flex items-center justify-center shadow-[3px_3px_0px_0px_#FF4F00]">
+              <span className="text-2xl font-black text-[#FF4F00]">{students[2].name.charAt(0)}</span>
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-white">{students[2].name}</h3>
-              <span className="text-[11px] font-bold text-emerald-300 block">{students[2].title}</span>
-              <span className="text-xs font-mono font-bold text-amber-300">{students[2].score} EXP • {students[2].coins} 🪙</span>
+              <h3 className="text-base font-black text-white font-sans">{students[2].name}</h3>
+              <span className="text-[11px] font-bold text-[#FF4F00] block">{students[2].title}</span>
+              <span className="text-sm font-black text-[#E2F952]">{students[2].score} EXP • {students[2].coins} 🪙</span>
             </div>
-            <div className="pt-2 border-t border-slate-800 text-[11px] text-[#8e9bb4] flex justify-center gap-4">
+            <div className="pt-2 border-t border-zinc-800 text-[11px] text-zinc-400 flex justify-center gap-4">
               <span>🔥 {students[2].streakDays} Ngày</span>
               <span>🎮 {students[2].gamesWon} Game Thắng</span>
             </div>
@@ -312,11 +313,11 @@ export default function StudentLeaderboardPage() {
         </div>
       )}
 
-      {/* ================= DETAILED RANKING LIST WITH RICH HOVER POPOVER ================= */}
-      <div className="rounded-3xl border border-[#7bd1fa]/20 bg-[#0f1524]/80 p-6 backdrop-blur-xl shadow-2xl space-y-4">
-        <h2 className="text-base font-extrabold text-white flex items-center gap-2 pb-3 border-b border-[#7bd1fa]/10">
-          <Award className="w-5 h-5 text-cyan-400" />
-          {activeTab === "students" ? "Danh Sách Xếp Hạng Học Sinh" : "Danh Sách Xếp Hạng Giảng Viên"}
+      {/* ================= DETAILED TABLE WITH RICH HOVER TELEMETRY ================= */}
+      <div className="rounded-3xl border-2 border-zinc-800 bg-[#0c1017] p-6 md:p-8 shadow-[8px_8px_0px_0px_#000] space-y-4 font-mono">
+        <h2 className="text-lg font-black text-white uppercase tracking-tight flex items-center gap-2 pb-3 border-b-2 border-zinc-800">
+          <Terminal className="w-5 h-5 text-[#00F0FF]" />
+          {activeTab === "students" ? "DANH SÁCH CHI TIẾT HỌC VIÊN" : "DANH SÁCH GIẢNG VIÊN"}
         </h2>
 
         {activeTab === "students" ? (
@@ -324,86 +325,72 @@ export default function StudentLeaderboardPage() {
             {students.map((st) => (
               <div
                 key={st.id}
-                className="group relative flex items-center justify-between p-4 rounded-2xl bg-[#151b2c] border border-[#7bd1fa]/15 hover:border-cyan-400/60 hover:bg-[#182138] transition-all duration-300 cursor-pointer"
+                className="group relative flex items-center justify-between p-4 rounded-xl bg-[#121620] border-2 border-zinc-800 hover:border-[#00F0FF] shadow-[4px_4px_0px_0px_#000] hover:shadow-[4px_4px_0px_0px_#00F0FF] transition-all duration-200 cursor-pointer"
               >
-                {/* Left: Rank & Avatar */}
+                {/* Left info */}
                 <div className="flex items-center gap-4">
-                  <span
-                    className={`w-8 text-center font-black font-mono text-base ${
-                      st.rank === 1
-                        ? "text-amber-400"
-                        : st.rank === 2
-                        ? "text-slate-300"
-                        : st.rank === 3
-                        ? "text-amber-600"
-                        : "text-slate-500"
-                    }`}
-                  >
+                  <span className="w-8 text-center font-black text-base text-[#E2F952]">
                     #{st.rank}
                   </span>
 
-                  <div className={`w-12 h-12 rounded-full bg-slate-800 p-0.5 flex items-center justify-center transition-transform group-hover:scale-110 ${st.frameRingClass}`}>
-                    <div className="w-full h-full rounded-full bg-[#0a0e1a] flex items-center justify-center font-bold text-cyan-300 font-mono text-sm">
-                      {st.name.charAt(0)}
-                    </div>
+                  <div className="w-12 h-12 rounded-xl bg-slate-900 border-2 border-zinc-700 flex items-center justify-center font-black text-white">
+                    {st.name.charAt(0)}
                   </div>
 
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
+                      <h4 className="text-sm font-black text-white font-sans group-hover:text-[#00F0FF] transition-colors">
                         {st.name}
                       </h4>
-                      <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                      <span className="hidden sm:inline-block px-2 py-0.5 rounded-sm text-[10px] bg-zinc-800 border border-zinc-700 text-zinc-300 font-bold uppercase">
                         {st.title}
                       </span>
                     </div>
-                    <span className="text-[11px] text-[#8e9bb4] flex items-center gap-3 mt-0.5 font-mono">
+                    <span className="text-[11px] text-zinc-400 flex items-center gap-4 mt-0.5">
                       <span>🔥 {st.streakDays} Ngày Streak</span>
                       <span>🎮 {st.gamesWon} Games Thắng</span>
                     </span>
                   </div>
                 </div>
 
-                {/* Right: Score & Coins */}
-                <div className="text-right space-y-0.5">
-                  <span className="text-sm font-mono font-extrabold text-amber-300 block">{st.score} EXP</span>
-                  <span className="text-xs font-mono font-bold text-[#8e9bb4] block">{st.coins} Coins 🪙</span>
+                {/* Right score */}
+                <div className="text-right">
+                  <span className="text-base font-black text-[#E2F952] block">{st.score} EXP</span>
+                  <span className="text-xs font-bold text-zinc-400 block">{st.coins} Coins 🪙</span>
                 </div>
 
                 {/* =========================================================
-                    EXPANDED HOVER POPOVER TOOLTIP (Hiện rõ trang trí & học tập)
+                    EXPANDED HOVER TELEMETRY POPOVER (HIGH-TASTE INDUSTRIAL)
                 ========================================================= */}
-                <div className="pointer-events-none absolute left-1/2 -top-4 -translate-x-1/2 -translate-y-full w-80 opacity-0 group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 z-50 p-5 rounded-3xl bg-[#0a0e1a]/95 border-2 border-cyan-400 shadow-[0_0_40px_rgba(6,182,212,0.4)] backdrop-blur-2xl text-center space-y-3">
-                  <div className={`w-16 h-16 mx-auto rounded-full bg-slate-800 p-1 flex items-center justify-center ${st.frameRingClass}`}>
-                    <div className="w-full h-full rounded-full bg-[#0a0e1a] flex items-center justify-center text-xl font-black text-cyan-400 font-mono">
-                      {st.name.charAt(0)}
-                    </div>
+                <div className="pointer-events-none absolute left-1/2 -top-4 -translate-x-1/2 -translate-y-full w-84 opacity-0 group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 z-50 p-5 rounded-2xl bg-[#090d14] border-2 border-[#00F0FF] shadow-[8px_8px_0px_0px_#000] text-center space-y-3">
+                  <div className="w-16 h-16 mx-auto rounded-2xl bg-black border-2 border-[#00F0FF] p-1 flex items-center justify-center shadow-[3px_3px_0px_0px_#00F0FF]">
+                    <span className="text-2xl font-black text-[#00F0FF]">{st.name.charAt(0)}</span>
                   </div>
 
                   <div>
-                    <h5 className="text-base font-extrabold text-white">{st.name}</h5>
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 inline-block mt-1">
+                    <h5 className="text-base font-black text-white font-sans">{st.name}</h5>
+                    <span className={`px-2.5 py-0.5 rounded-sm text-[10px] uppercase inline-block mt-1 ${st.badgeBg}`}>
                       {st.badge}
                     </span>
-                    <p className="text-[11px] text-cyan-300 font-mono mt-0.5">Trang bị: {st.frameType}</p>
+                    <p className="text-[11px] text-zinc-400 mt-1 font-mono">Trang Bị: {st.frameType}</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-[#151b2c] border border-[#7bd1fa]/15 text-xs font-mono text-left">
+                  <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-[#141b26] border border-zinc-700 text-xs text-left">
                     <div>
-                      <span className="text-slate-500 text-[10px] block">Khóa Học:</span>
+                      <span className="text-zinc-500 text-[10px] block">KHÓA HỌC:</span>
                       <strong className="text-white">{st.courses} Đang Theo</strong>
                     </div>
                     <div>
-                      <span className="text-slate-500 text-[10px] block">Minigame Thắng:</span>
-                      <strong className="text-cyan-300">{st.gamesWon} Trận</strong>
+                      <span className="text-zinc-500 text-[10px] block">MINIGAME THẮNG:</span>
+                      <strong className="text-[#00F0FF]">{st.gamesWon} Trận</strong>
                     </div>
                     <div>
-                      <span className="text-slate-500 text-[10px] block">Chuỗi Streak:</span>
-                      <strong className="text-amber-400">🔥 {st.streakDays} Ngày</strong>
+                      <span className="text-zinc-500 text-[10px] block">CHUỖI STREAK:</span>
+                      <strong className="text-[#FF4F00]">🔥 {st.streakDays} Ngày</strong>
                     </div>
                     <div>
-                      <span className="text-slate-500 text-[10px] block">Tổng Điểm:</span>
-                      <strong className="text-amber-300">{st.score} EXP</strong>
+                      <span className="text-zinc-500 text-[10px] block">TỔNG ĐIỂM EXP:</span>
+                      <strong className="text-[#E2F952]">{st.score} EXP</strong>
                     </div>
                   </div>
                 </div>
@@ -415,24 +402,24 @@ export default function StudentLeaderboardPage() {
             {teachers.map((t) => (
               <div
                 key={t.id}
-                className="flex items-center justify-between p-4 rounded-2xl bg-[#151b2c] border border-[#7bd1fa]/15 hover:border-cyan-400/50 transition-all"
+                className="flex items-center justify-between p-4 rounded-xl bg-[#121620] border-2 border-zinc-800 hover:border-[#00F0FF] shadow-[4px_4px_0px_0px_#000] transition-all"
               >
                 <div className="flex items-center gap-4">
-                  <span className="w-8 text-center font-black font-mono text-base text-cyan-400">
+                  <span className="w-8 text-center font-black text-base text-[#00F0FF]">
                     #{t.rank}
                   </span>
-                  <div className="w-12 h-12 rounded-full bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center font-bold text-cyan-300 font-mono">
+                  <div className="w-12 h-12 rounded-xl bg-[#00F0FF]/15 border-2 border-[#00F0FF] flex items-center justify-center font-black text-[#00F0FF]">
                     {t.name.charAt(0)}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white">{t.name}</h4>
-                    <span className="text-[11px] text-[#8e9bb4] block">{t.title} • {t.courses} Khóa học đã xuất bản</span>
+                    <h4 className="text-sm font-black text-white font-sans">{t.name}</h4>
+                    <span className="text-[11px] text-zinc-400 block">{t.title} • {t.courses} Khóa học đã xuất bản</span>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <span className="text-sm font-mono font-bold text-amber-300 block">{t.playsCount} Lượt chơi Game</span>
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold">{t.badge}</span>
+                  <span className="text-base font-black text-[#E2F952] block">{t.playsCount} Lượt Chơi</span>
+                  <span className="text-[10px] text-[#00F0FF] font-bold uppercase">{t.badge}</span>
                 </div>
               </div>
             ))}
