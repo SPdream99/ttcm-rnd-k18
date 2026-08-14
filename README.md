@@ -1,12 +1,10 @@
-# ỨNG DỤNG
+# ỨNG DỤNG E-LEARNING (E-V-E)
 
 ## THÔNG TIN ĐỒ ÁN
 
 Dự án nộp cho khóa
 
-> Lớp học: TTCM - RnD - K18
- 
-> Hướng dẫn viên: 
+> Lớp: TTCM - RnD - K18
 
 
 ## MÔ TẢ DỰ ÁN
