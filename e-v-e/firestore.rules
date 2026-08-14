@@ -52,14 +52,14 @@ service cloud.firestore {
     match /courses/{courseId} {
       allow read: if true;
       allow create, update: if isTeacher() || isAdmin() || isSignedIn();
-      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.author_id);
+      allow delete: if isAdmin() || isSignedIn();
     }
 
     // 4. Learning Path Collection
     match /learning_path/{lpathId} {
       allow read: if true;
       allow create, update: if isTeacher() || isAdmin() || isSignedIn();
-      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.author_id);
+      allow delete: if isAdmin() || isSignedIn();
     }
 
     // 5. Resources Collection
@@ -72,7 +72,7 @@ service cloud.firestore {
     match /game_info/{gameId} {
       allow read: if true;
       allow create, update: if isTeacher() || isAdmin() || isSignedIn();
-      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.uploader_id);
+      allow delete: if isAdmin() || isSignedIn();
     }
 
     // 7. Game Results Collection

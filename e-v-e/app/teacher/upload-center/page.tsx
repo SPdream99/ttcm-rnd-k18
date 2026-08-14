@@ -62,12 +62,52 @@ export default function TeacherUploadCenterPage() {
   const [gameDesc, setGameDesc] = useState("");
   const [gameZipFile, setGameZipFile] = useState<File | null>(null);
   const [needExtraData, setNeedExtraData] = useState(true);
+  const DAILY_GAME_LIMIT = 2;
+  const [todayGameUploads, setTodayGameUploads] = useState<number>(0);
   const [whitelistMode, setWhitelistMode] = useState<"all" | "custom">("all");
   const [allowedCourses, setAllowedCourses] = useState<string[]>(["crs_quantum_101"]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStepText, setUploadStepText] = useState("");
+
+  const checkDailyGameUploads = async () => {
+    if (!teacherUid) return;
+    const todayStr = new Date().toISOString().split("T")[0];
+    let count = 0;
+
+    try {
+      const snap = await getDocs(collection(db, "game_info"));
+      snap.forEach((d) => {
+        const data = d.data();
+        const uploader = data.authorId || data.author_id || data.uploaderId || data.uploader_id;
+        if (uploader === teacherUid) {
+          const cDate = (data.createdAt || data.created_at || "").split("T")[0];
+          if (cDate === todayStr) {
+            count++;
+          }
+        }
+      });
+    } catch {}
+
+    try {
+      if (typeof window !== "undefined") {
+        const local = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
+        const localToday = local.filter((g: any) => {
+          const uploader = g.authorId || g.author_id || g.uploaderId || g.uploader_id;
+          const cDate = (g.createdAt || g.created_at || "").split("T")[0];
+          return (!uploader || uploader === teacherUid) && cDate === todayStr;
+        });
+        count = Math.max(count, localToday.length);
+      }
+    } catch {}
+
+    setTodayGameUploads(count);
+  };
+
+  useEffect(() => {
+    checkDailyGameUploads();
+  }, [teacherUid]);
 
   // Add pair handler
   const handleAddPair = () => {
@@ -226,6 +266,12 @@ export default function TeacherUploadCenterPage() {
   // Submit Game with Step-by-Step Progress Bar and Multi-Layer Persistence
   const handleSubmitGame = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (todayGameUploads >= DAILY_GAME_LIMIT) {
+      alert(`⚠️ Giới hạn tải lên: Mỗi giáo viên chỉ có thể đăng tối đa ${DAILY_GAME_LIMIT} Game/ngày. Bạn đã tải lên ${todayGameUploads}/${DAILY_GAME_LIMIT} game hôm nay. Vui lòng quay lại vào ngày mai!`);
+      return;
+    }
+
     if (!gameTitle.trim()) {
       alert("Vui lòng nhập tiêu đề Game.");
       return;
@@ -731,6 +777,51 @@ export default function TeacherUploadCenterPage() {
       {/* ── TAB 3: UPLOAD GAME ENGINE (.ZIP) ── */}
       {activeTab === "game" && (
         <form onSubmit={handleSubmitGame} className="space-y-6">
+          {/* Daily Upload Limit Quota Banner (2 Games / Day) */}
+          <div
+            className={`p-4 md:p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-xs shadow-lg ${
+              todayGameUploads >= DAILY_GAME_LIMIT
+                ? "bg-rose-500/15 border-rose-500/30 text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.15)]"
+                : "bg-purple-500/10 border-purple-500/20 text-purple-300"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                  todayGameUploads >= DAILY_GAME_LIMIT
+                    ? "bg-rose-500/20 border-rose-500/40 text-rose-400"
+                    : "bg-purple-500/20 border-purple-500/40 text-purple-300"
+                }`}
+              >
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="font-bold text-sm text-white font-sans flex items-center gap-2">
+                  Hạn Mức Đăng Tải Game Hàng Ngày
+                  {todayGameUploads >= DAILY_GAME_LIMIT && (
+                    <span className="px-2 py-0.5 rounded-md bg-rose-500/30 border border-rose-500/50 text-rose-300 text-[10px]">
+                      ĐÃ HẾT LƯỢT HÔM NAY
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-300">
+                  Mỗi giáo viên chỉ được tải lên tối đa <strong className="text-white">{DAILY_GAME_LIMIT} Game/ngày</strong> để đảm bảo hiệu năng và kiểm định chất lượng.
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 py-2 rounded-xl bg-black/50 border border-slate-800 flex items-center justify-between sm:justify-center gap-3 shrink-0">
+              <span className="text-slate-400 text-[11px]">Đã đăng hôm nay:</span>
+              <span
+                className={`text-base font-black ${
+                  todayGameUploads >= DAILY_GAME_LIMIT ? "text-rose-400" : "text-emerald-400"
+                }`}
+              >
+                {todayGameUploads} / {DAILY_GAME_LIMIT}
+              </span>
+            </div>
+          </div>
+
           {/* Quick Download SDK & Starter Kit Banner */}
           <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-[#151b2c] to-purple-950/40 border border-emerald-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg">
             <div className="space-y-1">
@@ -1051,14 +1142,21 @@ export default function TeacherUploadCenterPage() {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isUploading}
-            className={`w-full py-4 rounded-xl font-bold font-mono text-sm shadow-[0_0_20px_rgba(168,85,247,0.35)] transition-all flex items-center justify-center gap-2 ${
-              isUploading
+            disabled={isUploading || todayGameUploads >= DAILY_GAME_LIMIT}
+            className={`w-full py-4 rounded-xl font-bold font-mono text-sm transition-all flex items-center justify-center gap-2 ${
+              todayGameUploads >= DAILY_GAME_LIMIT
+                ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                : isUploading
                 ? "bg-purple-900/60 text-purple-300 cursor-not-allowed border border-purple-700/50"
-                : "bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white cursor-pointer hover:scale-[1.005]"
+                : "bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white cursor-pointer hover:scale-[1.005] shadow-[0_0_20px_rgba(168,85,247,0.35)]"
             }`}
           >
-            {isUploading ? (
+            {todayGameUploads >= DAILY_GAME_LIMIT ? (
+              <>
+                <ShieldAlert className="w-5 h-5 text-rose-400" />
+                <span>Đã Hết Hạn Mức Tải Lên (Tối đa 2 Game/ngày) - Vui lòng quay lại vào ngày mai</span>
+              </>
+            ) : isUploading ? (
               <>
                 <span className="w-4 h-4 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
                 <span>Đang tải lên & chuyển tới Admin Audit ({uploadProgress}%)...</span>

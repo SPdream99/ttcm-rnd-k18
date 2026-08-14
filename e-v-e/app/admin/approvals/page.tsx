@@ -17,8 +17,9 @@ import {
   ShieldCheck,
   CheckCircle2,
   X,
+  Trash2,
 } from "lucide-react";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Course, CourseContentPair } from "@/core/entities/Course";
 import { Game } from "@/core/entities/Game";
@@ -193,6 +194,71 @@ export default function AdminApprovalsPage() {
     setTimeout(() => setActionMsg(null), 3500);
   };
 
+  const handlePromptDeleteCourse = (course: Course) => {
+    setConfirmPrompt({
+      title: "Xác Nhận XÓA VĨNH VIỄN Khóa Học",
+      description: `Bạn có chắc chắn muốn XÓA VĨNH VIỄN khóa học "${course.title}" (Mã: ${course.id}) khỏi toàn bộ hệ thống? Thao tác này không thể hoàn tác!`,
+      confirmText: "Xác Nhận Xóa",
+      variant: "rose",
+      onConfirm: () => executeDeleteCourse(course.id),
+    });
+  };
+
+  const executeDeleteCourse = async (courseId: string) => {
+    setConfirmPrompt(null);
+    try {
+      await deleteDoc(doc(db, "courses", courseId));
+    } catch (err) {
+      console.warn("Firestore deleteDoc course warning:", err);
+    }
+
+    try {
+      if (typeof window !== "undefined") {
+        const local = JSON.parse(localStorage.getItem("eve_uploaded_courses") || "[]");
+        const updated = local.filter((c: any) => c.id !== courseId);
+        localStorage.setItem("eve_uploaded_courses", JSON.stringify(updated));
+      }
+    } catch {}
+
+    setCourses((prev) => prev.filter((c) => c.id !== courseId));
+    if (selectedCourse?.id === courseId) setSelectedCourse(null);
+    setActionMsg("🗑️ Đã xóa vĩnh viễn khóa học khỏi hệ thống thành công!");
+    setTimeout(() => setActionMsg(null), 3500);
+  };
+
+  const handlePromptDeleteGame = (game: any) => {
+    const targetId = game.id || game.gameId;
+    setConfirmPrompt({
+      title: "Xác Nhận XÓA VĨNH VIỄN Game Engine",
+      description: `Bạn có chắc chắn muốn XÓA VĨNH VIỄN Game Engine "${game.title}" (Mã: ${targetId}) khỏi toàn bộ hệ thống E-V-E? Học sinh sẽ không thể chơi game này nữa.`,
+      confirmText: "Xác Nhận Xóa Game",
+      variant: "rose",
+      onConfirm: () => executeDeleteGame(targetId),
+    });
+  };
+
+  const executeDeleteGame = async (gameId: string) => {
+    setConfirmPrompt(null);
+    try {
+      await deleteDoc(doc(db, "game_info", gameId));
+    } catch (err) {
+      console.warn("Firestore deleteDoc game_info warning:", err);
+    }
+
+    try {
+      if (typeof window !== "undefined") {
+        const local = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
+        const updated = local.filter((g: any) => g.id !== gameId && g.gameId !== gameId);
+        localStorage.setItem("eve_uploaded_games", JSON.stringify(updated));
+        window.dispatchEvent(new Event("eve_games_updated"));
+      }
+    } catch {}
+
+    setGames((prev) => prev.filter((g) => g.id !== gameId && g.gameId !== gameId));
+    setActionMsg("🗑️ Đã xóa vĩnh viễn Game Engine khỏi hệ thống thành công!");
+    setTimeout(() => setActionMsg(null), 3500);
+  };
+
   const handlePromptDownloadSource = (game: any) => {
     setConfirmPrompt({
       title: "Xác Nhận Tải Gói Source Code",
@@ -348,6 +414,15 @@ export default function AdminApprovalsPage() {
                             Hủy phê duyệt
                           </button>
                         )}
+
+                        {/* Admin Delete Course Button */}
+                        <button
+                          onClick={() => handlePromptDeleteCourse(course)}
+                          className="px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 cursor-pointer transition-all flex items-center gap-1 text-xs font-mono"
+                          title="Xóa vĩnh viễn khóa học này"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Xóa
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -458,7 +533,7 @@ export default function AdminApprovalsPage() {
                       <>
                         <button
                           onClick={() => handlePromptApproveGame(game, true)}
-                          className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                          className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-[0_0_10px_rgba(16,185,129,0.2)]"
                         >
                           <ShieldCheck className="w-4 h-4" /> Duyệt Game
                         </button>
@@ -477,6 +552,15 @@ export default function AdminApprovalsPage() {
                         Hủy duyệt
                       </button>
                     )}
+
+                    {/* Admin Delete Game Button */}
+                    <button
+                      onClick={() => handlePromptDeleteGame(game)}
+                      className="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 border border-rose-500/40 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                      title="Xóa vĩnh viễn Game Engine này khỏi toàn bộ hệ thống"
+                    >
+                      <Trash2 className="w-4 h-4" /> Xóa Game
+                    </button>
                   </div>
                 </div>
               </div>
