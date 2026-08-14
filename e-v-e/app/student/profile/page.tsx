@@ -4,12 +4,8 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   UserCheck,
-  Sparkles,
   Coins,
-  Shield,
   ShieldCheck,
-  ShieldAlert,
-  Crown,
   Award,
   Palette,
   CheckCircle2,
@@ -98,10 +94,9 @@ export default function StudentProfilePage() {
               const item = {
                 id: pDoc.id,
                 title: pData.title || "Khóa học",
-                category: pData.category || "General",
                 progress: Number(eData.progress) || 0,
-                difficulty: pData.difficulty || "Intermediate",
-                teacherName: pData.authorName || pData.teacherName || "Giáo Viên E-V-E",
+                category: pData.category || "General",
+                teacherName: pData.authorName || pData.teacherName || "Giáo viên",
               };
               if (item.progress >= 100) {
                 done.push(item);
@@ -110,20 +105,11 @@ export default function StudentProfilePage() {
               }
             }
           }
-
           setActiveCoursesList(inProg);
           setCompletedCoursesList(done);
-        } else {
-          // Default demo preview
-          setActiveCoursesList([
-            { id: "lp_ai_mastery_2026", title: "Chuyên Gia Trí Tuệ Nhân Tạo & Generative AI 2026", category: "AI & Data", progress: 65, difficulty: "Advanced", teacherName: "Nguyễn Nhật Anh" },
-          ]);
-          setCompletedCoursesList([
-            { id: "lp_python_mastery", title: "Lập Trình Python Cơ Bản & Tư Duy Thuật Toán", category: "Programming", progress: 100, difficulty: "Beginner", teacherName: "Nguyễn Thành Đạt" },
-          ]);
         }
       } catch (err) {
-        console.warn("Course progress notice:", err);
+        console.error("Error loading profile courses:", err);
       } finally {
         setLoadingCourses(false);
       }
@@ -133,21 +119,16 @@ export default function StudentProfilePage() {
   }, [currentUser]);
 
   const ownedFrames = [
-    { id: "frame_supernova_gold", name: "Khung Hoàng Kim (Gold)", ringClass: "ring-4 ring-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.5)]" },
-    { id: "frame_quantum_neon", name: "Khung Công Nghệ (Neon Blue)", ringClass: "ring-4 ring-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.5)]" },
-    { id: "frame_default", name: "Mặc Định", ringClass: "ring-2 ring-slate-700" },
+    { id: "frame_supernova_gold", name: "Khung Đỏ Danh Dự", ringClass: "ring-4 ring-red-600 shadow-sm" },
+    { id: "frame_nebula_violet", name: "Khung Bạc Tinh Tế", ringClass: "ring-4 ring-zinc-400 shadow-sm" },
+    { id: "frame_cyber_matrix", name: "Khung Đen Sang Trọng", ringClass: "ring-4 ring-zinc-800 shadow-sm" },
   ];
 
   const ownedBadges = [
-    { id: "badge_cosmic_legend", name: "Thủ Khoa Xuất Sắc 🌟" },
-    { id: "badge_quantum_explorer", name: "Chuyên Gia Thuật Toán 💡" },
-    { id: "badge_flame_streak", name: "Chuyên Cần & Bứt Phá 🔥" },
+    { id: "badge_cosmic_legend", name: "🥇 Học Viên Tiêu Biểu" },
+    { id: "badge_master_coder", name: "⚡ Chuyên Gia Lập Trình" },
+    { id: "badge_quantum_quizzer", name: "🎯 Vua Giải Đố Minigame" },
   ];
-
-  const handleSaveEquipment = () => {
-    setSavedMsg("✅ Đã lưu cấu hình khung avatar và huy hiệu thành công!");
-    setTimeout(() => setSavedMsg(""), 3000);
-  };
 
   const handleSaveAIKey = (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,8 +138,7 @@ export default function StudentProfilePage() {
     setIsKeyConfigured(true);
     setMaskedKeyDisplay(getMaskedAIKey());
     setKeyInput("");
-    setShowRawKey(false);
-    setSavedMsg("🔑 Đã mã hóa và lưu trữ Google Gemini API Key an toàn trên trình duyệt của bạn!");
+    setSavedMsg("Khóa API đã được mã hóa an toàn và lưu vào bộ nhớ trình duyệt.");
     setTimeout(() => setSavedMsg(""), 4000);
   };
 
@@ -166,16 +146,19 @@ export default function StudentProfilePage() {
     removeAIKey();
     setIsKeyConfigured(false);
     setMaskedKeyDisplay("");
-    setKeyInput("");
-    setSavedMsg("🗑️ Đã xóa API Key khỏi bộ nhớ trình duyệt.");
-    setTimeout(() => setSavedMsg(""), 3000);
+    setSavedMsg("Đã xóa khóa API.");
+    setTimeout(() => setSavedMsg(""), 4000);
   };
 
-  // ── 2FA Toggle Handlers ──
+  const handleSaveEquipment = () => {
+    setSavedMsg("Đã lưu thiết lập danh hiệu & khung trang trí thành công!");
+    setTimeout(() => setSavedMsg(""), 4000);
+  };
+
+  // 2FA Handlers
   const handleInitiate2FAToggle = async () => {
     if (is2FAEnabled) {
-      // Disable 2FA directly
-      setIsVerifying2FA(true);
+      setIsSending2FA(true);
       try {
         const res = await fetch("/api/auth/2fa/toggle", {
           method: "POST",
@@ -189,16 +172,15 @@ export default function StudentProfilePage() {
         const data = await res.json();
         if (data.success) {
           setIs2FAEnabled(false);
-          setSavedMsg("⚠️ Đã tắt Xác Thực 2 Bước (2FA).");
+          setSavedMsg("Đã tắt Xác Thực 2 Bước.");
           setTimeout(() => setSavedMsg(""), 4000);
         }
-      } catch (err) {
-        console.error(err);
+      } catch {
+        setSavedMsg("Lỗi khi tắt 2FA.");
       } finally {
-        setIsVerifying2FA(false);
+        setIsSending2FA(false);
       }
     } else {
-      // Enable 2FA -> Require sending and verifying OTP code
       setIsSending2FA(true);
       setShow2FAModal(true);
       setModalMsg("Đang gửi mã xác thực tới email của bạn...");
@@ -258,7 +240,7 @@ export default function StudentProfilePage() {
       if (data.success) {
         setIs2FAEnabled(true);
         setShow2FAModal(false);
-        setSavedMsg("🛡️ Đã kích hoạt Bảo Mật 2 Lớp (2FA qua Email) thành công!");
+        setSavedMsg("Đã kích hoạt Bảo Mật 2 Lớp (2FA qua Email) thành công!");
         setTimeout(() => setSavedMsg(""), 5000);
       } else {
         setModalMsg(data.error || "Mã OTP không chính xác.");
@@ -275,62 +257,62 @@ export default function StudentProfilePage() {
   return (
     <div className="space-y-8 animate-fade-in font-sans pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-zinc-200">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <UserCheck className="w-7 h-7 text-cyan-400" /> Hồ Sơ & Bảo Mật Cá Nhân
+          <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight flex items-center gap-2">
+            <UserCheck className="w-7 h-7 text-red-600" /> Hồ Sơ & Bảo Mật Cá Nhân
           </h1>
-          <p className="text-sm text-[#8e9bb4] mt-1">
+          <p className="text-sm text-zinc-600 mt-1">
             Quản lý tài khoản, danh hiệu, bảo mật 2 lớp 2FA và mã hóa API Key.
           </p>
         </div>
 
-        <div className="px-5 py-2.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center gap-2">
-          <Coins className="w-4 h-4 text-amber-400" />
-          <span className="font-mono font-bold text-sm text-amber-300">{displayCoins} Coins</span>
+        <div className="px-4 py-2 rounded-xl bg-zinc-100 border border-zinc-200 flex items-center gap-2">
+          <Coins className="w-4 h-4 text-red-600" />
+          <span className="font-mono font-bold text-sm text-red-600">{displayCoins} Coins</span>
         </div>
       </div>
 
       {savedMsg && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-xs flex items-center justify-between animate-fade-in">
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center justify-between">
           <span>{savedMsg}</span>
         </div>
       )}
 
-      {/* Profile Overview Card */}
-      <div className="p-6 md:p-8 rounded-3xl bg-[#0f1524]/90 border border-[#7bd1fa]/20 shadow-xl flex flex-col md:flex-row items-center gap-6">
-        <div className={`w-28 h-28 rounded-full bg-slate-800 p-1 flex items-center justify-center transition-all ${selectedFrame.ringClass}`}>
-          <div className="w-full h-full rounded-full bg-[#0a0e1a] flex items-center justify-center text-3xl font-bold text-cyan-400 font-mono">
+      {/* Profile Overview Card (Solid Red & White) */}
+      <div className="p-6 md:p-8 rounded-2xl bg-white border-2 border-red-600 shadow-sm flex flex-col md:flex-row items-center gap-6">
+        <div className={`w-24 h-24 rounded-full bg-red-50 p-1 flex items-center justify-center ${selectedFrame.ringClass}`}>
+          <div className="w-full h-full rounded-full bg-red-600 flex items-center justify-center text-3xl font-black text-white font-mono">
             {displayName.charAt(0)}
           </div>
         </div>
 
         <div className="text-center md:text-left space-y-2 flex-1">
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-            <h2 className="text-xl md:text-2xl font-bold text-white">{displayName}</h2>
-            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold">
+            <h2 className="text-xl md:text-2xl font-black text-zinc-900">{displayName}</h2>
+            <span className="px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 text-xs font-bold">
               {ownedBadges.find((b) => b.id === activeBadge)?.name}
             </span>
           </div>
 
-          <p className="text-xs text-[#8e9bb4] font-mono">{displayEmail} • Học sinh chính thức</p>
+          <p className="text-xs text-zinc-500">{displayEmail} • Học viên chính thức</p>
 
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2 text-xs font-mono text-slate-300">
-            <span><BookOpen className="w-3.5 h-3.5 inline mr-1 text-cyan-400" /> {activeCoursesList.length + completedCoursesList.length} Khóa Học</span>
-            <span><Trophy className="w-3.5 h-3.5 inline mr-1 text-amber-400" /> 1,280 Điểm</span>
-            <span><Coins className="w-3.5 h-3.5 inline mr-1 text-yellow-400" /> {displayCoins} Coins</span>
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2 text-xs font-bold text-zinc-700">
+            <span><BookOpen className="w-3.5 h-3.5 inline mr-1 text-red-600" /> {activeCoursesList.length + completedCoursesList.length} Khóa Học</span>
+            <span><Trophy className="w-3.5 h-3.5 inline mr-1 text-red-600" /> 1,280 Điểm</span>
+            <span><Coins className="w-3.5 h-3.5 inline mr-1 text-red-600" /> {displayCoins} Coins</span>
           </div>
         </div>
       </div>
 
       {/* ── TIẾN ĐỘ KHÓA HỌC: ĐANG HỌC & ĐÃ HOÀN THÀNH ── */}
-      <div className="p-6 md:p-8 rounded-3xl bg-[#0f1524]/90 border border-[#7bd1fa]/20 shadow-xl space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+      <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-6">
+        <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-cyan-400" /> Tiến Độ Các Khóa Học Của Tôi
+            <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-red-600" /> Tiến Độ Các Khóa Học Của Tôi
             </h3>
-            <p className="text-xs text-[#8e9bb4] mt-0.5">
+            <p className="text-xs text-zinc-500 mt-0.5">
               Danh sách chi tiết các môn học đang theo dõi và đã hoàn thành chứng chỉ.
             </p>
           </div>
@@ -338,37 +320,37 @@ export default function StudentProfilePage() {
 
         {/* 1. Môn Đang Học (In-Progress) */}
         <div className="space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 font-mono">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" /> Đang Học ({activeCoursesList.length})
+          <h4 className="text-xs font-bold uppercase tracking-wider text-red-600 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-red-600" /> Đang Học ({activeCoursesList.length})
           </h4>
 
           {activeCoursesList.length === 0 ? (
-            <p className="text-xs text-slate-500 italic p-4 rounded-2xl bg-[#151b2c]">Không có khóa học nào đang diễn ra.</p>
+            <p className="text-xs text-zinc-500 italic p-4 rounded-xl bg-zinc-50 border border-zinc-200">Không có khóa học nào đang diễn ra.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {activeCoursesList.map((c) => (
                 <div
                   key={c.id}
-                  className="p-4 rounded-2xl bg-[#151b2c] border border-[#7bd1fa]/15 hover:border-cyan-500/40 transition-all flex flex-col justify-between space-y-3"
+                  className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 hover:border-red-600 transition-all flex flex-col justify-between space-y-3"
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
                         {c.category}
                       </span>
-                      <span className="text-xs font-mono font-bold text-cyan-300">{c.progress}%</span>
+                      <span className="text-xs font-mono font-bold text-red-600">{c.progress}%</span>
                     </div>
-                    <h5 className="font-bold text-white text-xs md:text-sm">{c.title}</h5>
-                    <p className="text-[11px] text-[#8e9bb4]">Giảng viên: {c.teacherName}</p>
+                    <h5 className="font-bold text-zinc-900 text-xs md:text-sm">{c.title}</h5>
+                    <p className="text-[11px] text-zinc-500">Giảng viên: {c.teacherName}</p>
                   </div>
 
                   <div className="space-y-2">
-                    <div className="h-1.5 w-full bg-[#0a0e1a] rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full" style={{ width: `${c.progress}%` }} />
+                    <div className="h-1.5 w-full bg-zinc-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-red-600 rounded-full" style={{ width: `${c.progress}%` }} />
                     </div>
                     <Link
                       href={`/student/classes/${c.id}`}
-                      className="w-full py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-xs font-bold text-center block transition"
+                      className="w-full py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold text-center block transition-colors"
                     >
                       Tiếp Tục Học
                     </Link>
@@ -381,33 +363,33 @@ export default function StudentProfilePage() {
 
         {/* 2. Môn Đã Hoàn Thành (Completed) */}
         <div className="space-y-3 pt-2">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-mono">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Đã Hoàn Thành ({completedCoursesList.length})
+          <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-700 flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Đã Hoàn Thành ({completedCoursesList.length})
           </h4>
 
           {completedCoursesList.length === 0 ? (
-            <p className="text-xs text-slate-500 italic p-4 rounded-2xl bg-[#151b2c]">Chưa có khóa học nào đạt 100% hoàn thành.</p>
+            <p className="text-xs text-zinc-500 italic p-4 rounded-xl bg-zinc-50 border border-zinc-200">Chưa có khóa học nào đạt 100% hoàn thành.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {completedCoursesList.map((c) => (
                 <div
                   key={c.id}
-                  className="p-4 rounded-2xl bg-[#151b2c] border border-emerald-500/30 flex flex-col justify-between space-y-3"
+                  className="p-4 rounded-xl bg-zinc-50 border border-emerald-200 flex flex-col justify-between space-y-3"
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         {c.category}
                       </span>
-                      <span className="text-xs font-mono font-bold text-emerald-400">100% ✓</span>
+                      <span className="text-xs font-mono font-bold text-emerald-600">100% ✓</span>
                     </div>
-                    <h5 className="font-bold text-white text-xs md:text-sm">{c.title}</h5>
-                    <p className="text-[11px] text-[#8e9bb4]">Giảng viên: {c.teacherName}</p>
+                    <h5 className="font-bold text-zinc-900 text-xs md:text-sm">{c.title}</h5>
+                    <p className="text-[11px] text-zinc-500">Giảng viên: {c.teacherName}</p>
                   </div>
 
                   <Link
                     href={`/student/classes/${c.id}`}
-                    className="w-full py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-bold text-center block transition border border-emerald-500/25"
+                    className="w-full py-1.5 rounded-lg bg-zinc-200 hover:bg-zinc-300 text-zinc-800 text-xs font-bold text-center block transition-colors"
                   >
                     Xem Lại Lộ Trình
                   </Link>
@@ -419,36 +401,36 @@ export default function StudentProfilePage() {
       </div>
 
       {/* ── CARD BẢO MẬT 2 LỚP (2FA QUA EMAIL) ── */}
-      <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-[#0f1524] to-[#151b2c] border border-cyan-500/30 shadow-xl space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200">
           <div className="space-y-1">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-cyan-400" /> Xác Thực 2 Bước (2FA Qua Email)
+            <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-red-600" /> Xác Thực 2 Bước (2FA Qua Email)
             </h3>
-            <p className="text-xs text-[#8e9bb4]">
-              Bảo vệ tài khoản tối đa: Mỗi khi đăng nhập từ thiết bị mới, hệ thống sẽ gửi mã OTP 6 số vào email <strong className="text-cyan-300">{displayEmail}</strong>.
+            <p className="text-xs text-zinc-600">
+              Bảo vệ tài khoản: Mỗi khi đăng nhập từ thiết bị mới, hệ thống sẽ gửi mã OTP 6 số vào email <strong className="text-zinc-900">{displayEmail}</strong>.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <span
-              className={`px-3 py-1 rounded-full text-xs font-mono font-bold ${
+              className={`px-3 py-1 rounded-full text-xs font-bold ${
                 is2FAEnabled
-                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                  : "bg-slate-800 text-slate-400 border border-slate-700"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : "bg-zinc-100 text-zinc-600 border border-zinc-200"
               }`}
             >
-              {is2FAEnabled ? "🛡️ 2FA ĐANG BẬT" : "⚠️ 2FA ĐANG TẮT"}
+              {is2FAEnabled ? "2FA ĐANG BẬT" : "2FA ĐANG TẮT"}
             </span>
 
             <button
               type="button"
               disabled={isSending2FA || isVerifying2FA}
               onClick={handleInitiate2FAToggle}
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 ${
                 is2FAEnabled
-                  ? "bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30"
-                  : "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                  ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200"
+                  : "bg-red-600 hover:bg-red-700 text-white"
               }`}
             >
               {isSending2FA || isVerifying2FA ? (
@@ -462,51 +444,51 @@ export default function StudentProfilePage() {
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0a0e1a]/80 border border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono text-slate-300">
+        <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-zinc-700">
           <div>
-            <span className="text-slate-500 block mb-1">Phương thức:</span>
-            <strong className="text-white">Email OTP (6 Chữ Số)</strong>
+            <span className="text-zinc-500 block mb-1">Phương thức:</span>
+            <strong className="text-zinc-900">Email OTP (6 Chữ Số)</strong>
           </div>
           <div>
-            <span className="text-slate-500 block mb-1">Hộp thư nhận OTP:</span>
-            <strong className="text-cyan-300">{displayEmail}</strong>
+            <span className="text-zinc-500 block mb-1">Hộp thư nhận OTP:</span>
+            <strong className="text-red-600">{displayEmail}</strong>
           </div>
           <div>
-            <span className="text-slate-500 block mb-1">Thời hạn mã:</span>
-            <strong className="text-amber-300">5 Phút / Lần gửi</strong>
+            <span className="text-zinc-500 block mb-1">Thời hạn mã:</span>
+            <strong className="text-zinc-900">5 Phút / Lần gửi</strong>
           </div>
         </div>
       </div>
 
       {/* ── 2FA ACTIVATION MODAL ── */}
       {show2FAModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#0f1524] border border-cyan-500/40 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-5 text-center relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <div className="bg-white border-2 border-red-600 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-5 text-center relative">
             <button
               onClick={() => setShow2FAModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-900 p-1"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="w-14 h-14 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 flex items-center justify-center mx-auto text-xl font-bold">
+            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl font-bold">
               🛡️
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-lg font-bold text-white">Xác Nhận Bật 2FA Email</h3>
-              <p className="text-xs text-slate-300">
-                Nhập mã OTP 6 số được gửi tới <strong className="text-cyan-300">{displayEmail}</strong> để xác nhận.
+              <h3 className="text-lg font-bold text-zinc-900">Xác Nhận Bật 2FA Email</h3>
+              <p className="text-xs text-zinc-600">
+                Nhập mã OTP 6 số được gửi tới <strong className="text-zinc-900">{displayEmail}</strong> để xác nhận.
               </p>
             </div>
 
             {demoOtpHint && (
-              <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 font-mono flex items-center justify-between">
+              <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center justify-between">
                 <span>Mã OTP: <strong>{demoOtpHint}</strong></span>
                 <button
                   type="button"
                   onClick={() => setOtpInput(demoOtpHint)}
-                  className="px-2 py-0.5 rounded bg-amber-500/20 text-[10px]"
+                  className="px-2 py-0.5 rounded bg-red-200 text-[10px] font-bold"
                 >
                   Điền nhanh ⚡
                 </button>
@@ -520,27 +502,27 @@ export default function StudentProfilePage() {
                 value={otpInput}
                 onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ""))}
                 placeholder="••••••"
-                className="w-full text-center font-mono text-2xl tracking-[8px] bg-[#151b2c] border-2 border-cyan-500/40 focus:border-cyan-400 rounded-xl py-3 text-white focus:outline-none"
+                className="w-full text-center font-mono text-2xl tracking-[8px] bg-zinc-50 border-2 border-zinc-300 focus:border-red-600 rounded-xl py-3 text-zinc-900 focus:outline-none"
                 required
                 autoFocus
               />
 
               {modalMsg && (
-                <div className="text-xs font-mono text-cyan-300">{modalMsg}</div>
+                <div className="text-xs font-bold text-red-600">{modalMsg}</div>
               )}
 
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setShow2FAModal(false)}
-                  className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-bold transition-all cursor-pointer"
+                  className="flex-1 py-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition-colors cursor-pointer"
                 >
                   Hủy Bỏ
                 </button>
                 <button
                   type="submit"
                   disabled={isVerifying2FA || otpInput.length !== 6}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-mono text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   {isVerifying2FA ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                   Xác Nhận Kích Hoạt
@@ -552,39 +534,39 @@ export default function StudentProfilePage() {
       )}
 
       {/* ── CARD QUẢN LÝ MÃ HÓA AI KEY ── */}
-      <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-[#0f1524] to-[#151b2c] border border-cyan-500/30 shadow-xl space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-800">
+      <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-zinc-200">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Key className="w-5 h-5 text-cyan-400" /> Khóa Trí Tuệ Nhân Tạo (Gemini / OpenAI API Key)
+            <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+              <Key className="w-5 h-5 text-red-600" /> Khóa Trí Tuệ Nhân Tạo (Gemini API Key)
             </h3>
-            <p className="text-xs text-[#8e9bb4] mt-1">
-              Khóa API của bạn được <strong className="text-cyan-300">mã hóa an toàn trực tiếp trên trình duyệt (Local Storage)</strong> và không bao giờ bị lưu trên máy chủ công cộng.
+            <p className="text-xs text-zinc-600 mt-1">
+              Khóa API của bạn được <strong className="text-zinc-900">mã hóa an toàn trên trình duyệt</strong>.
             </p>
           </div>
 
           <span
-            className={`px-3 py-1 rounded-full text-xs font-mono font-bold self-start sm:self-auto ${
+            className={`px-3 py-1 rounded-full text-xs font-bold self-start sm:self-auto ${
               isKeyConfigured
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                ? "bg-red-50 text-red-700 border border-red-200"
+                : "bg-zinc-100 text-zinc-600 border border-zinc-200"
             }`}
           >
-            {isKeyConfigured ? "⚡ Đã Kích Hoạt Live AI" : "Chưa Cấu Hình Key"}
+            {isKeyConfigured ? "Đã Kích Hoạt Key" : "Chưa Cấu Hình Key"}
           </span>
         </div>
 
         {isKeyConfigured ? (
-          <div className="p-4 rounded-2xl bg-[#0a0e1a]/80 border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-[11px] font-mono text-slate-400 block">Khóa API hiện tại (Đã mã hóa):</span>
-              <span className="font-mono text-sm text-emerald-400 tracking-wider">{maskedKeyDisplay}</span>
+              <span className="text-[11px] text-zinc-500 block">Khóa API hiện tại:</span>
+              <span className="font-mono text-sm text-zinc-900 tracking-wider font-bold">{maskedKeyDisplay}</span>
             </div>
 
             <div className="flex items-center gap-2">
               <Link
                 href="/student/ai-tutor"
-                className="px-4 py-2 rounded-xl bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5"
               >
                 <span>Dùng Thử AI Tutor</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -592,7 +574,7 @@ export default function StudentProfilePage() {
               <button
                 type="button"
                 onClick={handleRemoveAIKey}
-                className="px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 text-xs font-mono transition-all cursor-pointer flex items-center gap-1"
+                className="px-3.5 py-2 rounded-xl bg-zinc-200 hover:bg-zinc-300 text-zinc-800 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
                 title="Xóa khóa API khỏi máy"
               >
                 <Trash2 className="w-3.5 h-3.5" /> Xóa
@@ -602,7 +584,7 @@ export default function StudentProfilePage() {
         ) : (
           <form onSubmit={handleSaveAIKey} className="space-y-4">
             <div className="relative">
-              <label className="block text-xs font-mono text-slate-300 mb-1.5">
+              <label className="block text-xs text-zinc-700 font-bold mb-1.5">
                 Nhập Google Gemini API Key:
               </label>
               <div className="relative flex items-center">
@@ -611,25 +593,25 @@ export default function StudentProfilePage() {
                   value={keyInput}
                   onChange={(e) => setKeyInput(e.target.value)}
                   placeholder="Dán mã API Key của bạn (VD: AIzaSy...)"
-                  className="w-full bg-[#0a0e1a] border border-cyan-500/30 focus:border-cyan-400 rounded-xl px-4 py-3 text-xs font-mono text-white placeholder-slate-600 focus:outline-none pr-10"
+                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-3 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowRawKey(!showRawKey)}
-                  className="absolute right-3 text-slate-400 hover:text-white"
+                  className="absolute right-3 text-zinc-400 hover:text-zinc-800"
                 >
                   {showRawKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <div className="flex items-center justify-between mt-1.5 text-[11px] text-slate-500">
-                <span>Khóa được mã hóa Base64-Cipher trước khi ghi vào Local Storage.</span>
+              <div className="flex items-center justify-between mt-1.5 text-[11px] text-zinc-500">
+                <span>Khóa được mã hóa an toàn trước khi lưu.</span>
                 <a
                   href="https://aistudio.google.com/app/apikey"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-cyan-400 hover:underline flex items-center gap-1"
+                  className="text-red-600 hover:underline flex items-center gap-1 font-bold"
                 >
-                  Lấy Key miễn phí tại Google AI Studio <ExternalLink className="w-3 h-3" />
+                  Lấy Key tại Google AI Studio <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
             </div>
@@ -637,7 +619,7 @@ export default function StudentProfilePage() {
             <button
               type="submit"
               disabled={!keyInput.trim()}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-mono font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2"
+              className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2"
             >
               <Key className="w-3.5 h-3.5" /> Mã Hóa & Lưu Khóa API
             </button>
@@ -648,9 +630,9 @@ export default function StudentProfilePage() {
       {/* Customization Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Frame Selection */}
-        <div className="p-6 rounded-2xl bg-[#0f1524]/80 border border-[#7bd1fa]/15 space-y-4">
-          <h3 className="font-bold text-base text-white flex items-center gap-2">
-            <Palette className="w-5 h-5 text-cyan-400" /> Chọn Khung Avatar Đã Sở Hữu
+        <div className="p-6 rounded-2xl bg-white border border-zinc-200 space-y-4 shadow-sm">
+          <h3 className="font-bold text-base text-zinc-900 flex items-center gap-2">
+            <Palette className="w-5 h-5 text-red-600" /> Chọn Khung Avatar Đã Sở Hữu
           </h3>
 
           <div className="space-y-2.5">
@@ -660,26 +642,26 @@ export default function StudentProfilePage() {
                 onClick={() => setActiveFrame(frame.id)}
                 className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                   activeFrame === frame.id
-                    ? "bg-cyan-500/20 border-cyan-400 text-white"
-                    : "bg-[#151b2c] border-slate-800 text-slate-400 hover:border-slate-700"
+                    ? "bg-red-50 border-red-600 text-zinc-900 font-bold"
+                    : "bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs ${frame.ringClass}`}>
+                  <div className={`w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-xs ${frame.ringClass}`}>
                     ✦
                   </div>
-                  <span className="font-mono text-xs font-bold text-white">{frame.name}</span>
+                  <span className="text-xs font-bold text-zinc-900">{frame.name}</span>
                 </div>
-                {activeFrame === frame.id && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
+                {activeFrame === frame.id && <CheckCircle2 className="w-4 h-4 text-red-600" />}
               </label>
             ))}
           </div>
         </div>
 
         {/* Badge Selection */}
-        <div className="p-6 rounded-2xl bg-[#0f1524]/80 border border-[#7bd1fa]/15 space-y-4">
-          <h3 className="font-bold text-base text-white flex items-center gap-2">
-            <Award className="w-5 h-5 text-amber-400" /> Chọn Huy Hiệu Hiển Thị
+        <div className="p-6 rounded-2xl bg-white border border-zinc-200 space-y-4 shadow-sm">
+          <h3 className="font-bold text-base text-zinc-900 flex items-center gap-2">
+            <Award className="w-5 h-5 text-red-600" /> Chọn Huy Hiệu Hiển Thị
           </h3>
 
           <div className="space-y-2.5">
@@ -689,12 +671,12 @@ export default function StudentProfilePage() {
                 onClick={() => setActiveBadge(b.id)}
                 className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                   activeBadge === b.id
-                    ? "bg-amber-500/20 border-amber-400 text-white"
-                    : "bg-[#151b2c] border-slate-800 text-slate-400 hover:border-slate-700"
+                    ? "bg-red-50 border-red-600 text-zinc-900 font-bold"
+                    : "bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300"
                 }`}
               >
-                <span className="font-mono text-xs font-bold text-white">{b.name}</span>
-                {activeBadge === b.id && <CheckCircle2 className="w-4 h-4 text-amber-400" />}
+                <span className="text-xs font-bold text-zinc-900">{b.name}</span>
+                {activeBadge === b.id && <CheckCircle2 className="w-4 h-4 text-red-600" />}
               </label>
             ))}
           </div>
@@ -703,7 +685,7 @@ export default function StudentProfilePage() {
 
       <button
         onClick={handleSaveEquipment}
-        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:from-blue-500 hover:to-cyan-300 text-white font-bold font-mono text-sm shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all cursor-pointer flex items-center justify-center gap-2"
+        className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
       >
         <CheckCircle2 className="w-4 h-4" /> Lưu Thiết Lập Trang Bị
       </button>
