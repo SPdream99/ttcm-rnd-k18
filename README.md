@@ -128,7 +128,14 @@ e-v-e/
 
 ---
 
+## Sơ Đồ Cơ Sở Dữ Liệu (Firestore Database Schema / ERD)
+
+![Sơ Đồ Cơ Sở Dữ Liệu Firestore E-V-E](docs/firestore_database_schema.png)
+
+---
+
 ## Bản quyền
 
 Dự án được thực hiện bởi **Nhóm 1 — Lớp TTCM - RnD - K18**.  
 Sử dụng cho mục đích học tập và nghiên cứu.
+

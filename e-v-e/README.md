@@ -48,4 +48,13 @@ npm run start
 - `public/`: Tài nguyên tĩnh, âm thanh và các gói game đóng gói sẵn (`eve-game-sdk.js`, minigames).
 - `scripts/`: Script khởi tạo cơ sở dữ liệu mẫu (`initDatabase.mjs`).
 
+---
+
+## Sơ Đồ Cơ Sở Dữ Liệu (Firestore Database Schema / ERD)
+
+![Sơ Đồ Cơ Sở Dữ Liệu Firestore E-V-E](/docs/firestore_database_schema.png)
+
+---
+
 Chi tiết tài liệu đồ án và thông tin nhóm xem tại [README.md gốc](../README.md).
+
