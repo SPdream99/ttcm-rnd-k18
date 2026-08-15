@@ -1,121 +1,21 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react"; export default function MemoryMatchPage() {
-  const [music, setMusic] = useState(false);
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-const audioRef = useRef<HTMLAudioElement | null>(null);
+export default function MemoryMatchLandingPage() {
+  const router = useRouter();
 
-useEffect(() => {
-  const audio = new Audio("/sounds/BGM_MemoryMatchingGame.mp3");
-
-  audio.loop = true;
-  audio.volume = 0.3;
-
-  audioRef.current = audio;
-
-  return () => {
-    audio.pause();
-    audio.currentTime = 0;
-  };
-}, []);
-
-  const handlePlay = () => {
-    console.log("Start game");
-    location.href = "/game/MemoryMatchingGame/play";
-    // router.push("/memory-match/game");
-  };
+  useEffect(() => {
+    router.replace("/student/play/game_card_match_vr/crs_coding_basics");
+  }, [router]);
 
   return (
-    <main className="bg-background text-on-background min-h-screen flex flex-col font-body-md relative overflow-hidden">
-      {/* Soft Ambient Background */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-primary-fixed opacity-60 rounded-full blur-[100px] -translate-x-1/3 -translate-y-1/3 pointer-events-none" />
-
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-secondary-fixed opacity-40 rounded-full blur-[120px] translate-x-1/4 translate-y-1/4 pointer-events-none" />
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-container-padding z-10 w-full max-w-md mx-auto relative">
-
-        {/* Logo Area */}
-        <div className="flex flex-col items-center mb-16 animate-float">
-
-          <div className="w-32 h-32 bg-white rounded-3xl shadow-[0_8px_32px_rgba(107,56,212,0.15)] flex items-center justify-center mb-6 border border-surface-dim transform rotate-3">
-            <img
-              src="/game_content/Logo_MemoryMatchingGame.png"
-              alt="Memory Match Icon"
-              className="h-20 w-20 object-contain"
-            />
-          </div>
-
-          <h1 className="font-display text-display text-on-background text-center drop-shadow-sm">
-            MEMORY
-            <br />
-            <span className="text-primary">MATCH</span>
-          </h1>
-        </div>
-
-        {/* Navigation Buttons */}
-        <div className="w-full flex flex-col gap-5 px-6">
-
-          {/* PLAY */}
-
-          <button
-            onClick={handlePlay}
-            className="w-full group relative overflow-hidden bg-primary text-on-primary py-5 rounded-full font-label-md text-label-md shadow-[0_8px_24px_rgba(107,56,212,0.2)] hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(107,56,212,0.3)] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3"
-          >
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-
-            <span
-              className="material-symbols-outlined relative z-10"
-              style={{
-                fontVariationSettings: "'FILL' 1",
-              }}
-            >
-              play_arrow
-            </span>
-
-            <span className="text-lg tracking-widest relative z-10">
-              PLAY
-            </span>
-          </button>
-        </div>
-      </main>
-
-      {/* Footer Audio Controls */}
-      <footer className="absolute bottom-8 w-full flex justify-center gap-6 z-10">
-
-        {/* Sound */}
-<button
-  aria-label="Toggle Music"
-  onClick={async () => {
-    const nextMusic = !music;
-    setMusic(nextMusic);
-
-    if (!audioRef.current) return;
-
-    try {
-      if (nextMusic) {
-        await audioRef.current.play();
-      } else {
-        audioRef.current.pause();
-      }
-    } catch (error) {
-      console.error("Không thể phát nhạc:", error);
-      setMusic(false);
-    }
-  }}
-  className="w-14 h-14 bg-surface rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-surface-dim flex items-center justify-center text-primary hover:bg-primary-fixed hover:scale-105 active:scale-95 transition-all duration-200"
->
-  <span
-    className="material-symbols-outlined"
-    style={{
-      fontVariationSettings: "'FILL' 1",
-    }}
-  >
-    {music ? "music_note" : "music_off"}
-  </span>
-</button>
-
-      </footer>
-    </main>
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-sans">
+      <div className="text-center space-y-3">
+        <div className="w-10 h-10 border-4 border-zinc-200 border-t-red-600 rounded-full animate-spin mx-auto" />
+        <p className="text-xs font-bold text-zinc-600">Đang chuyển hướng tới phòng chơi chuẩn E-V-E...</p>
+      </div>
+    </div>
   );
 }

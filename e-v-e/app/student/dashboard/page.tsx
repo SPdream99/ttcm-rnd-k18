@@ -7,29 +7,26 @@ import {
   BookOpen,
   Gamepad2,
   Trophy,
-  ShoppingBag,
   Coins,
   Play,
-  CheckCircle2,
   ArrowRight,
   Flame,
-  Sparkles,
-  Award,
-  Swords,
   Bot,
-  Zap,
-  Target,
+  GraduationCap,
+  PlusCircle,
+  Crown,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import { cacheService } from "@/lib/cacheService";
 
 export default function StudentDashboardPage() {
   const { currentUser, profile } = useAuthAdapter();
-  const displayName = currentUser?.name || profile?.fullName || "Học Viên E-V-E";
-  const displayCoins = currentUser?.coins ?? profile?.coins ?? 250;
+  const displayName = currentUser?.name || currentUser?.displayName || profile?.fullName || "Học Viên E-V-E";
+  const displayCoins = currentUser?.coins ?? profile?.coins ?? 450;
 
-  const [learningPaths, setLearningPaths] = useState<any[]>([]);
+  const [enrolledClasses, setEnrolledClasses] = useState<any[]>([]);
   const [availableGames, setAvailableGames] = useState<any[]>([]);
   const [topRankings, setTopRankings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,120 +35,116 @@ export default function StudentDashboardPage() {
     async function loadDashboardData() {
       try {
         setLoading(true);
+        const user = auth.currentUser;
 
-        // 1. Fetch Learning Paths from Firestore
-        const pathsSnap = await getDocs(collection(db, "learning_path"));
-        const realPaths = pathsSnap.docs.map((d) => {
-          const data = d.data();
-          const coursesList = Array.isArray(data.courses) ? data.courses : [];
-          return {
-            id: d.id,
-            title: data.title || "Lộ trình học tập",
-            progress: 0,
-            currentCourseId: coursesList[0] || "default",
-            currentCourseTitle: data.title || "Bài học số 1",
-            nextGameId: "boss_battle_quiz",
-            totalCourses: coursesList.length || 1,
-            completedCourses: 0,
-          };
-        });
-        setLearningPaths(realPaths.slice(0, 4));
+        // 1. Fetch Enrolled Classes
+        if (user) {
+          try {
+            const enrollSnap = await getDocs(
+              query(collection(db, "student_learning_path"), where("student_id", "==", user.uid))
+            );
 
-        // 2. Fetch Custom / Approved Games from Firestore
+            const classesData: any[] = [];
+            for (const docItem of enrollSnap.docs) {
+              const eData = docItem.data();
+              const pathId = eData.learning_path_id;
+
+              const pathDoc = await getDoc(doc(db, "learning_path", pathId));
+              if (pathDoc.exists()) {
+                const pData = pathDoc.data();
+                const courses = Array.isArray(pData.courses) ? pData.courses : [];
+                classesData.push({
+                  id: pathDoc.id,
+                  title: pData.title || "Lớp học E-V-E",
+                  description: pData.description || "",
+                  progress: Number(eData.progress) || 0,
+                  coursesCount: courses.length,
+                  category: pData.category || "Công nghệ & Lập trình",
+                  teacherName: pData.authorName || pData.teacherName || "ThS. Nguyễn Thành Đạt",
+                });
+              }
+            }
+            if (classesData.length === 0) {
+              // Fallback fetch all active learning paths if student not yet in collection
+              const allPathsSnap = await getDocs(collection(db, "learning_path"));
+              allPathsSnap.docs.forEach((d) => {
+                const pData = d.data();
+                classesData.push({
+                  id: d.id,
+                  title: pData.title || "Lộ trình học",
+                  description: pData.description || "",
+                  progress: 60,
+                  coursesCount: pData.courses?.length || 3,
+                  category: pData.category || "Công nghệ & Lập trình",
+                  teacherName: "ThS. Nguyễn Thành Đạt",
+                });
+              });
+            }
+            setEnrolledClasses(classesData);
+          } catch (e) {
+            console.error("Lỗi khi tải thông tin lớp học:", e);
+          }
+        }
+
+        // 2. Fetch Games List from Firestore
         const gamesSnap = await getDocs(collection(db, "game_info"));
         let gamesList: any[] = [];
 
-        // Add standard built-in engines
-        gamesList.push({
-          id: "boss_battle_quiz",
-          title: "Boss Slayer Marathon Quiz 🗡️",
-          courseId: "all",
-          courseName: "Tất Cả Khóa Học",
-          genre: "Action QTE Quiz",
-          reward: "+100 Coins",
-          badge: "HOT 🔥",
-          description: "Đánh trùm 1000 HP marathon 10s liên tục, né đòn phản công QTE bằng phím mũi tên!",
-        });
-
-        gamesList.push({
-          id: "game_card_match_vr",
-          title: "Quantum Memory Card Matrix 🃏",
-          courseId: "all",
-          courseName: "Tất Cả Khóa Học",
-          genre: "Memory Match 3D",
-          reward: "+40 Coins",
-          badge: "TRÍ TUỆ 💡",
-          description: "Lật và ghi nhớ các cặp định nghĩa để nhận thưởng điểm cao.",
-        });
-
-        gamesList.push({
-          id: "game_hardware_3d_lab",
-          title: "Phòng Thí Nghiệm Lắp Ráp Máy Tính 3D 💻",
-          courseId: "all",
-          courseName: "Phần Cứng & Kiến Trúc",
-          genre: "Hardware Assembly Simulator",
-          reward: "+60 Coins",
-          badge: "MÔ PHỎNG 🖥️",
-          description: "Lắp ráp linh kiện CPU, RAM, GPU, SSD vào Bo mạch chủ PC trực quan.",
-        });
-
-        // Add custom teacher games
         gamesSnap.docs.forEach((d) => {
           const data = d.data();
           gamesList.push({
             id: d.id,
-            title: `${data.title || "Minigame"} 🎮`,
-            courseId: (data.courses_allowed && data.courses_allowed[0]) || "all",
-            courseName: "Khóa Học Tương Tác",
-            genre: data.genre || "Interactive Quiz",
-            reward: "+50 Coins",
-            badge: "GIẢNG VIÊN TẢI LÊN",
-            description: data.description || "Trò chơi học tập tích hợp câu hỏi trắc nghiệm.",
+            title: data.title || data.name || "Minigame Giáo Dục",
+            courseName: data.subtitle || data.description || "Thực hành tương tác",
+            genre: data.genre || "Minigame",
+            reward: `+${data.rewardCoins || 50} Coins`,
+            badge: data.badge || "HOT",
+            href: `/student/play/${d.id}/crs_coding_basics`,
           });
         });
 
-        setAvailableGames(gamesList);
+        if (gamesList.length === 0) {
+          gamesList = [
+            {
+              id: "game_card_match_vr",
+              title: "Memory Matching Game",
+              courseName: "Lật Thẻ Trí Nhớ & Khái Niệm",
+              genre: "Game Trí Nhớ 3D",
+              reward: "+50 Coins",
+              badge: "NỔI BẬT",
+              href: "/student/play/game_card_match_vr/crs_coding_basics",
+            },
+            {
+              id: "boss_battle_quiz",
+              title: "Boss Slayer Marathon Quiz",
+              courseName: "Giải Đố Phản Xạ Đấu Trùm",
+              genre: "Trắc Nghiệm Phản Xạ",
+              reward: "+60 Coins",
+              badge: "THỬ THÁCH",
+              href: "/student/play/boss_battle_quiz/crs_python_foundation",
+            },
+          ];
+        }
 
-        // 3. Fetch Real Leaderboard
-        const userDocsSnap = await getDocs(collection(db, "users"));
-        const gameResSnap = await getDocs(collection(db, "game_results"));
+        setAvailableGames(gamesList.slice(0, 3));
 
-        const studentScores = new Map<string, { name: string; score: number; coins: number }>();
-        userDocsSnap.docs.forEach((d) => {
-          const u = d.data();
-          if (u.role === "student" || (!u.role && u.email)) {
-            studentScores.set(d.id, {
-              name: u.displayName || u.fullName || u.name || "Học viên",
-              score: Number(u.score) || 0,
-              coins: Number(u.coins) || 0,
-            });
-          }
-        });
-
-        gameResSnap.docs.forEach((gr) => {
-          const data = gr.data();
-          const uid = data.uid || data.userId;
-          if (uid && studentScores.has(uid)) {
-            const st = studentScores.get(uid)!;
-            st.score += Number(data.score) || Number(data.result) || 0;
-            st.coins += Number(data.reward) || 0;
-          }
-        });
-
-        const sortedRankings = Array.from(studentScores.values())
-          .sort((a, b) => b.score - a.score || b.coins - a.coins)
-          .slice(0, 5)
-          .map((item, idx) => ({
+        // 3. Fetch Real Top Rankings from Users
+        const userSnap = await getDocs(collection(db, "users"));
+        const students = userSnap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((u: any) => u.role === "student" || (!u.role && u.email))
+          .map((u: any, idx: number) => ({
             rank: idx + 1,
-            name: item.name,
-            score: item.score,
-            coins: item.coins,
-            badge: idx === 0 ? "Thủ Khoa 👑" : idx === 1 ? "Chuyên Gia 💡" : "Bứt Phá 🔥",
-          }));
+            name: u.name || u.displayName || u.email || "Học Viên",
+            points: Number(u.score) || (Number(u.coins) ? Number(u.coins) * 3 : 250),
+            badge: idx === 0 ? "Thủ Khoa" : idx === 1 ? "Á Khoa" : "Ưu Tú",
+            title: "Học Viên Tiêu Biểu",
+          }))
+          .sort((a, b) => b.points - a.points);
 
-        setTopRankings(sortedRankings);
+        setTopRankings(students.slice(0, 3));
       } catch (err) {
-        console.warn("Lỗi tải dữ liệu dashboard:", err);
+        console.error("Dashboard fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -161,184 +154,222 @@ export default function StudentDashboardPage() {
   }, []);
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-mono mb-2">
-            <Flame className="w-3.5 h-3.5 text-amber-400" /> Không Gian Học Tập Trực Tuyến • Chào mừng {displayName} 🌟
-          </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-            Bảng Điều Khiển Học Viên E-V-E 🚀
-          </h1>
-          <p className="text-sm text-[#8e9bb4] mt-1">
-            Tiếp tục hành trình học tập, hoàn thành các bài học & minigame tương tác để tích lũy Coins và vinh danh trên BXH.
-          </p>
-        </div>
+    <div className="space-y-8 pb-12 font-sans">
+      {/* ================= HERO CHÀO MỪNG (ĐỎ & TRẮNG, NO GRADIENT) ================= */}
+      <div className="rounded-2xl border-2 border-red-600 bg-white p-6 md:p-8 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-600 text-xs font-bold">
+                E-V-E Educational Ecosystem
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-bold">
+                <Flame className="w-3.5 h-3.5 text-red-600" /> Chuỗi học 7 ngày 
+              </span>
+            </div>
 
-        <div className="flex items-center gap-3">
-          <div className="px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-            <Coins className="w-4 h-4 text-amber-400" />
-            <span className="font-mono font-bold text-sm text-amber-300">{displayCoins} Coins</span>
+            <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight">
+              Chào mừng trở lại, <span className="text-red-600">{displayName}</span>
+            </h1>
+
+            <p className="text-xs md:text-sm text-zinc-600 leading-relaxed">
+              Theo dõi tiến độ bài học, khám phá bản đồ lộ trình học tập và rèn luyện kiến thức cùng kho minigame tương tác.
+            </p>
           </div>
-          <Link href="/student/shop">
-            <button className="px-3.5 py-2 rounded-xl bg-[#151b2c] hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5">
-              <ShoppingBag className="w-3.5 h-3.5 text-amber-400" /> Đổi Thưởng
-            </button>
-          </Link>
+
+          {/* Khối Thao Tác & Điểm Thưởng */}
+          <div className="flex items-center gap-3 self-start lg:self-auto shrink-0">
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200">
+              <div className="w-9 h-9 rounded-lg bg-red-600 text-white flex items-center justify-center font-bold">
+                <Coins className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] text-zinc-500 block font-bold uppercase">Số dư Coins</span>
+                <span className="text-base font-bold text-red-600 font-mono">{displayCoins} Coins</span>
+              </div>
+            </div>
+
+            <Link
+              href="/student/ai-tutor"
+              className="px-5 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors flex items-center gap-2"
+            >
+              <Bot className="w-4 h-4" /> Hỏi Gia Sư
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* ── Active Learning Paths ── */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-cyan-400" /> Lộ Trình Đang Xuất Bản ({learningPaths.length})
-          </h2>
+      {/* ================= PHẦN 1: LỚP HỌC ĐÃ ĐĂNG KÝ ================= */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between border-b border-zinc-200 pb-3">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="w-5 h-5 text-red-600" />
+            <h2 className="text-lg md:text-xl font-bold text-zinc-900 tracking-tight">
+              Lớp Học Đã Đăng Ký ({enrolledClasses.length})
+            </h2>
+          </div>
           <Link
-            href="/student/learning-paths"
-            className="text-xs font-mono text-cyan-400 hover:underline flex items-center gap-1"
+            href="/student/classes"
+            className="text-xs md:text-sm font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
           >
-            Xem tất cả lộ trình <ArrowRight className="w-3.5 h-3.5" />
+            Xem tất cả <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
-        {learningPaths.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-[#0f1524]/60 border border-slate-800 text-center space-y-3">
-            <BookOpen className="w-10 h-10 text-slate-600 mx-auto" />
-            <p className="text-sm text-slate-400">Chưa có lộ trình học tập nào được phát hành.</p>
-            <Link href="/student/learning-paths">
-              <button className="px-4 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-mono font-bold hover:bg-cyan-500/30 transition-all cursor-pointer">
-                Khám Phá Lộ Trình
-              </button>
+        {loading ? (
+          <div className="p-8 text-center bg-white rounded-2xl border border-zinc-200">
+            <div className="w-8 h-8 rounded-full border-2 border-red-600 border-t-transparent animate-spin mx-auto mb-2" />
+            <p className="text-xs text-zinc-500">Đang tải lớp học...</p>
+          </div>
+        ) : enrolledClasses.length === 0 ? (
+          <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-zinc-300">
+            <p className="text-sm font-bold text-zinc-700 mb-2">Bạn chưa tham gia lớp học nào</p>
+            <Link
+              href="/student/learning-paths"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition-colors"
+            >
+              <PlusCircle className="w-4 h-4" /> Khám Phá Lộ Trình Mới
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {learningPaths.map((path) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {enrolledClasses.map((cls) => (
               <div
-                key={path.id}
-                className="p-6 rounded-2xl bg-gradient-to-r from-[#0f1524] via-[#151b2c] to-[#0f1524] border border-[#7bd1fa]/20 shadow-xl space-y-5 hover:border-cyan-500/40 transition-all"
+                key={cls.id}
+                className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm space-y-4 hover:border-red-600 transition-all flex flex-col justify-between"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <span className="text-[10px] font-mono uppercase text-cyan-400 tracking-wider">Lộ Trình Đào Tạo</span>
-                    <h3 className="text-lg font-bold text-white mt-0.5">{path.title}</h3>
-                    <p className="text-xs text-[#8e9bb4] mt-1">
-                      Tổng số bài: <strong className="text-cyan-300">{path.totalCourses} bài học</strong>
-                    </p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-bold border border-red-200">
+                      {cls.category}
+                    </span>
+                    <span className="text-xs font-bold text-zinc-900 font-mono">{cls.progress}%</span>
+                  </div>
+                  <h3 className="font-bold text-base text-zinc-900 line-clamp-1">{cls.title}</h3>
+                  <p className="text-xs text-zinc-500 line-clamp-2">{cls.description}</p>
+                </div>
+
+                <div className="space-y-3 pt-3 border-t border-zinc-100">
+                  <div className="w-full bg-zinc-100 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-red-600 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${cls.progress}%` }}
+                    />
                   </div>
 
-                  <Link href="/student/learning-paths">
-                    <button className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:from-blue-500 hover:to-cyan-300 text-white font-mono text-xs font-bold shadow-[0_0_15px_rgba(6,182,212,0.35)] transition-all cursor-pointer flex items-center gap-2 shrink-0">
-                      <Play className="w-3.5 h-3.5 fill-white" /> Khám Phá Ngay
-                    </button>
-                  </Link>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-zinc-500 font-medium">GV: {cls.teacherName}</span>
+                    <Link
+                      href={`/student/learning-paths/${cls.id}`}
+                      className="font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
+                    >
+                      Học tiếp <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </section>
+      </div>
 
-      {/* ── Games & Quick Challenge Grid ── */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Gamepad2 className="w-5 h-5 text-amber-400" /> Trò Chơi Học Tập Sẵn Sàng ({availableGames.length})
-          </h2>
+      {/* ================= PHẦN 2: MINIGAME GIÁO DỤC NỔI BẬT ================= */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between border-b border-zinc-200 pb-3">
+          <div className="flex items-center gap-2">
+            <Gamepad2 className="w-5 h-5 text-red-600" />
+            <h2 className="text-lg md:text-xl font-bold text-zinc-900 tracking-tight">
+              Minigame Giáo Dục Nổi Bật ({availableGames.length})
+            </h2>
+          </div>
           <Link
             href="/student/games"
-            className="text-xs font-mono text-amber-400 hover:underline flex items-center gap-1"
+            className="text-xs md:text-sm font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
           >
-            Vào Phòng Game Arcade <ArrowRight className="w-3.5 h-3.5" />
+            Xem tất cả game <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {availableGames.slice(0, 3).map((game) => (
+          {availableGames.map((game) => (
             <div
               key={game.id}
-              className="p-5 rounded-2xl bg-[#0f1524]/90 border border-slate-800 hover:border-amber-500/40 transition-all flex flex-col justify-between space-y-4 group shadow-lg"
+              className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm space-y-4 hover:border-red-600 transition-all flex flex-col justify-between"
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold">
+                  <span className="px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-bold border border-red-200">
                     {game.badge}
                   </span>
-                  <span className="text-xs font-mono text-amber-400 font-bold">{game.reward}</span>
+                  <span className="text-xs font-bold text-amber-600">{game.reward}</span>
                 </div>
-                <h3 className="font-bold text-white text-base group-hover:text-amber-300 transition-colors">
-                  {game.title}
-                </h3>
-                <p className="text-xs text-[#8e9bb4] line-clamp-2 leading-relaxed">
-                  {game.description}
-                </p>
+                <h3 className="font-bold text-base text-zinc-900">{game.title}</h3>
+                <p className="text-xs text-zinc-500 line-clamp-2">{game.courseName}</p>
               </div>
 
-              <Link href="/student/games">
-                <button className="w-full py-2.5 rounded-xl bg-[#151b2c] hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-slate-700 hover:border-amber-500/40 text-xs font-mono font-bold transition-all cursor-pointer flex items-center justify-center gap-2">
-                  <Play className="w-3.5 h-3.5" /> Chọn Khóa & Chơi
-                </button>
-              </Link>
+              <div className="pt-3 border-t border-zinc-100 flex items-center justify-between">
+                <span className="text-xs text-zinc-500">{game.genre}</span>
+                <Link
+                  href={game.href}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm"
+                >
+                  <Play className="w-3 h-3" /> Chơi Ngay
+                </Link>
+              </div>
             </div>
           ))}
         </div>
-      </section>
+      </div>
 
-      {/* ── Leaderboard Preview ── */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-amber-400" /> Bảng Xếp Hạng Học Viên
-          </h2>
+      {/* ================= PHẦN 3: BẢNG VINH DANH ================= */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between border-b border-zinc-200 pb-3">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-red-600" />
+            <h2 className="text-lg md:text-xl font-bold text-zinc-900 tracking-tight">
+              Top Học Viên Tiêu Biểu
+            </h2>
+          </div>
           <Link
             href="/student/leaderboard"
-            className="text-xs font-mono text-cyan-400 hover:underline flex items-center gap-1"
+            className="text-xs md:text-sm font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
           >
-            Xem toàn bộ BXH <ArrowRight className="w-3.5 h-3.5" />
+            Bảng xếp hạng đầy đủ <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
-        {topRankings.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-[#0f1524]/60 border border-slate-800 text-center">
-            <p className="text-xs text-slate-500 font-mono">Chưa có điểm xếp hạng thực tế nào được ghi nhận.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {topRankings.map((user) => (
-              <div
-                key={user.rank}
-                className="p-4 rounded-2xl bg-[#0f1524]/90 border border-slate-800 flex items-center justify-between gap-3 shadow-md"
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center font-mono ${
-                      user.rank === 1
-                        ? "bg-amber-400 text-black shadow-[0_0_10px_rgba(245,158,11,0.5)]"
-                        : user.rank === 2
-                        ? "bg-slate-300 text-black"
-                        : "bg-amber-700 text-white"
-                    }`}
-                  >
-                    #{user.rank}
-                  </span>
-                  <div>
-                    <div className="text-sm font-bold text-white truncate max-w-[120px] sm:max-w-[150px]">
-                      {user.name}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono">{user.badge}</div>
-                  </div>
-                </div>
-                <div className="text-right font-mono">
-                  <div className="text-xs font-bold text-amber-300">{user.score} pts</div>
-                  <div className="text-[10px] text-slate-400">{user.coins} Coins</div>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {topRankings.map((rk) => (
+            <div
+              key={rk.rank}
+              className={`p-5 rounded-2xl bg-white border-2 shadow-sm space-y-3 flex flex-col justify-between ${
+                rk.rank === 1
+                  ? "border-amber-400 bg-amber-50/20"
+                  : rk.rank === 2
+                  ? "border-zinc-300"
+                  : "border-red-200"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="w-7 h-7 rounded-lg bg-red-50 text-red-700 border border-red-200 flex items-center justify-center font-bold text-xs font-mono">
+                  #{rk.rank}
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-700 text-[10px] font-bold border border-zinc-200">
+                  {rk.badge}
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+              <div>
+                <h4 className="font-black text-base text-zinc-900">{rk.name}</h4>
+                <p className="text-xs text-zinc-500">{rk.title}</p>
+              </div>
+              <div className="pt-2 border-t border-zinc-100 flex items-center justify-between text-xs">
+                <span className="text-zinc-500">Điểm xếp hạng:</span>
+                <strong className="text-red-600 font-mono font-bold">{rk.points.toLocaleString()} pts</strong>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

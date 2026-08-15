@@ -13,6 +13,7 @@ import {
 import { db } from "@/lib/firebase";
 import { Course } from "@/core/entities/Course";
 import { CoursePort } from "@/core/ports/CoursePort";
+import { cacheService } from "@/lib/cacheService";
 
 function mapDocToCourse(docId: string, data: any): Course {
   return {
@@ -33,7 +34,7 @@ function mapDocToCourse(docId: string, data: any): Course {
     price: data.price || 0,
     totalDuration: data.total_duration || "",
     studentsCount: data.students_count || 0,
-    contentData: data.content_data || [],
+    contentData: data.content_data || data.pairs || [],
     createdAt:
       data.created_at instanceof Timestamp
         ? data.created_at.toDate()
@@ -70,45 +71,55 @@ function mapCourseToDoc(
     total_duration: course.totalDuration || "",
     students_count: course.studentsCount || 0,
     content_data: course.contentData || [],
-    created_at: course.createdAt
-      ? Timestamp.fromDate(course.createdAt)
-      : Timestamp.now(),
-    updated_at: Timestamp.now(),
+    created_at: course.createdAt ? Timestamp.fromDate(course.createdAt) : Timestamp.now(),
+    updated_at: course.updatedAt ? Timestamp.fromDate(course.updatedAt) : Timestamp.now(),
   };
 }
 
 export class FirestoreCourseRepo implements CoursePort {
   async getCourseById(id: string): Promise<Course | null> {
-    try {
-      const docRef = doc(db, "courses", id);
-      const docSnap = await getDoc(docRef);
-      if (!docSnap.exists()) return null;
-      return mapDocToCourse(docSnap.id, docSnap.data());
-    } catch (error) {
-      console.error("Firestore getCourseById error:", error);
-      return null;
-    }
+    return cacheService.getOrFetch(
+      `course_id_${id}`,
+      async () => {
+        try {
+          const docRef = doc(db, "courses", id);
+          const docSnap = await getDoc(docRef);
+          if (!docSnap.exists()) return null;
+          return mapDocToCourse(docSnap.id, docSnap.data());
+        } catch (error) {
+          console.error("Firestore getCourseById error:", error);
+          return null;
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 
   async getCourseByCustomId(courseId: string): Promise<Course | null> {
-    try {
-      const docRef = doc(db, "courses", courseId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return mapDocToCourse(docSnap.id, docSnap.data());
-      }
-      const q = query(
-        collection(db, "courses"),
-        where("course_id", "==", courseId)
-      );
-      const querySnapshot = await getDocs(q);
-      if (querySnapshot.empty) return null;
-      const snap = querySnapshot.docs[0];
-      return mapDocToCourse(snap.id, snap.data());
-    } catch (error) {
-      console.error("Firestore getCourseByCustomId error:", error);
-      return null;
-    }
+    return cacheService.getOrFetch(
+      `course_custom_id_${courseId}`,
+      async () => {
+        try {
+          const docRef = doc(db, "courses", courseId);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            return mapDocToCourse(docSnap.id, docSnap.data());
+          }
+          const q = query(
+            collection(db, "courses"),
+            where("course_id", "==", courseId)
+          );
+          const querySnapshot = await getDocs(q);
+          if (querySnapshot.empty) return null;
+          const snap = querySnapshot.docs[0];
+          return mapDocToCourse(snap.id, snap.data());
+        } catch (error) {
+          console.error("Firestore getCourseByCustomId error:", error);
+          return null;
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 
   async createCourse(
@@ -117,6 +128,7 @@ export class FirestoreCourseRepo implements CoursePort {
     const docData = mapCourseToDoc(course);
     const cid = docData.id;
     await setDoc(doc(db, "courses", cid), docData);
+    cacheService.invalidate(/course/);
     const docSnap = await getDoc(doc(db, "courses", cid));
     return mapDocToCourse(docSnap.id, docSnap.data()!);
   }
@@ -157,6 +169,7 @@ export class FirestoreCourseRepo implements CoursePort {
     updateData.updated_at = Timestamp.now();
 
     await updateDoc(docRef, updateData);
+    cacheService.invalidate(/course/);
     const updatedSnap = await getDoc(docRef);
     return mapDocToCourse(updatedSnap.id, updatedSnap.data()!);
   }
@@ -164,6 +177,7 @@ export class FirestoreCourseRepo implements CoursePort {
   async deleteCourse(id: string): Promise<boolean> {
     try {
       await deleteDoc(doc(db, "courses", id));
+      cacheService.invalidate(/course/);
       return true;
     } catch (error) {
       console.error("Firestore deleteCourse error:", error);
@@ -172,35 +186,48 @@ export class FirestoreCourseRepo implements CoursePort {
   }
 
   async getTeacherCourses(teacherId: string): Promise<Course[]> {
-    try {
-      const q = query(
-        collection(db, "courses"),
-        where("author_id", "==", teacherId)
-      );
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map((doc) =>
-        mapDocToCourse(doc.id, doc.data())
-      );
-    } catch (error) {
-      console.error("Firestore getTeacherCourses error:", error);
-      return [];
-    }
+    return cacheService.getOrFetch(
+      `courses_teacher_${teacherId}`,
+      async () => {
+        try {
+          const q = query(
+            collection(db, "courses"),
+            where("author_id", "==", teacherId)
+          );
+          const querySnapshot = await getDocs(q);
+          return querySnapshot.docs.map((d) =>
+            mapDocToCourse(d.id, d.data())
+          );
+        } catch (error) {
+          console.error("Firestore getTeacherCourses error:", error);
+          return [];
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 
   async getAllCourses(onlyAccepted?: boolean): Promise<Course[]> {
-    try {
-      let q = query(collection(db, "courses"));
-      if (onlyAccepted) {
-        q = query(collection(db, "courses"), where("is_accepted", "==", true));
-      }
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map((doc) =>
-        mapDocToCourse(doc.id, doc.data())
-      );
-    } catch (error) {
-      console.error("Firestore getAllCourses error:", error);
-      return [];
-    }
+    const key = onlyAccepted ? "courses_all_accepted" : "courses_all";
+    return cacheService.getOrFetch(
+      key,
+      async () => {
+        try {
+          let q = query(collection(db, "courses"));
+          if (onlyAccepted) {
+            q = query(collection(db, "courses"), where("is_accepted", "==", true));
+          }
+          const querySnapshot = await getDocs(q);
+          return querySnapshot.docs.map((d) =>
+            mapDocToCourse(d.id, d.data())
+          );
+        } catch (error) {
+          console.error("Firestore getAllCourses error:", error);
+          return [];
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 
   async approveCourse(id: string, approve: boolean): Promise<boolean> {
@@ -210,6 +237,7 @@ export class FirestoreCourseRepo implements CoursePort {
         is_accepted: approve,
         updated_at: Timestamp.now(),
       });
+      cacheService.invalidate(/course/);
       return true;
     } catch (error) {
       console.error("Firestore approveCourse error:", error);

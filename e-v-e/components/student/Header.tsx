@@ -24,7 +24,7 @@ const { userData } = GetUserData();
               Năm học 2025 - 2026
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-              Chào mừng trở lại, <span className="gradient-text-cyan">Captain {userData?.full_name}!</span> 🚀
+              Chào mừng trở lại, <span className="gradient-text-cyan">Captain {userData?.full_name}!</span> 
             </h1>
             <p className="text-sm text-[#8e9bb4] mt-1">I can do this all day</p>
           </div>

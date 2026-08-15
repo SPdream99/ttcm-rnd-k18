@@ -51,8 +51,8 @@ export async function POST(req: NextRequest) {
       success: true,
       twoFactorEnabled: enabled,
       message: enabled
-        ? "✅ Đã kích hoạt Xác Thực 2 Bước (2FA) thành công!"
-        : "⚠️ Đã tắt Xác Thực 2 Bước (2FA).",
+        ? " Đã kích hoạt Xác Thực 2 Bước (2FA) thành công!"
+        : " Đã tắt Xác Thực 2 Bước (2FA).",
     });
   } catch (error: any) {
     console.error("[2FA Toggle API Error]:", error);

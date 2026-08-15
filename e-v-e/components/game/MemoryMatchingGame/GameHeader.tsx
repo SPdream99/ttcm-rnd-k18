@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { Volume2, VolumeX } from "lucide-react";
+
 interface GameHeaderProps {
   level?: number;
   lives?: number;
@@ -25,16 +27,16 @@ export default function GameHeader({ level = 1, lives = 5 }: GameHeaderProps) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur font-sans">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-xl shadow-sm">
-            🧠
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600 text-xl text-white shadow-sm font-bold">
+            
           </div>
 
           <div className="hidden sm:block">
-            <p className="text-lg font-extrabold leading-none tracking-tight text-indigo-700">
+            <p className="text-lg font-extrabold leading-none tracking-tight text-zinc-900">
               E-V-E
             </p>
 
@@ -45,8 +47,8 @@ export default function GameHeader({ level = 1, lives = 5 }: GameHeaderProps) {
         </div>
 
         {/* Level */}
-        <div className="rounded-full bg-slate-100 px-5 py-2">
-          <span className="text-sm font-bold text-slate-700">
+        <div className="rounded-full bg-red-50 border border-red-200 px-5 py-2">
+          <span className="text-sm font-bold text-red-700">
             Level {String(level).padStart(2, "0")}
           </span>
         </div>
@@ -74,51 +76,38 @@ export default function GameHeader({ level = 1, lives = 5 }: GameHeaderProps) {
               }
             }}
             className="
-      flex h-11 w-11 items-center justify-center
-      rounded-full
-      border border-slate-200
-      bg-white
-      text-slate-500
-      shadow-sm
-      transition-all duration-200
-      hover:scale-105
-      hover:border-cyan-200
-      hover:bg-cyan-50
-      hover:text-cyan-600
-      active:scale-95
-    "
+              flex h-11 w-11 items-center justify-center
+              rounded-full
+              border border-slate-200
+              bg-white
+              text-slate-600
+              shadow-sm
+              transition-all duration-200
+              hover:scale-105
+              hover:border-red-200
+              hover:bg-red-50
+              hover:text-red-600
+              active:scale-95
+              cursor-pointer
+            "
           >
-            <span
-              className="material-symbols-outlined text-[21px]"
-              style={{
-                fontVariationSettings: "'FILL' 1",
-              }}
-            >
-              {music ? "music_note" : "music_off"}
-            </span>
+            {music ? <Volume2 className="h-5 w-5 text-red-600" /> : <VolumeX className="h-5 w-5 text-slate-400" />}
           </button>
 
-          {/* Lives */}
-          <div className="flex items-center gap-1.5 rounded-full border border-red-100 bg-white px-3 py-2 shadow-sm">
+          {/* Hearts */}
+          <div className="flex items-center gap-1 rounded-full border border-red-100 bg-red-50 px-3 py-1.5 shadow-sm">
             {Array.from({ length: 5 }).map((_, index) => (
               <span
                 key={index}
-                className={`
-          text-[17px]
-          leading-none
-          transition-all duration-200
-          ${index < lives
-                    ? "text-red-400 drop-shadow-[0_1px_2px_rgba(248,113,113,0.25)]"
-                    : "text-slate-200"
-                  }
-        `}
+                className={`text-base leading-none transition-colors duration-200 ${
+                  index < lives ? "text-red-500" : "text-slate-300"
+                }`}
               >
-                ♥
+                
               </span>
             ))}
 
-            {/* Số mạng */}
-            <span className="ml-1 text-xs font-bold text-slate-500">
+            <span className="ml-1 text-xs font-bold text-red-700">
               {lives}/5
             </span>
           </div>

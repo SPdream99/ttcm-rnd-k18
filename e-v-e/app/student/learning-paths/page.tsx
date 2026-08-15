@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -13,13 +12,18 @@ import {
   Loader2,
   Compass,
   Sparkles,
-  Layers,
-  CheckCircle2,
 } from "lucide-react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/components/student/Toast";
+
+import { cacheService } from "@/lib/cacheService";
 
 interface LearningPath {
   id: string;
@@ -36,37 +40,46 @@ interface LearningPath {
 }
 
 const DIFFICULTY_COLOR: Record<string, string> = {
-  Beginner: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-  Intermediate: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-  Advanced: "text-red-400 bg-red-500/10 border-red-500/20",
+  Beginner: "text-emerald-700 bg-emerald-50 border-emerald-200",
+  Intermediate: "text-amber-700 bg-amber-50 border-amber-200",
+  Advanced: "text-red-700 bg-red-50 border-red-200",
 };
 
 export default function StudentLearningPathPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
+  const [learningPaths, setLearningPaths] = useState<LearningPath[]>(() => {
+    return cacheService.get<LearningPath[]>("student_learning_paths_page")?.data || [];
+  });
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [difficultyFilter, setDifficultyFilter] = useState("all");
+  const [loading, setLoading] = useState<boolean>(() => {
+    return !cacheService.get<LearningPath[]>("student_learning_paths_page");
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (!user) {
-          // If not logged in, show all accepted paths
-          const pathQuery = query(collection(db, "learning_path"));
+          const pathQuery = query(
+            collection(db, "learning_path"),
+            where("is_accepted", "==", true)
+          );
           const pathSnapshot = await getDocs(pathQuery);
-          const availablePaths = pathSnapshot.docs;
-          await loadTeachersAndSetPaths(availablePaths);
+          await loadTeachersAndSet(pathSnapshot.docs);
           setLoading(false);
           return;
         }
 
-        // 1. All accepted paths (or all paths)
-        const pathQuery = query(collection(db, "learning_path"));
+        // 1. All accepted paths
+        const pathQuery = query(
+          collection(db, "learning_path"),
+          where("is_accepted", "==", true)
+        );
         const pathSnapshot = await getDocs(pathQuery);
 
-        // 2. Enrolled paths check
+        // 2. Already enrolled
         let enrolledPathIds = new Set<string>();
         try {
           const enrollmentQuery = query(
@@ -74,6 +87,7 @@ export default function StudentLearningPathPage() {
             where("student_id", "==", user.uid)
           );
           const enrollmentSnapshot = await getDocs(enrollmentQuery);
+
           enrolledPathIds = new Set(
             enrollmentSnapshot.docs
               .map((d) => {
@@ -82,128 +96,153 @@ export default function StudentLearningPathPage() {
               })
               .filter(Boolean)
           );
-        } catch {}
+        } catch {
+          // ignore
+        }
 
-        // 3. Filter paths
+        // 3. Filter unenrolled or all
         const availablePaths = pathSnapshot.docs.filter(
-          (doc) => !enrolledPathIds.has(doc.id)
+          (d) => !enrolledPathIds.has(d.id)
         );
 
-        await loadTeachersAndSetPaths(availablePaths);
-      } catch (error) {
-        console.error("Error fetching learning paths:", error);
+        await loadTeachersAndSet(availablePaths.length > 0 ? availablePaths : pathSnapshot.docs);
+      } catch (err) {
+        console.error("Error loading learning paths:", err);
+        toast.error("Không thể tải danh sách Learning Path.", "Lỗi");
       } finally {
         setLoading(false);
       }
     });
 
+    async function loadTeachersAndSet(docsList: any[]) {
+      const paths: LearningPath[] = await Promise.all(
+        docsList.map(async (docSnap) => {
+          const data = docSnap.data();
+          let teacherName = "Unknown Teacher";
+
+          if (data.author_id) {
+            try {
+              const tq = query(
+                collection(db, "users"),
+                where("id", "==", data.author_id)
+              );
+              const ts = await getDocs(tq);
+              if (!ts.empty) {
+                const td = ts.docs[0].data();
+                teacherName = td.name || td.displayName || "Unknown Teacher";
+              }
+            } catch {
+              // ignore
+            }
+          }
+
+          return {
+            id: docSnap.id,
+            title: data.title || "Untitled Learning Path",
+            description: data.description || "",
+            author_id: data.author_id || "",
+            courses: Array.isArray(data.courses) ? data.courses : [],
+            is_accepted: data.is_accepted ?? false,
+            thumbnail: data.thumbnail || "",
+            difficulty: data.difficulty || "Beginner",
+            category: data.category || "General",
+            teacherName,
+            estimated_hours: Number(data.estimated_hours) || 0,
+          };
+        })
+      );
+      setLearningPaths(paths);
+      cacheService.set("student_learning_paths_page", paths, 60000);
+    }
+
     return () => unsubscribe();
   }, []);
 
-  async function loadTeachersAndSetPaths(docs: any[]) {
-    const teacherIds = new Set<string>();
-    docs.forEach((doc) => {
-      const data = doc.data();
-      if (data.author_id) teacherIds.add(data.author_id);
-    });
-
-    const teacherMap: Record<string, string> = {};
-    if (teacherIds.size > 0) {
-      try {
-        const teacherSnapshot = await getDocs(collection(db, "teachers"));
-        teacherSnapshot.docs.forEach((doc) => {
-          if (teacherIds.has(doc.id)) {
-            const data = doc.data();
-            teacherMap[doc.id] = data.name || data.fullName || "Giảng viên E-V-E";
-          }
-        });
-      } catch {}
-    }
-
-    const paths: LearningPath[] = docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        title: data.title || "Lộ trình học tập",
-        description: data.description || "",
-        author_id: data.author_id,
-        courses: Array.isArray(data.courses) ? data.courses : [],
-        is_accepted: Boolean(data.is_accepted ?? true),
-        thumbnail: data.thumbnail,
-        difficulty: data.difficulty || "Intermediate",
-        category: data.category || "General",
-        teacherName: teacherMap[data.author_id] || data.authorName || "Giáo Viên E-V-E",
-        estimated_hours: Number(data.estimated_hours) || (Array.isArray(data.courses) ? data.courses.length * 2 : 4),
-      };
-    });
-
-    setLearningPaths(paths);
-  }
-
   const filteredPaths = learningPaths.filter((path) => {
-    const q = search.toLowerCase();
-    return (
-      path.title.toLowerCase().includes(q) ||
-      path.description.toLowerCase().includes(q) ||
-      path.category.toLowerCase().includes(q) ||
-      path.teacherName.toLowerCase().includes(q)
-    );
+    const kw = search.toLowerCase().trim();
+    const matchesSearch =
+      !kw ||
+      path.title.toLowerCase().includes(kw) ||
+      path.description.toLowerCase().includes(kw) ||
+      path.category.toLowerCase().includes(kw) ||
+      path.teacherName.toLowerCase().includes(kw);
+
+    const matchesDiff =
+      difficultyFilter === "all" ||
+      path.difficulty.toLowerCase() === difficultyFilter.toLowerCase();
+
+    return matchesSearch && matchesDiff;
   });
 
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-12 h-12 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin" />
-        <p className="text-cyan-400 font-medium text-sm">Đang tải danh mục Lộ Trình Học Tập...</p>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 font-sans">
+        <div className="w-10 h-10 rounded-full border-4 border-zinc-200 border-t-red-600 animate-spin" />
+        <p className="text-red-600 font-medium text-sm">Đang tải lộ trình học tập...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-8 pb-12 font-sans">
-      {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/10">
+      {/* ── HEADER ── */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-zinc-200">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cyan-400 mb-1.5">
-            <Compass className="w-4 h-4" /> Khám Phá Lộ Trình Học Tập
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-red-600 mb-1.5">
+            <Compass className="w-4 h-4" /> Hệ Thống Lộ Trình Toàn Diện
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            Learning Paths Chuyên Sâu 🗺️
+          <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight flex items-center gap-2">
+            Khám Phá Lộ Trình Học Tập 
           </h1>
-          <p className="text-xs md:text-sm text-[#8e9bb4] mt-1">
-            Các lộ trình bài học chuẩn hóa kết hợp cùng minigame tương tác do Giảng viên phát triển.
+          <p className="text-xs md:text-sm text-zinc-600 mt-1">
+            Chọn lộ trình phù hợp với định hướng để rèn luyện kỹ năng và mở khóa các thử thách.
           </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/student/classes"
-            className="px-4 py-2.5 rounded-xl bg-[#151b2c] hover:bg-[#1f273d] text-cyan-300 border border-[#7bd1fa]/20 font-semibold text-xs md:text-sm transition-all flex items-center gap-2"
-          >
-            <GraduationCap className="w-4 h-4 text-cyan-400" /> Xem Lớp Đã Đăng Ký
-          </Link>
         </div>
       </header>
 
-      {/* Search Bar */}
-      <div className="relative max-w-md">
-        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8e9bb4]" />
-        <input
-          type="text"
-          placeholder="Tìm theo tên lộ trình, giảng viên, môn học..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-[#151b2c] border border-[#7bd1fa]/20 rounded-xl pl-9 pr-4 py-2.5 text-xs md:text-sm text-white placeholder-[#8e9bb4] focus:outline-none focus:border-cyan-400 transition-all"
-        />
+      {/* ── FILTER & SEARCH STRIP ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Difficulty Tabs */}
+        <div className="flex items-center gap-1.5 p-1 bg-zinc-100 rounded-xl border border-zinc-200 self-start md:self-auto">
+          {["all", "Beginner", "Intermediate", "Advanced"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setDifficultyFilter(tab)}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                difficultyFilter === tab
+                  ? "bg-red-600 text-white shadow-sm"
+                  : "text-zinc-600 hover:text-zinc-900"
+              }`}
+            >
+              {tab === "all" ? "Tất cả độ khó" : tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm theo tên lộ trình, môn học..."
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs md:text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition"
+          />
+        </div>
       </div>
 
-      {/* Learning Path Grid */}
+      {/* ── LEARNING PATH GRID ── */}
       {filteredPaths.length === 0 ? (
-        <div className="p-12 text-center rounded-2xl bg-[#0f1524]/60 border border-[#7bd1fa]/10 space-y-3">
-          <BookOpen className="w-12 h-12 text-cyan-400/40 mx-auto" />
-          <h3 className="text-lg font-bold text-white">Không tìm thấy Lộ Trình Học Tập phù hợp</h3>
-          <p className="text-xs text-[#8e9bb4]">
-            {search ? "Vui lòng thử tìm với từ khóa khác." : "Bạn đã đăng ký toàn bộ các lộ trình hiện có!"}
+        <div className="rounded-2xl border-2 border-dashed border-zinc-200 bg-white p-12 text-center shadow-sm">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-lg font-bold text-zinc-900">
+            {search ? "Không tìm thấy kết quả phù hợp" : "Chưa có lộ trình học tập mới"}
+          </h2>
+          <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
+            {search ? "Thử tìm kiếm với từ khóa khác." : "Bạn đã tham gia hoặc hoàn thành các lộ trình hiện có."}
           </p>
         </div>
       ) : (
@@ -211,53 +250,78 @@ export default function StudentLearningPathPage() {
           {filteredPaths.map((path) => (
             <div
               key={path.id}
-              className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-[#7bd1fa]/15 bg-[#0f1524]/70 p-6 backdrop-blur-xl transition-all hover:border-cyan-400/40 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] space-y-5"
+              onClick={() => router.push(`/student/learning-paths/${path.id}`)}
+              className="group flex flex-col justify-between rounded-2xl bg-white border border-zinc-200 overflow-hidden shadow-sm hover:border-red-600 hover:shadow-md transition-all duration-200 cursor-pointer"
             >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 text-xs font-bold">
-                    {path.category}
-                  </span>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-                      DIFFICULTY_COLOR[path.difficulty] || "text-slate-300 bg-slate-500/10 border-slate-500/20"
-                    }`}
-                  >
-                    {path.difficulty}
-                  </span>
+              {/* Thumbnail */}
+              {path.thumbnail ? (
+                <div className="h-44 w-full overflow-hidden bg-zinc-100 relative">
+                  <img
+                    src={path.thumbnail}
+                    alt={path.title}
+                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <span className={`px-2.5 py-1 rounded-lg border text-xs font-bold shadow-sm ${DIFFICULTY_COLOR[path.difficulty] || "bg-white text-zinc-700 border-zinc-200"}`}>
+                      {path.difficulty}
+                    </span>
+                  </div>
                 </div>
+              ) : (
+                <div className="h-44 w-full bg-gradient-to-br from-red-600 to-rose-700 p-6 flex flex-col justify-between text-white relative">
+                  <div className="flex justify-between items-start">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                      <GraduationCap className="w-6 h-6 text-white" />
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-lg border text-xs font-bold shadow-sm ${DIFFICULTY_COLOR[path.difficulty] || "bg-white text-zinc-700 border-zinc-200"}`}>
+                      {path.difficulty}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-white/20">
+                      {path.category}
+                    </span>
+                  </div>
+                </div>
+              )}
 
+              {/* Body */}
+              <div className="p-6 flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors">
+                  <h2 className="text-base font-extrabold text-zinc-900 group-hover:text-red-600 transition line-clamp-2">
                     {path.title}
-                  </h3>
-                  <p className="line-clamp-2 text-xs text-[#8e9bb4] mt-1.5 leading-relaxed">
-                    {path.description}
+                  </h2>
+
+                  <p className="mt-2 text-xs leading-relaxed text-zinc-500 line-clamp-2">
+                    {path.description || "Chưa có mô tả chi tiết."}
                   </p>
+
+                  <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-600">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <User className="w-3.5 h-3.5 text-red-600" />
+                      {path.teacherName}
+                    </span>
+
+                    <span className="flex items-center gap-1 font-bold text-zinc-800">
+                      <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
+                      {path.courses.length} Bài
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-2 pt-2 border-t border-[#7bd1fa]/10 text-xs text-[#8e9bb4]">
-                  <div className="flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Giảng viên: <strong className="text-slate-200">{path.teacherName}</strong></span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="flex items-center gap-1">
-                      <BookOpen className="w-3.5 h-3.5 text-cyan-400" /> {path.courses.length} Khóa học
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-emerald-400" /> ~{path.estimated_hours} Giờ học
-                    </span>
-                  </div>
+                <div className="mt-5 pt-4 border-t border-zinc-100">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/student/learning-paths/${path.id}`);
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl bg-zinc-100 group-hover:bg-red-600 text-zinc-800 group-hover:text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+                  >
+                    Xem Chi Tiết Lộ Trình
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-
-              <Link
-                href={`/dashboard/student/LearningPath/${path.id}`}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:from-blue-500 hover:to-cyan-300 text-white font-bold text-xs shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all flex items-center justify-center gap-2"
-              >
-                Khám Phá & Đăng Ký <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
             </div>
           ))}
         </div>
@@ -265,4 +329,3 @@ export default function StudentLearningPathPage() {
     </div>
   );
 }
-

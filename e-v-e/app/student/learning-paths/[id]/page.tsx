@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, use } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
@@ -13,7 +13,7 @@ import {
   User,
   Sparkles,
   Lock,
-  Compass,
+  ArrowRight,
 } from "lucide-react";
 import {
   addDoc,
@@ -45,18 +45,19 @@ interface LearningPath {
 }
 
 const DIFFICULTY_COLOR: Record<string, string> = {
-  Beginner: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-  Intermediate: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-  Advanced: "text-red-400 bg-red-500/10 border-red-500/20",
+  Beginner: "text-emerald-700 bg-emerald-50 border-emerald-200",
+  Intermediate: "text-amber-700 bg-amber-50 border-amber-200",
+  Advanced: "text-red-700 bg-red-50 border-red-200",
 };
 
-export default function StudentLearningPathDetailPage({
+export default function LearningPathDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string }> | { id: string };
 }) {
-  const resolvedParams = use(params);
   const router = useRouter();
+  const nextParams = useParams();
+  const rawId = (nextParams?.id as string) || "";
   const { toast } = useToast();
 
   const [path, setPath] = useState<LearningPath | null>(null);
@@ -68,12 +69,8 @@ export default function StudentLearningPathDetailPage({
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       const fetchPath = async () => {
         try {
-          const id = resolvedParams.id;
-          if (!id) {
-            setPath(null);
-            setLoading(false);
-            return;
-          }
+          const id = rawId;
+          if (!id) { setPath(null); setLoading(false); return; }
 
           let data: any = null;
           let documentId = "";
@@ -87,96 +84,101 @@ export default function StudentLearningPathDetailPage({
           } else {
             const q = query(collection(db, "learning_path"), where("id", "==", id));
             const qs = await getDocs(q);
-            if (qs.empty) {
-              setPath(null);
-              setLoading(false);
-              return;
-            }
+            if (qs.empty) { setPath(null); setLoading(false); return; }
             const d = qs.docs[0];
             data = d.data();
             documentId = d.id;
           }
 
-          let teacherName = data.authorName || data.teacherName || "Giáo Viên E-V-E";
+          let teacherName = "Unknown Teacher";
           if (data.author_id) {
             try {
-              const teacherDoc = await getDoc(doc(db, "teachers", data.author_id));
-              if (teacherDoc.exists()) {
-                teacherName = teacherDoc.data()?.name || teacherDoc.data()?.fullName || teacherName;
+              const tRef = doc(db, "users", data.author_id);
+              const tSnap = await getDoc(tRef);
+              if (tSnap.exists()) {
+                const td = tSnap.data();
+                teacherName = td.name || td.displayName || "Unknown Teacher";
               }
-            } catch {}
+            } catch {
+              // ignore
+            }
           }
 
-          if (currentUser) {
-            try {
-              const enrollQ = query(
-                collection(db, "student_learning_path"),
-                where("student_id", "==", currentUser.uid),
-                where("learning_path_id", "==", documentId)
-              );
-              const enrollSnap = await getDocs(enrollQ);
-              const active = enrollSnap.docs.some((d) => d.data().status === "active");
-              setAlreadyEnrolled(active);
-            } catch {}
-          }
-
-          setPath({
+          const learningPath: LearningPath = {
             id: documentId,
-            title: data.title || "Lộ Trình Học Tập",
+            title: data.title || "Untitled Learning Path",
             description: data.description || "",
             author_id: data.author_id || "",
             courses: Array.isArray(data.courses) ? data.courses : [],
-            is_accepted: Boolean(data.is_accepted ?? true),
-            thumbnail: data.thumbnail,
-            difficulty: data.difficulty || "Intermediate",
+            is_accepted: data.is_accepted ?? false,
+            thumbnail: data.thumbnail || "",
+            difficulty: data.difficulty || "Beginner",
             category: data.category || "General",
             teacher: teacherName,
-            estimated_hours: Number(data.estimated_hours) || (Array.isArray(data.courses) ? data.courses.length * 2 : 4),
-            learning_objectives: Array.isArray(data.learning_objectives)
-              ? data.learning_objectives
-              : [
-                  "Nắm vững nền tảng lý thuyết và tư duy phân tích theo chuẩn E-V-E",
-                  "Thực hành giải bài tập và vượt qua các thử thách minigame tương tác",
-                  "Hoàn thiện các kỹ năng thực chiến và bài kiểm tra đánh giá tự động",
-                ],
-          });
+            estimated_hours: Number(data.estimated_hours) || 0,
+            learning_objectives: Array.isArray(data.learning_objectives) ? data.learning_objectives : [],
+          };
+          setPath(learningPath);
+
+          if (currentUser) {
+            const eq = query(
+              collection(db, "student_learning_path"),
+              where("student_id", "==", currentUser.uid),
+              where("learning_path_id", "==", documentId),
+              where("status", "==", "active")
+            );
+            const es = await getDocs(eq);
+            if (!es.empty) setAlreadyEnrolled(true);
+          }
         } catch (err) {
-          console.error("Error fetching path detail:", err);
+          console.error("Error fetching path:", err);
+          setPath(null);
         } finally {
           setLoading(false);
         }
       };
-
       fetchPath();
     });
-
     return () => unsubscribe();
-  }, [resolvedParams.id]);
+  }, [rawId]);
 
   const handleEnroll = async () => {
     const user = auth.currentUser;
-    if (!user) {
-      toast.warning("Vui lòng đăng nhập để đăng ký lộ trình này!");
-      router.push("/login");
-      return;
-    }
-    if (!path) return;
+    if (!user) { toast.error("Bạn chưa đăng nhập.", "Lỗi"); return; }
+    if (!path?.id) { toast.error("Không tìm thấy Learning Path.", "Lỗi"); return; }
+    if (alreadyEnrolled) { toast.warning("Bạn đã đăng ký Learning Path này rồi."); return; }
 
     setEnrolling(true);
     try {
+      const checkQ = query(
+        collection(db, "student_learning_path"),
+        where("student_id", "==", user.uid),
+        where("learning_path_id", "==", path.id),
+        where("status", "==", "active")
+      );
+      const existing = await getDocs(checkQ);
+      if (!existing.empty) {
+        setAlreadyEnrolled(true);
+        toast.warning("Bạn đã đăng ký Learning Path này rồi.");
+        return;
+      }
+
       await addDoc(collection(db, "student_learning_path"), {
         student_id: user.uid,
         learning_path_id: path.id,
         progress: 0,
         status: "active",
+        current_course_index: 0,
         enrolled_at: serverTimestamp(),
       });
 
-      toast.success("Đăng ký thành công! Bạn có thể bắt đầu học ngay bây giờ.");
-      router.push(`/dashbroad/student/Class/${path.id}`);
+      setAlreadyEnrolled(true);
+      toast.success("Đăng ký Lộ trình thành công! Đang chuyển đến lớp học...", "Thành công ");
+
+      setTimeout(() => router.push("/student/classes"), 1500);
     } catch (err) {
       console.error("Enroll error:", err);
-      toast.error("Không thể đăng ký lúc này. Vui lòng thử lại!");
+      toast.error("Không thể đăng ký. Vui lòng thử lại.", "Lỗi");
     } finally {
       setEnrolling(false);
     }
@@ -184,154 +186,188 @@ export default function StudentLearningPathDetailPage({
 
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-12 h-12 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin" />
-        <p className="text-cyan-400 font-medium text-sm">Đang tải thông tin Lộ Trình...</p>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 font-sans">
+        <div className="w-10 h-10 rounded-full border-4 border-zinc-200 border-t-red-600 animate-spin" />
+        <p className="text-red-600 font-medium text-sm">Đang tải thông tin lộ trình...</p>
       </div>
     );
   }
 
   if (!path) {
     return (
-      <div className="p-12 text-center rounded-2xl bg-[#0f1524]/60 border border-[#7bd1fa]/10 space-y-4">
-        <BookOpen className="w-12 h-12 text-slate-500 mx-auto" />
-        <h2 className="text-xl font-bold text-white">Không tìm thấy Lộ Trình Học Tập</h2>
-        <p className="text-xs text-[#8e9bb4]">Lộ trình này không tồn tại hoặc đã bị gỡ xuống.</p>
-        <Link
-          href="/student/learning-paths"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold"
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center font-sans">
+        <BookOpen className="w-12 h-12 text-zinc-400 mb-4" />
+        <h1 className="text-xl font-bold text-zinc-900 mb-2">Lộ trình học tập không tồn tại</h1>
+        <button
+          onClick={() => router.push("/student/learning-paths")}
+          className="mt-4 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4" /> Quay Lại Danh Sách
-        </Link>
+          Quay lại danh sách
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-12 font-sans">
-      {/* Back Button */}
-      <Link
-        href="/student/learning-paths"
-        className="inline-flex items-center gap-2 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
+    <div className="space-y-8 pb-12 font-sans">
+      {/* ── BACK BUTTON ── */}
+      <button
+        onClick={() => router.push("/student/learning-paths")}
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-red-600 transition cursor-pointer"
       >
-        <ArrowLeft className="w-4 h-4" /> Quay Lại Danh Sách Lộ Trình
-      </Link>
+        <ArrowLeft className="w-4 h-4" /> Quay lại danh sách Lộ trình
+      </button>
 
-      {/* Main Hero Card */}
-      <div className="p-6 md:p-8 rounded-3xl bg-[#0f1524]/80 border border-[#7bd1fa]/20 backdrop-blur-xl shadow-2xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 text-xs font-bold">
+      {/* ── HERO BANNER ── */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        {/* Left Information */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 md:p-8 shadow-sm">
+          {/* Badges */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="px-3 py-1 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
               {path.category}
             </span>
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                DIFFICULTY_COLOR[path.difficulty] || "text-slate-300 bg-slate-500/10 border-slate-500/20"
-              }`}
-            >
+            <span className={`px-2.5 py-0.5 rounded-md border text-xs font-semibold ${DIFFICULTY_COLOR[path.difficulty] || "bg-zinc-100 text-zinc-700 border-zinc-200"}`}>
               {path.difficulty}
             </span>
+            {path.is_accepted && (
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Đã Kiểm Định
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-3 text-xs text-[#8e9bb4]">
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-cyan-400" /> ~{path.estimated_hours} Giờ
-            </span>
-            <span className="flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4 text-cyan-400" /> {path.courses.length} Khóa học
-            </span>
-          </div>
-        </div>
-
-        <div>
-          <h1 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
+          {/* Title */}
+          <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight">
             {path.title}
           </h1>
-          <p className="text-sm text-[#8e9bb4] mt-3 leading-relaxed">
-            {path.description}
+
+          {/* Description */}
+          <p className="mt-3 text-xs md:text-sm leading-relaxed text-zinc-600">
+            {path.description || "Lộ trình đào tạo toàn diện, tích hợp hệ thống minigame tương tác thực hành cao."}
           </p>
-        </div>
 
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-[#151b2c] border border-[#7bd1fa]/10">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold">
-            <User className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[11px] text-[#8e9bb4]">Giảng viên phụ trách</div>
-            <div className="text-sm font-bold text-white">{path.teacher}</div>
-          </div>
-        </div>
-
-        {/* Action Button */}
-        <div>
-          {alreadyEnrolled ? (
-            <Link
-              href={`/dashbroad/student/Class/${path.id}`}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2"
-            >
-              <CheckCircle2 className="w-4 h-4" /> Bạn Đã Đăng Ký — Vào Học Ngay
-            </Link>
-          ) : (
-            <button
-              onClick={handleEnroll}
-              disabled={enrolling}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 hover:from-blue-500 hover:to-cyan-300 text-white font-bold text-sm shadow-[0_0_25px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {enrolling ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Đang xử lý đăng ký...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" /> Đăng Ký Tham Gia Lộ Trình Này
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Learning Objectives */}
-      <div className="p-6 md:p-8 rounded-3xl bg-[#0f1524]/60 border border-[#7bd1fa]/15 space-y-4">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-400" /> Mục Tiêu Đạt Được Sau Lộ Trình
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {path.learning_objectives.map((obj, idx) => (
-            <div
-              key={idx}
-              className="flex items-start gap-3 p-3.5 rounded-xl bg-[#151b2c]/80 border border-[#7bd1fa]/10 text-xs text-slate-200"
-            >
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span>{obj}</span>
+          {/* Instructor & Stats */}
+          <div className="mt-6 pt-6 border-t border-zinc-100 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center font-bold text-red-600">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">Giảng Viên Hướng Dẫn</p>
+                <p className="text-sm font-extrabold text-zinc-900">{path.teacher}</p>
+              </div>
             </div>
-          ))}
+
+            <div className="flex items-center gap-4 text-xs font-bold text-zinc-700">
+              <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 px-3 py-2 rounded-xl">
+                <BookOpen className="w-4 h-4 text-red-600" />
+                <span>{path.courses.length} Khóa học</span>
+              </div>
+              {path.estimated_hours > 0 && (
+                <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 px-3 py-2 rounded-xl">
+                  <Clock className="w-4 h-4 text-red-600" />
+                  <span>{path.estimated_hours} giờ học</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Enroll Card */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            {path.thumbnail ? (
+              <img src={path.thumbnail} alt={path.title} className="h-44 w-full rounded-xl object-cover border border-zinc-200" />
+            ) : (
+              <div className="h-44 w-full rounded-xl bg-gradient-to-br from-red-600 to-rose-700 p-6 flex flex-col items-center justify-center text-white text-center">
+                <GraduationCap className="w-14 h-14 mb-2 text-white/90" />
+                <span className="font-bold text-sm">E-V-E Official Path</span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6">
+            {alreadyEnrolled ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 py-3.5 font-bold text-emerald-700 text-sm">
+                  <CheckCircle2 className="w-4 h-4" /> Bạn Đã Tham Gia Lớp Học
+                </div>
+                <button
+                  onClick={() => router.push("/student/classes")}
+                  className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  Đi Tới Lớp Học <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleEnroll}
+                disabled={enrolling}
+                className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+              >
+                {enrolling ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Đang Đăng Ký...</>
+                ) : (
+                  <><Sparkles className="w-4 h-4 fill-white" /> Đăng Ký Học Lộ Trình</>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Curriculum Outline */}
-      <div className="p-6 md:p-8 rounded-3xl bg-[#0f1524]/60 border border-[#7bd1fa]/15 space-y-4">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <BookOpen className="w-4 h-4 text-cyan-400" /> Danh Sách Khóa Học & Bài Giảng ({path.courses.length})
-        </h2>
+      {/* ── LEARNING OBJECTIVES ── */}
+      {path.learning_objectives.length > 0 && (
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 md:p-8 shadow-sm">
+          <h2 className="text-base font-extrabold text-zinc-900 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-red-600" /> Chuẩn Đầu Ra & Kiến Thức Thu Nhận
+          </h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {path.learning_objectives.map((obj, i) => (
+              <div key={i} className="flex items-start gap-3 rounded-xl bg-zinc-50 border border-zinc-200 p-3.5">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
+                <p className="text-xs font-semibold text-zinc-700 leading-relaxed">{obj}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── COURSES IN PATH ── */}
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 md:p-8 shadow-sm">
+        <div className="flex items-center justify-between mb-4 pb-4 border-b border-zinc-100">
+          <div>
+            <h2 className="text-base font-extrabold text-zinc-900">Danh Sách Bài Học Trong Lộ Trình</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Các khóa học thành phần và minigame tương ứng.</p>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-xs font-bold">
+            {path.courses.length} Khóa Học
+          </span>
+        </div>
+
         <div className="space-y-3">
-          {path.courses.map((courseId, idx) => (
+          {path.courses.map((courseId, index) => (
             <div
-              key={idx}
-              className="flex items-center justify-between p-4 rounded-xl bg-[#151b2c] border border-[#7bd1fa]/10 text-xs"
+              key={courseId}
+              className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 border border-zinc-200 hover:border-red-600 transition"
             >
-              <div className="flex items-center gap-3">
-                <span className="w-7 h-7 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-mono font-bold flex items-center justify-center">
-                  {idx + 1}
-                </span>
+              <div className="flex items-center gap-3.5">
+                <div className="w-8 h-8 rounded-lg bg-red-600 text-white font-bold text-xs flex items-center justify-center shadow-sm">
+                  #{index + 1}
+                </div>
                 <div>
-                  <div className="font-bold text-white text-sm">Chặng {idx + 1}: {courseId.replace(/_/g, " ").toUpperCase()}</div>
-                  <div className="text-[11px] text-[#8e9bb4]">Bài giảng lý thuyết & minigame thực hành tương tác</div>
+                  <p className="text-[10px] font-bold uppercase text-zinc-400">Khóa học {index + 1}</p>
+                  <p className="text-sm font-extrabold text-zinc-900">{courseId}</p>
                 </div>
               </div>
-              <span className="px-2.5 py-1 rounded-md bg-white/5 text-slate-400 text-[11px]">
-                Chặng {idx + 1}
-              </span>
+
+              <Link
+                href={`/student/courses/${courseId}`}
+                className="px-3.5 py-1.5 rounded-lg bg-white border border-zinc-200 hover:border-red-600 hover:text-red-600 text-zinc-700 text-xs font-bold shadow-sm transition flex items-center gap-1"
+              >
+                Chi Tiết <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           ))}
         </div>

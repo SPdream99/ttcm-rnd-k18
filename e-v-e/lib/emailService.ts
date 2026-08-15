@@ -136,12 +136,12 @@ function get2FAEmailHTML(name: string, otpCode: string, purpose: string): string
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo-text">⚡ E - V - E</div>
+      <div class="logo-text"> E - V - E</div>
       <div class="subtitle">NỀN TẢNG HỌC TẬP & CÔNG NGHỆ TƯƠNG TÁC</div>
     </div>
     <div class="content">
       <div class="greeting">Xin chào <strong>${name}</strong>,</div>
-      <div class="purpose-badge">🛡️ ${purposeTitle}</div>
+      <div class="purpose-badge"> ${purposeTitle}</div>
       <p class="desc">
         Hệ thống đã nhận được yêu cầu xác thực 2 bước cho tài khoản của bạn.
         Vui lòng sử dụng mã OTP gồm 6 chữ số dưới đây để hoàn tất:
@@ -153,7 +153,7 @@ function get2FAEmailHTML(name: string, otpCode: string, purpose: string): string
       </div>
 
       <div class="warning-box">
-        ⚠️ <strong>Lưu ý bảo mật:</strong> Mã OTP này chỉ có hiệu lực trong <strong>5 phút</strong>. Tuyệt đối không chia sẻ mã này cho bất kỳ ai, kể cả nhân viên kỹ thuật hoặc giáo viên.
+         <strong>Lưu ý bảo mật:</strong> Mã OTP này chỉ có hiệu lực trong <strong>5 phút</strong>. Tuyệt đối không chia sẻ mã này cho bất kỳ ai, kể cả nhân viên kỹ thuật hoặc giáo viên.
       </div>
     </div>
     <div class="footer">
@@ -219,10 +219,10 @@ export async function send2FAEmail({
 
   // Development / Demo Fallback Mode:
   console.log("╔══════════════════════════════════════════════════════════════╗");
-  console.log(`║ 🛡️ [E-V-E 2FA EMAIL DISPATCHED]                              ║`);
+  console.log(`║  [E-V-E 2FA EMAIL DISPATCHED]                              ║`);
   console.log(`║ To: ${toEmail.padEnd(54, " ")} ║`);
   console.log(`║ Purpose: ${purpose.padEnd(49, " ")} ║`);
-  console.log(`║ 🔑 OTP CODE: >>>  ${otpCode}  <<< (Expires in 5 minutes)       ║`);
+  console.log(`║  OTP CODE: >>>  ${otpCode}  <<< (Expires in 5 minutes)       ║`);
   console.log("╚══════════════════════════════════════════════════════════════╝");
 
   return {

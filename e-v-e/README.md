@@ -1,14 +1,10 @@
-# 🌌 E-V-E — Educational Virtual Ecosystem (Next.js Application)
+# E-V-E — Frontend & Backend Application (`e-v-e/`)
 
-Tài liệu kỹ thuật và hướng dẫn khởi chạy ứng dụng web **E-V-E** (thư mục `e-v-e/`).
-
-🌐 **Trải nghiệm demo trực tiếp tại:** [https://ttcm-rnd-k18.vercel.app/](https://ttcm-rnd-k18.vercel.app/)
-
-Vui lòng xem tài liệu tổng quan và hướng dẫn đồ án chi tiết tại [README.md gốc của dự án](../README.md).
+Thư mục chứa toàn bộ mã nguồn ứng dụng web E-V-E (Next.js 16).
 
 ---
 
-## 🚀 Khởi Động Nhanh (Quick Start)
+## Hướng dẫn khởi chạy nhanh
 
 ### 1. Cài đặt thư viện
 ```bash
@@ -24,17 +20,17 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="1234567890"
 NEXT_PUBLIC_FIREBASE_APP_ID="1:1234567890:web:abcdef"
-FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY='{"type":"service_account","project_id":"..."}'
+FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY='{"type":"service_account",...}'
 GEMINI_API_KEY="AIzaSy..."
 ```
 
-### 3. Chạy Server Phát Triển (Development Server)
+### 3. Khởi chạy Development Server
 ```bash
 npm run dev
 ```
-Truy cập: **`http://localhost:3000`**
+Mở trình duyệt tại: `http://localhost:3000`
 
-### 4. Kiểm Tra & Biên Dịch Production (Build Test)
+### 4. Build & Chạy Production
 ```bash
 npm run build
 npm run start
@@ -42,12 +38,23 @@ npm run start
 
 ---
 
-## 📂 Cấu Trúc Thư Mục Dự Án
+## Cấu trúc thư mục
 
-- `app/`: Next.js 16 App Router (các route: `/student`, `/teacher`, `/admin`, `/game/MemoryMatchingGame`, `/api/tutor`, `/api/games`).
-- `components/`: Thư viện giao diện tái sử dụng (Sidebar, Toast, LearningPathMap, GameCenterList, MemoryMatchingGame).
-- `core/`: Kiến trúc Clean Architecture (Domain Entities, Ports, Use Cases).
-- `infrastructure/`: Adapter kết nối cơ sở dữ liệu Firebase Firestore và Mock Repositories.
-- `lib/`: Tiện ích bảo mật, mã hóa AI Key, xác thực 2FA OTP, chống gian lận Game.
-- `public/`: Tài nguyên tĩnh, âm thanh, logo, và các gói minigame đóng gói sẵn (`memory_matching_game.zip`, `eve-game-sdk.js`).
-- `scripts/`: Scripts khởi tạo database Firestore và tạo tài khoản mẫu.
+- `app/`: Next.js 16 App Router (routes `/student`, `/teacher`, `/admin`, `/game/...`, `/api/...`).
+- `components/`: UI components dùng chung (Sidebar, Navbar, Modals, Toast, Map...).
+- `core/`: Định nghĩa Domain Entities, Ports và Use Cases theo Clean Architecture.
+- `infrastructure/`: Adapter kết nối Firestore và Mock Database.
+- `lib/`: Tiện ích bảo mật, mã hóa, xác thực 2FA OTP, Game Token validator.
+- `public/`: Tài nguyên tĩnh, âm thanh và các gói game đóng gói sẵn (`eve-game-sdk.js`, minigames).
+- `scripts/`: Script khởi tạo cơ sở dữ liệu mẫu (`initDatabase.mjs`).
+
+---
+
+## Sơ Đồ Cơ Sở Dữ Liệu (Firestore Database Schema / ERD)
+
+![Sơ Đồ Cơ Sở Dữ Liệu Firestore E-V-E](/docs/firestore_database_schema.png)
+
+---
+
+Chi tiết tài liệu đồ án và thông tin nhóm xem tại [README.md gốc](../README.md).
+

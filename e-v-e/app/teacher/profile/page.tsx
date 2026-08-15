@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   UserCheck,
   GraduationCap,
-  Award,
   Key,
   Eye,
   EyeOff,
@@ -16,14 +15,12 @@ import {
   Users,
   CheckCircle2,
   ShieldCheck,
-  ShieldAlert,
   RefreshCw,
   X,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import {
   saveEncryptedAIKey,
-  getDecryptedAIKey,
   removeAIKey,
   hasAIKey,
   getMaskedAIKey,
@@ -41,7 +38,6 @@ export default function TeacherProfilePage() {
   const [isKeyConfigured, setIsKeyConfigured] = useState(false);
   const [maskedKeyDisplay, setMaskedKeyDisplay] = useState("");
 
-  // ── 2FA Security State ──
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [otpInput, setOtpInput] = useState("");
@@ -50,7 +46,6 @@ export default function TeacherProfilePage() {
   const [modalMsg, setModalMsg] = useState("");
   const [demoOtpHint, setDemoOtpHint] = useState<string | null>(null);
 
-  // ── Stats ──
   const [stats, setStats] = useState({ courses: 0, games: 0, plays: 0 });
 
   useEffect(() => {
@@ -64,7 +59,6 @@ export default function TeacherProfilePage() {
       setIs2FAEnabled(true);
     }
 
-    // Fetch dynamic stats for current teacher
     async function loadStats() {
       if (!userUid) return;
       try {
@@ -100,103 +94,96 @@ export default function TeacherProfilePage() {
   const handleSaveAIKey = (e: React.FormEvent) => {
     e.preventDefault();
     if (!keyInput.trim()) return;
-
     saveEncryptedAIKey(keyInput.trim());
     setIsKeyConfigured(true);
     setMaskedKeyDisplay(getMaskedAIKey());
     setKeyInput("");
-    setShowRawKey(false);
-    setSavedMsg("🔑 Đã mã hóa và lưu trữ Google Gemini API Key an toàn trên trình duyệt của Thầy/Cô!");
+    setSavedMsg("Đã lưu và kích hoạt Google Gemini API Key an toàn trên thiết bị của Thầy/Cô!");
     setTimeout(() => setSavedMsg(""), 4000);
   };
 
   const handleRemoveAIKey = () => {
+    if (!confirm("Thầy/Cô có chắc chắn muốn xóa khóa API khỏi trình duyệt này không?")) return;
     removeAIKey();
     setIsKeyConfigured(false);
     setMaskedKeyDisplay("");
-    setKeyInput("");
-    setSavedMsg("🗑️ Đã xóa API Key khỏi bộ nhớ trình duyệt.");
+    setSavedMsg("Đã xóa khóa API.");
     setTimeout(() => setSavedMsg(""), 3000);
   };
 
-  // ── 2FA Toggle Handlers ──
   const handleInitiate2FAToggle = async () => {
     if (is2FAEnabled) {
+      if (!confirm("Thầy/Cô có chắc chắn muốn tắt tính năng Bảo Mật 2 Lớp (2FA qua Email) không?")) return;
       setIsVerifying2FA(true);
       try {
-        const res = await fetch("/api/auth/2fa/toggle", {
+        const res = await fetch("/api/auth/2fa/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: userUid,
             email: displayEmail,
-            enabled: false,
+            otp: "DISABLE_2FA",
+            purpose: "disable",
           }),
         });
         const data = await res.json();
         if (data.success) {
           setIs2FAEnabled(false);
-          setSavedMsg("⚠️ Đã tắt Xác Thực 2 Bước (2FA).");
+          setSavedMsg("Đã tắt tính năng 2FA thành công.");
           setTimeout(() => setSavedMsg(""), 4000);
         }
-      } catch (err) {
-        console.error(err);
+      } catch {
+        alert("Lỗi khi tắt 2FA.");
       } finally {
         setIsVerifying2FA(false);
       }
-    } else {
-      setIsSending2FA(true);
-      setShow2FAModal(true);
-      setModalMsg("Đang gửi mã xác thực tới email của Thầy/Cô...");
-      setOtpInput("");
-      setDemoOtpHint(null);
+      return;
+    }
 
-      try {
-        const res = await fetch("/api/auth/2fa/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: displayEmail,
-            recipientName: displayName,
-            purpose: "enable_2fa",
-          }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          setModalMsg(`Mã OTP 6 số đã được gửi tới email ${data.maskedEmail || displayEmail}.`);
-          if (data.isDemo && data.demoOtp) {
-            setDemoOtpHint(data.demoOtp);
-          }
-        } else {
-          setModalMsg(data.error || "Không thể gửi mã OTP.");
+    setIsSending2FA(true);
+    setModalMsg("");
+    try {
+      const res = await fetch("/api/auth/2fa/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: displayEmail,
+          recipientName: displayName,
+          purpose: "enable",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.isDemo && data.demoOtp) {
+          setDemoOtpHint(data.demoOtp);
         }
-      } catch {
-        setModalMsg("Lỗi kết nối máy chủ.");
-      } finally {
-        setIsSending2FA(false);
+        setShow2FAModal(true);
+      } else {
+        alert("Không thể gửi mã xác thực. Vui lòng thử lại sau.");
       }
+    } catch {
+      alert("Lỗi kết nối khi gửi mã OTP.");
+    } finally {
+      setIsSending2FA(false);
     }
   };
 
   const handleConfirmEnable2FA = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otpInput.trim().length !== 6) {
-      setModalMsg("Vui lòng nhập đầy đủ 6 chữ số mã OTP.");
+    if (otpInput.length !== 6) {
+      setModalMsg("Vui lòng nhập đủ 6 chữ số OTP.");
       return;
     }
 
     setIsVerifying2FA(true);
     setModalMsg("");
-
     try {
-      const res = await fetch("/api/auth/2fa/toggle", {
+      const res = await fetch("/api/auth/2fa/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: userUid,
           email: displayEmail,
-          enabled: true,
-          otp: otpInput.trim(),
+          otp: otpInput,
+          purpose: "enable",
         }),
       });
 
@@ -204,8 +191,8 @@ export default function TeacherProfilePage() {
       if (data.success) {
         setIs2FAEnabled(true);
         setShow2FAModal(false);
-        setSavedMsg("🛡️ Đã kích hoạt Bảo Mật 2 Lớp (2FA qua Email) thành công cho tài khoản Giảng viên!");
-        setTimeout(() => setSavedMsg(""), 5000);
+        setSavedMsg("Đã kích hoạt Bảo Mật 2 Lớp (2FA qua Email) thành công!");
+        setTimeout(() => setSavedMsg(""), 4000);
       } else {
         setModalMsg(data.error || "Mã OTP không chính xác.");
       }
@@ -217,80 +204,80 @@ export default function TeacherProfilePage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans pb-12">
+    <div className="space-y-8 font-sans pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b-2 border-zinc-200">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <UserCheck className="w-7 h-7 text-emerald-400" /> Hồ Sơ & Thiết Lập Giảng Dạy
+          <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight flex items-center gap-2">
+            <UserCheck className="w-7 h-7 text-red-600" /> Hồ Sơ & Thiết Lập Giảng Dạy
           </h1>
-          <p className="text-sm text-[#8e9bb4] mt-1">
-            Quản lý tài khoản giáo viên, bảo mật 2FA, chỉ số đóng góp và mã hóa khóa AI cá nhân.
+          <p className="text-sm text-zinc-500 mt-1">
+            Quản lý tài khoản giáo viên, bảo mật 2FA và cài đặt khóa API.
           </p>
         </div>
 
-        <div className="px-4 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-xs font-bold flex items-center gap-2">
-          <GraduationCap className="w-4 h-4" /> Giáo Viên Chính Thức
+        <div className="px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-2">
+          <GraduationCap className="w-4 h-4 text-red-600" /> Giáo Viên Chính Thức
         </div>
       </div>
 
       {savedMsg && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-xs flex items-center justify-between animate-fade-in">
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center justify-between">
           <span>{savedMsg}</span>
         </div>
       )}
 
       {/* Profile Overview Card */}
-      <div className="p-6 md:p-8 rounded-3xl bg-[#0f1524]/90 border border-emerald-500/20 shadow-xl flex flex-col md:flex-row items-center gap-6">
-        <div className="w-24 h-24 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-3xl font-bold text-emerald-400 font-mono">
+      <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center gap-6">
+        <div className="w-20 h-20 rounded-full bg-red-600 text-white flex items-center justify-center text-3xl font-bold font-mono shadow-sm">
           {displayName.charAt(0)}
         </div>
 
         <div className="text-center md:text-left space-y-2 flex-1">
-          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center justify-center md:justify-start gap-2">
-            {displayName} <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">Đã Xác Minh</span>
+          <h2 className="text-xl md:text-2xl font-bold text-zinc-900 flex items-center justify-center md:justify-start gap-2">
+            {displayName} <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">Đã Xác Minh</span>
           </h2>
-          <p className="text-xs text-[#8e9bb4] font-mono">{displayEmail} • Giảng viên bộ môn Công Nghệ</p>
+          <p className="text-xs text-zinc-500">{displayEmail} • Giảng viên bộ môn Công Nghệ</p>
 
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2 text-xs font-mono text-slate-300">
-            <span><BookOpen className="w-3.5 h-3.5 inline mr-1 text-cyan-400" /> {stats.courses} Khóa Học Đã Tạo</span>
-            <span><Gamepad2 className="w-3.5 h-3.5 inline mr-1 text-emerald-400" /> {stats.games} Minigames</span>
-            <span><Users className="w-3.5 h-3.5 inline mr-1 text-amber-400" /> {stats.plays} Lượt Học Sinh Chơi</span>
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2 text-xs text-zinc-600 font-medium">
+            <span><BookOpen className="w-3.5 h-3.5 inline mr-1 text-red-600" /> {stats.courses} Khóa Học Đã Tạo</span>
+            <span><Gamepad2 className="w-3.5 h-3.5 inline mr-1 text-red-600" /> {stats.games} Minigames</span>
+            <span><Users className="w-3.5 h-3.5 inline mr-1 text-red-600" /> {stats.plays} Lượt Học Sinh Chơi</span>
           </div>
         </div>
       </div>
 
-      {/* ── CARD BẢO MẬT 2 LỚP (2FA QUA EMAIL) ── */}
-      <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-[#0f1524] to-[#151b2c] border border-emerald-500/30 shadow-xl space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      {/* CARD BẢO MẬT 2 LỚP */}
+      <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-100">
           <div className="space-y-1">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" /> Xác Thực 2 Bước (2FA Qua Email)
+            <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-red-600" /> Xác Thực 2 Bước (2FA Qua Email)
             </h3>
-            <p className="text-xs text-[#8e9bb4]">
-              Bảo vệ an toàn tài khoản Giáo viên & ngân hàng đề thi: Mỗi khi đăng nhập, hệ thống sẽ gửi mã OTP 6 số vào email <strong className="text-emerald-300">{displayEmail}</strong>.
+            <p className="text-xs text-zinc-500">
+              Bảo vệ an toàn tài khoản: Mỗi khi đăng nhập, hệ thống sẽ gửi mã OTP 6 số vào email <strong>{displayEmail}</strong>.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <span
-              className={`px-3 py-1 rounded-full text-xs font-mono font-bold ${
+              className={`px-3 py-1 rounded-full text-xs font-bold ${
                 is2FAEnabled
-                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                  : "bg-slate-800 text-slate-400 border border-slate-700"
+                  ? "bg-red-50 text-red-700 border border-red-200"
+                  : "bg-zinc-100 text-zinc-600 border border-zinc-200"
               }`}
             >
-              {is2FAEnabled ? "🛡️ 2FA ĐANG BẬT" : "⚠️ 2FA ĐANG TẮT"}
+              {is2FAEnabled ? "2FA ĐANG BẬT" : "2FA ĐANG TẮT"}
             </span>
 
             <button
               type="button"
               disabled={isSending2FA || isVerifying2FA}
               onClick={handleInitiate2FAToggle}
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 ${
                 is2FAEnabled
-                  ? "bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30"
-                  : "bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                  ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200"
+                  : "bg-red-600 hover:bg-red-700 text-white shadow-sm"
               }`}
             >
               {isSending2FA || isVerifying2FA ? (
@@ -304,53 +291,53 @@ export default function TeacherProfilePage() {
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0a0e1a]/80 border border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono text-slate-300">
+        <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-zinc-600 font-medium">
           <div>
-            <span className="text-slate-500 block mb-1">Phương thức:</span>
-            <strong className="text-white">Email OTP (6 Chữ Số)</strong>
+            <span className="text-zinc-400 block mb-1">Phương thức:</span>
+            <strong className="text-zinc-900">Email OTP (6 Chữ Số)</strong>
           </div>
           <div>
-            <span className="text-slate-500 block mb-1">Hộp thư nhận OTP:</span>
-            <strong className="text-emerald-300">{displayEmail}</strong>
+            <span className="text-zinc-400 block mb-1">Hộp thư nhận OTP:</span>
+            <strong className="text-red-600">{displayEmail}</strong>
           </div>
           <div>
-            <span className="text-slate-500 block mb-1">Thời hạn mã:</span>
-            <strong className="text-amber-300">5 Phút / Lần gửi</strong>
+            <span className="text-zinc-400 block mb-1">Thời hạn mã:</span>
+            <strong className="text-zinc-900">5 Phút / Lần gửi</strong>
           </div>
         </div>
       </div>
 
-      {/* ── 2FA ACTIVATION MODAL ── */}
+      {/* 2FA MODAL */}
       {show2FAModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#0f1524] border border-emerald-500/40 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-5 text-center relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <div className="bg-white border-2 border-red-600 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-4 text-center relative">
             <button
               onClick={() => setShow2FAModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-900 p-1"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto text-xl font-bold">
-              🛡️
+            <div className="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl font-bold">
+              <ShieldCheck className="w-8 h-8" />
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-lg font-bold text-white">Xác Nhận Bật 2FA Email</h3>
-              <p className="text-xs text-slate-300">
-                Nhập mã OTP 6 số được gửi tới <strong className="text-emerald-300">{displayEmail}</strong> để xác nhận.
+              <h3 className="text-lg font-bold text-zinc-900">Xác Nhận Bật 2FA Email</h3>
+              <p className="text-xs text-zinc-500">
+                Nhập mã OTP 6 số được gửi tới <strong>{displayEmail}</strong>.
               </p>
             </div>
 
             {demoOtpHint && (
-              <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 font-mono flex items-center justify-between">
+              <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center justify-between">
                 <span>Mã OTP: <strong>{demoOtpHint}</strong></span>
                 <button
                   type="button"
                   onClick={() => setOtpInput(demoOtpHint)}
-                  className="px-2 py-0.5 rounded bg-amber-500/20 text-[10px]"
+                  className="px-2 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-bold"
                 >
-                  Điền nhanh ⚡
+                  Điền nhanh 
                 </button>
               </div>
             )}
@@ -362,27 +349,27 @@ export default function TeacherProfilePage() {
                 value={otpInput}
                 onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ""))}
                 placeholder="••••••"
-                className="w-full text-center font-mono text-2xl tracking-[8px] bg-[#151b2c] border-2 border-emerald-500/40 focus:border-emerald-400 rounded-xl py-3 text-white focus:outline-none"
+                className="w-full text-center font-mono text-2xl tracking-[8px] bg-zinc-50 border-2 border-zinc-300 focus:border-red-600 rounded-xl py-2.5 text-zinc-900 focus:outline-none font-bold"
                 required
                 autoFocus
               />
 
               {modalMsg && (
-                <div className="text-xs font-mono text-emerald-300">{modalMsg}</div>
+                <div className="text-xs font-bold text-red-600">{modalMsg}</div>
               )}
 
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setShow2FAModal(false)}
-                  className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-bold transition-all cursor-pointer"
+                  className="flex-1 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition-colors cursor-pointer"
                 >
                   Hủy Bỏ
                 </button>
                 <button
                   type="submit"
                   disabled={isVerifying2FA || otpInput.length !== 6}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-mono text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
                 >
                   {isVerifying2FA ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                   Xác Nhận Kích Hoạt
@@ -393,58 +380,57 @@ export default function TeacherProfilePage() {
         </div>
       )}
 
-      {/* ── CARD QUẢN LÝ MÃ HÓA AI KEY ── */}
-      <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-br from-[#0f1524] to-[#151b2c] border border-emerald-500/30 shadow-xl space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-800">
+      {/* CARD QUẢN LÝ AI KEY */}
+      <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-zinc-100">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Key className="w-5 h-5 text-emerald-400" /> Khóa Trí Tuệ Nhân Tạo (Gemini / OpenAI API Key)
+            <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+              <Key className="w-5 h-5 text-red-600" /> Khóa Google Gemini API Key
             </h3>
-            <p className="text-xs text-[#8e9bb4] mt-1">
-              Khóa API của Thầy/Cô được <strong className="text-emerald-300">mã hóa an toàn trực tiếp trên trình duyệt (Local Storage)</strong> để sử dụng không giới hạn trong Trợ Giảng Soạn Bài AI.
+            <p className="text-xs text-zinc-500 mt-1">
+              Khóa API được lưu cục bộ trên trình duyệt để sử dụng trong Trợ Giảng Soạn Bài.
             </p>
           </div>
 
           <span
-            className={`px-3 py-1 rounded-full text-xs font-mono font-bold self-start sm:self-auto ${
+            className={`px-3 py-1 rounded-full text-xs font-bold self-start sm:self-auto ${
               isKeyConfigured
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                ? "bg-red-50 text-red-700 border border-red-200"
+                : "bg-zinc-100 text-zinc-600 border border-zinc-200"
             }`}
           >
-            {isKeyConfigured ? "⚡ Đã Kích Hoạt Live AI" : "Chưa Cấu Hình Key"}
+            {isKeyConfigured ? "Đã Kích Hoạt Key" : "Chưa Cấu Hình Key"}
           </span>
         </div>
 
         {isKeyConfigured ? (
-          <div className="p-4 rounded-2xl bg-[#0a0e1a]/80 border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-[11px] font-mono text-slate-400 block">Khóa API hiện tại (Đã mã hóa):</span>
-              <span className="font-mono text-sm text-emerald-400 tracking-wider">{maskedKeyDisplay}</span>
+              <span className="text-xs text-zinc-500 block">Khóa API hiện tại:</span>
+              <span className="font-mono text-sm text-zinc-900 font-bold">{maskedKeyDisplay}</span>
             </div>
 
             <div className="flex items-center gap-2">
               <Link
                 href="/teacher/ai-tutor"
-                className="px-4 py-2 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
-                <span>Mở Trợ Giảng AI</span>
+                <span>Mở Trợ Giảng</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </Link>
               <button
                 type="button"
                 onClick={handleRemoveAIKey}
-                className="px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 text-xs font-mono transition-all cursor-pointer flex items-center gap-1"
-                title="Xóa khóa API khỏi máy"
+                className="px-3.5 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 border border-zinc-200"
               >
-                <Trash2 className="w-3.5 h-3.5" /> Xóa
+                <Trash2 className="w-3.5 h-3.5 text-red-600" /> Xóa
               </button>
             </div>
           </div>
         ) : (
           <form onSubmit={handleSaveAIKey} className="space-y-4">
-            <div className="relative">
-              <label className="block text-xs font-mono text-slate-300 mb-1.5">
+            <div>
+              <label className="block text-xs font-bold text-zinc-700 mb-1">
                 Nhập Google Gemini API Key:
               </label>
               <div className="relative flex items-center">
@@ -453,35 +439,24 @@ export default function TeacherProfilePage() {
                   value={keyInput}
                   onChange={(e) => setKeyInput(e.target.value)}
                   placeholder="Dán mã API Key của Thầy/Cô (VD: AIzaSy...)"
-                  className="w-full bg-[#0a0e1a] border border-emerald-500/30 focus:border-emerald-400 rounded-xl px-4 py-3 text-xs font-mono text-white placeholder-slate-600 focus:outline-none pr-10"
+                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2.5 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowRawKey(!showRawKey)}
-                  className="absolute right-3 text-slate-400 hover:text-white"
+                  className="absolute right-3 text-zinc-400 hover:text-zinc-900"
                 >
                   {showRawKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
-              </div>
-              <div className="flex items-center justify-between mt-1.5 text-[11px] text-slate-500">
-                <span>Khóa được mã hóa Base64-Cipher an toàn trong Local Storage của thiết bị.</span>
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-emerald-400 hover:underline flex items-center gap-1"
-                >
-                  Lấy Key miễn phí tại Google AI Studio <ExternalLink className="w-3 h-3" />
-                </a>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={!keyInput.trim()}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-mono font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2"
+              className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2 shadow-sm"
             >
-              <Key className="w-3.5 h-3.5" /> Mã Hóa & Lưu Khóa API
+              <Key className="w-3.5 h-3.5" /> Lưu Khóa API
             </button>
           </form>
         )}

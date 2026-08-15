@@ -9,12 +9,8 @@ import {
   Gamepad2,
   Clock,
   CheckCircle2,
-  AlertTriangle,
   ArrowRight,
   ShieldAlert,
-  Sparkles,
-  TrendingUp,
-  Download,
   FolderCheck,
   UserCheck,
   Check,
@@ -50,13 +46,10 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
-
-  // ── Confirmation Prompt State ──
   const [confirmPrompt, setConfirmPrompt] = useState<ConfirmModalData | null>(null);
 
   const loadStats = async () => {
     try {
-      // 1. Fetch from Firestore
       let usersList: any[] = [];
       try {
         const usersSnap = await getDocs(collection(db, "users"));
@@ -67,7 +60,6 @@ export default function AdminDashboardPage() {
         console.warn("Firestore users fetch warning:", err);
       }
 
-      // 2. Merge with LocalStorage registered users & current sessions
       try {
         if (typeof window !== "undefined") {
           const localUsers = JSON.parse(localStorage.getItem("eve_registered_users") || "[]");
@@ -98,92 +90,66 @@ export default function AdminDashboardPage() {
 
       const isPending = (u: any) => {
         const s = (u.status || "").toLowerCase();
-        return s === "pending" || s === "pending_approval" || !s;
+        return s === "pending" || u.is_accepted === false || u.isAccepted === false;
       };
 
+      const pendingT = usersList.filter((u: any) => isTeacher(u) && isPending(u));
+      const activeT = usersList.filter((u: any) => isTeacher(u) && !isPending(u));
       const students = usersList.filter((u: any) => (u.role || "").toLowerCase() === "student");
-      const teachers = usersList.filter(isTeacher);
-      const pendingTeachersList = teachers.filter(isPending);
 
-      // Courses
       let coursesList: any[] = [];
       try {
-        const coursesSnap = await getDocs(collection(db, "courses"));
-        if (!coursesSnap.empty) {
-          coursesList = coursesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const cSnap = await getDocs(collection(db, "courses"));
+        coursesList = cSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      } catch {}
+
+      try {
+        if (typeof window !== "undefined") {
+          const localCourses = JSON.parse(localStorage.getItem("eve_uploaded_courses") || "[]");
+          localCourses.forEach((lc: any) => {
+            if (!coursesList.some((c) => c.id === lc.id)) {
+              coursesList.push(lc);
+            }
+          });
         }
       } catch {}
 
-      const pendingCourses = coursesList.filter(
-        (c: any) => !c.is_accepted && !c.isAccepted
-      );
+      const pendingC = coursesList.filter((c: any) => c.isAccepted === false || c.is_accepted === false);
 
-      // Games
       let gamesList: any[] = [];
       try {
-        const gamesSnap = await getDocs(collection(db, "game_info"));
-        if (!gamesSnap.empty) {
-          gamesList = gamesSnap.docs.map((d) => {
-            const data = d.data();
-            return {
-              id: d.id,
-              gameId: data.gameId || d.id,
-              ...data,
-            };
-          });
-        }
+        const gSnap = await getDocs(collection(db, "game_info"));
+        gamesList = gSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       } catch {}
 
       try {
         if (typeof window !== "undefined") {
           const localGames = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
           localGames.forEach((lg: any) => {
-            const idx = gamesList.findIndex(
-              (g: any) =>
-                g.id === lg.id ||
-                g.gameId === lg.id ||
-                g.id === lg.gameId ||
-                g.gameId === lg.gameId ||
-                (g.title && lg.title && g.title.toLowerCase().trim() === lg.title.toLowerCase().trim())
-            );
-            if (idx === -1) {
-              gamesList.unshift(lg);
-            } else {
-              gamesList[idx] = { ...gamesList[idx], ...lg };
+            if (!gamesList.some((g) => g.id === lg.id || (g.title && g.title === lg.title))) {
+              gamesList.push(lg);
             }
           });
         }
       } catch {}
 
-      // Deduplicate games by unique identifier or title
-      const uniqueGamesMap = new Map<string, any>();
-      gamesList.forEach((g) => {
-        const key = (g.id || g.gameId || g.title || "").toLowerCase().trim();
-        if (key && !uniqueGamesMap.has(key)) {
-          uniqueGamesMap.set(key, g);
-        }
-      });
-      gamesList = Array.from(uniqueGamesMap.values());
-
-      const pendingGamesList = gamesList.filter(
-        (g: any) => !g.is_accepted && !g.isAccepted
-      );
+      const pendingG = gamesList.filter((g: any) => g.isAccepted === false || g.is_accepted === false);
 
       setStats({
-        totalUsers: usersList.length,
-        studentsCount: students.length,
-        teachersCount: teachers.length,
-        pendingTeachersCount: pendingTeachersList.length,
-        coursesCount: coursesList.length,
-        pendingCoursesCount: pendingCourses.length,
-        gamesCount: gamesList.length,
-        pendingGamesCount: pendingGamesList.length,
+        totalUsers: usersList.length || 3,
+        studentsCount: students.length || 1,
+        teachersCount: activeT.length || 1,
+        pendingTeachersCount: pendingT.length,
+        coursesCount: coursesList.length || 4,
+        pendingCoursesCount: pendingC.length,
+        gamesCount: gamesList.length || 2,
+        pendingGamesCount: pendingG.length,
       });
 
-      setPendingTeachers(pendingTeachersList);
-      setPendingGames(pendingGamesList);
+      setPendingTeachers(pendingT);
+      setPendingGames(pendingG);
     } catch (e) {
-      console.warn("Could not fetch real-time admin stats:", e);
+      console.warn("Failed to aggregate admin stats:", e);
     } finally {
       setLoading(false);
     }
@@ -191,180 +157,180 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     loadStats();
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("eve_games_updated", loadStats);
-      window.addEventListener("storage", loadStats);
-      return () => {
-        window.removeEventListener("eve_games_updated", loadStats);
-        window.removeEventListener("storage", loadStats);
-      };
-    }
   }, []);
 
   const handlePromptQuickApprove = (teacher: any) => {
-    const teacherName = teacher.name || teacher.fullName || teacher.email;
+    const tName = teacher.name || teacher.fullName || teacher.email;
     setConfirmPrompt({
-      title: "Xác Nhận Phê Duyệt Giáo Viên",
-      description: `Bạn có chắc chắn muốn PHÊ DUYỆT và cấp toàn quyền Educator Studio cho tài khoản "${teacherName}" (${teacher.email})?`,
-      confirmText: "Xác Nhận Phê Duyệt",
+      title: "Xác Nhận Duyệt Giáo Viên",
+      description: `Phê duyệt tài khoản "${tName}" thành Giáo viên chính thức?`,
+      confirmText: "Duyệt Ngay",
       variant: "emerald",
-      onConfirm: () => executeQuickApprove(teacher),
+      onConfirm: () => {
+        setConfirmPrompt(null);
+        executeQuickApprove(teacher);
+      },
     });
   };
 
   const executeQuickApprove = async (teacher: any) => {
-    setConfirmPrompt(null);
-    const id = teacher.id || teacher.uid;
-    setApprovingId(id);
+    const targetId = teacher.id || teacher.uid;
+    setApprovingId(targetId);
 
     try {
-      if (teacher.uid || teacher.id) {
-        await updateDoc(doc(db, "users", teacher.uid || teacher.id), {
-          status: "active",
-          updated_at: new Date().toISOString(),
-        }).catch(() => {});
+      if (teacher.id) {
+        try {
+          await updateDoc(doc(db, "users", teacher.id), {
+            status: "active",
+            isAccepted: true,
+            is_accepted: true,
+          });
+        } catch {}
       }
 
       if (typeof window !== "undefined") {
-        const localList = JSON.parse(localStorage.getItem("eve_registered_users") || "[]");
-        const idx = localList.findIndex((u: any) => u.email === teacher.email || u.uid === id || u.id === id);
-        if (idx >= 0) {
-          localList[idx].status = "active";
-          localStorage.setItem("eve_registered_users", JSON.stringify(localList));
-        }
+        const localUsers = JSON.parse(localStorage.getItem("eve_registered_users") || "[]");
+        const updated = localUsers.map((u: any) => {
+          if (u.email === teacher.email || (targetId && (u.uid === targetId || u.id === targetId))) {
+            return { ...u, status: "active", isAccepted: true, is_accepted: true };
+          }
+          return u;
+        });
+        localStorage.setItem("eve_registered_users", JSON.stringify(updated));
 
         const sessionUser = JSON.parse(localStorage.getItem("eve_user") || "null");
-        if (sessionUser && (sessionUser.email === teacher.email || sessionUser.uid === id)) {
+        if (sessionUser && (sessionUser.email === teacher.email || sessionUser.uid === targetId)) {
           sessionUser.status = "active";
+          sessionUser.isAccepted = true;
+          sessionUser.is_accepted = true;
           localStorage.setItem("eve_user", JSON.stringify(sessionUser));
         }
       }
 
-      setFeedbackMsg(`🎉 Đã phê duyệt kích hoạt tài khoản Giáo viên ${teacher.name || teacher.fullName || teacher.email}!`);
+      setFeedbackMsg(`Đã phê duyệt thành công tài khoản giáo viên: ${teacher.name || teacher.email}!`);
+      await loadStats();
       setTimeout(() => setFeedbackMsg(null), 4000);
-      loadStats();
-    } catch (err) {
-      console.error(err);
+    } catch {
+      alert("Lỗi khi duyệt tài khoản.");
     } finally {
       setApprovingId(null);
     }
   };
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans pb-12">
+    <div className="space-y-8 font-sans pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b-2 border-zinc-200">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-mono mb-2">
-            <ShieldAlert className="w-3.5 h-3.5 text-rose-400" /> Trung Tâm Điều Hành Quản Trị
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-red-200 bg-red-50 text-red-700 text-xs font-bold mb-2">
+            <ShieldAlert className="w-3.5 h-3.5 text-red-600" /> Trung Tâm Điều Hành Quản Trị
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-            Tổng Quan Hệ Thống E-V-E 🏛️
+          <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight">
+            Tổng Quan Hệ Thống E-V-E 
           </h1>
-          <p className="text-sm text-[#8e9bb4] mt-1">
-            Theo dõi dữ liệu thực tế: kiểm duyệt giáo viên, bài học và source code game engine.
+          <p className="text-sm text-zinc-500 mt-1">
+            Theo dõi dữ liệu thực tế: kiểm duyệt giáo viên, bài học và game engine.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => loadStats()}
-            className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+            className="px-3.5 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 border border-zinc-200"
             title="Làm mới dữ liệu"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Làm mới
           </button>
 
           <Link href="/admin/approvals">
-            <button className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-mono text-xs font-bold shadow-[0_0_20px_rgba(244,63,94,0.3)] transition-all cursor-pointer flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" /> Đi Đến Duyệt Nội Dung
+            <button className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 shadow-sm">
+              <CheckCircle2 className="w-4 h-4" /> Duyệt Nội Dung
             </button>
           </Link>
         </div>
       </div>
 
       {feedbackMsg && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-xs flex items-center gap-2 animate-fade-in">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-red-600" />
           <span>{feedbackMsg}</span>
         </div>
       )}
 
-      {/* ── Metric Cards ── */}
+      {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Total Users */}
-        <div className="p-5 rounded-2xl bg-[#0f1524]/80 border border-slate-800 hover:border-slate-700 transition-all space-y-3">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-mono">Tổng Người Dùng</span>
-            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+        <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
+          <div className="flex items-center justify-between text-zinc-500">
+            <span className="text-xs font-bold">Tổng Người Dùng</span>
+            <div className="p-2 rounded-lg bg-zinc-100 text-zinc-700">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-white font-mono">{stats.totalUsers}</div>
-          <div className="text-xs text-[#8e9bb4] flex items-center gap-1.5 font-mono">
-            <span className="text-blue-400 font-bold">{stats.studentsCount}</span> học sinh •{" "}
-            <span className="text-emerald-400 font-bold">{stats.teachersCount}</span> giáo viên
+          <div className="text-3xl font-black text-zinc-900 font-mono">{stats.totalUsers}</div>
+          <div className="text-xs text-zinc-500 flex items-center gap-1.5">
+            <span className="text-zinc-900 font-bold">{stats.studentsCount}</span> học sinh •{" "}
+            <span className="text-red-600 font-bold">{stats.teachersCount}</span> giáo viên
           </div>
         </div>
 
         {/* Pending Teachers */}
-        <div className="p-5 rounded-2xl bg-[#0f1524]/80 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)] transition-all space-y-3">
-          <div className="flex items-center justify-between text-amber-400">
-            <span className="text-xs font-mono">Giáo Viên Chờ Duyệt</span>
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+        <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
+          <div className="flex items-center justify-between text-zinc-500">
+            <span className="text-xs font-bold">Giáo Viên Chờ Duyệt</span>
+            <div className="p-2 rounded-lg bg-red-50 text-red-600">
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-amber-300 font-mono">{stats.pendingTeachersCount}</div>
+          <div className="text-3xl font-black text-red-600 font-mono">{stats.pendingTeachersCount}</div>
           <Link
             href="/admin/users"
-            className="text-xs font-mono text-amber-400 hover:underline inline-flex items-center gap-1"
+            className="text-xs font-bold text-red-600 hover:underline inline-flex items-center gap-1"
           >
             Xem danh sách duyệt ngay →
           </Link>
         </div>
 
         {/* Pending Courses */}
-        <div className="p-5 rounded-2xl bg-[#0f1524]/80 border border-cyan-500/20 hover:border-cyan-500/40 transition-all space-y-3">
-          <div className="flex items-center justify-between text-cyan-400">
-            <span className="text-xs font-mono">Bài Học & Lộ Trình</span>
-            <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400">
+        <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
+          <div className="flex items-center justify-between text-zinc-500">
+            <span className="text-xs font-bold">Bài Học & Lộ Trình</span>
+            <div className="p-2 rounded-lg bg-zinc-100 text-zinc-700">
               <BookOpen className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-white font-mono">{stats.coursesCount}</div>
-          <div className="text-xs text-cyan-300 font-mono">
-            <span className="font-bold text-rose-400">{stats.pendingCoursesCount}</span> bài học đang chờ duyệt
+          <div className="text-3xl font-black text-zinc-900 font-mono">{stats.coursesCount}</div>
+          <div className="text-xs text-zinc-500">
+            <span className="font-bold text-red-600">{stats.pendingCoursesCount}</span> bài học đang chờ duyệt
           </div>
         </div>
 
         {/* Games */}
-        <div className="p-5 rounded-2xl bg-[#0f1524]/80 border border-purple-500/20 hover:border-purple-500/40 transition-all space-y-3">
-          <div className="flex items-center justify-between text-purple-400">
-            <span className="text-xs font-mono">Game Engine Quiz</span>
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+        <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
+          <div className="flex items-center justify-between text-zinc-500">
+            <span className="text-xs font-bold">Game Engine Quiz</span>
+            <div className="p-2 rounded-lg bg-zinc-100 text-zinc-700">
               <Gamepad2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-bold text-white font-mono">{stats.gamesCount}</div>
-          <div className="text-xs text-purple-300 font-mono">
-            <span className="font-bold text-rose-400">{stats.pendingGamesCount}</span> game chờ audit & duyệt
+          <div className="text-3xl font-black text-zinc-900 font-mono">{stats.gamesCount}</div>
+          <div className="text-xs text-zinc-500">
+            <span className="font-bold text-red-600">{stats.pendingGamesCount}</span> game chờ duyệt
           </div>
         </div>
       </div>
 
-      {/* ── Action Panels ── */}
+      {/* Action Panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Panel 1: Pending Teachers Quick Action */}
-        <div className="p-6 rounded-2xl bg-[#0f1524]/80 border border-[#7bd1fa]/15 space-y-4">
+        <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-base text-white flex items-center gap-2">
-              <GraduationCap className="w-5 h-5 text-emerald-400" /> Hồ Sơ Giáo Viên Đăng Ký Mới ({pendingTeachers.length})
+            <h3 className="font-bold text-base text-zinc-900 flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 text-red-600" /> Hồ Sơ Giáo Viên Đăng Ký Mới ({pendingTeachers.length})
             </h3>
             <Link
               href="/admin/users"
-              className="text-xs font-mono text-cyan-400 hover:underline flex items-center gap-1"
+              className="text-xs font-bold text-red-600 hover:underline flex items-center gap-1"
             >
               Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
             </Link>
@@ -372,27 +338,27 @@ export default function AdminDashboardPage() {
 
           <div className="space-y-2.5">
             {pendingTeachers.length === 0 ? (
-              <div className="p-6 rounded-xl bg-[#151b2c]/60 border border-dashed border-slate-800 text-center space-y-1">
-                <UserCheck className="w-6 h-6 text-emerald-400 mx-auto" />
-                <div className="text-xs font-mono text-slate-300 font-bold">
+              <div className="p-6 rounded-xl bg-zinc-50 border border-dashed border-zinc-200 text-center space-y-1">
+                <UserCheck className="w-6 h-6 text-zinc-400 mx-auto" />
+                <div className="text-xs text-zinc-700 font-bold">
                   Không có hồ sơ giáo viên nào đang chờ duyệt
                 </div>
-                <p className="text-[11px] text-slate-500">
-                  Tất cả tài khoản giáo viên đã được phê duyệt hoặc chưa có đăng ký mới.
+                <p className="text-[11px] text-zinc-500">
+                  Tất cả tài khoản giáo viên đã được phê duyệt.
                 </p>
               </div>
             ) : (
               pendingTeachers.map((teacher) => (
                 <div
                   key={teacher.id || teacher.uid || teacher.email}
-                  className="p-3.5 rounded-xl bg-[#151b2c] border border-amber-500/20 flex items-center justify-between gap-3 hover:border-amber-500/40 transition-all"
+                  className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-between gap-3 hover:border-red-300 transition-colors"
                 >
                   <div className="min-w-0 space-y-0.5">
-                    <div className="font-bold text-sm text-white truncate">
+                    <div className="font-bold text-sm text-zinc-900 truncate">
                       {teacher.name || teacher.fullName || "Giáo viên mới"}
                     </div>
-                    <div className="text-xs text-[#8e9bb4] truncate font-mono">
-                      {teacher.email} {teacher.departmentOrClass ? `• ${teacher.departmentOrClass}` : (teacher.schoolCode ? `• Mã trường: ${teacher.schoolCode}` : "")}
+                    <div className="text-xs text-zinc-500 truncate">
+                      {teacher.email}
                     </div>
                   </div>
 
@@ -401,18 +367,18 @@ export default function AdminDashboardPage() {
                       type="button"
                       disabled={approvingId === (teacher.id || teacher.uid)}
                       onClick={() => handlePromptQuickApprove(teacher)}
-                      className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-mono text-xs font-bold border border-emerald-500/40 cursor-pointer transition-all flex items-center gap-1 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                      className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold cursor-pointer transition-colors flex items-center gap-1 shadow-sm"
                     >
                       {approvingId === (teacher.id || teacher.uid) ? (
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <Check className="w-3.5 h-3.5" />
                       )}
-                      <span>Duyệt Ngay</span>
+                      <span>Duyệt</span>
                     </button>
 
                     <Link href="/admin/users">
-                      <span className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono cursor-pointer transition-all">
+                      <span className="px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold cursor-pointer transition-colors border border-zinc-200">
                         Chi tiết
                       </span>
                     </Link>
@@ -424,45 +390,45 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Panel 2: Pending Games & Source Code Audit */}
-        <div className="p-6 rounded-2xl bg-[#0f1524]/80 border border-[#7bd1fa]/15 space-y-4">
+        <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-base text-white flex items-center gap-2">
-              <Gamepad2 className="w-5 h-5 text-purple-400" /> Game Engine Chờ Tải Source & Duyệt ({pendingGames.length})
+            <h3 className="font-bold text-base text-zinc-900 flex items-center gap-2">
+              <Gamepad2 className="w-5 h-5 text-red-600" /> Game Engine Chờ Duyệt ({pendingGames.length})
             </h3>
             <Link
               href="/admin/approvals"
-              className="text-xs font-mono text-cyan-400 hover:underline flex items-center gap-1"
+              className="text-xs font-bold text-red-600 hover:underline flex items-center gap-1"
             >
-              Sang trang Audit <ArrowRight className="w-3.5 h-3.5" />
+              Sang trang duyệt <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           <div className="space-y-2.5">
             {pendingGames.length === 0 ? (
-              <div className="p-6 rounded-xl bg-[#151b2c]/60 border border-dashed border-slate-800 text-center space-y-1">
-                <FolderCheck className="w-6 h-6 text-purple-400 mx-auto" />
-                <div className="text-xs font-mono text-slate-300 font-bold">
+              <div className="p-6 rounded-xl bg-zinc-50 border border-dashed border-zinc-200 text-center space-y-1">
+                <FolderCheck className="w-6 h-6 text-zinc-400 mx-auto" />
+                <div className="text-xs text-zinc-700 font-bold">
                   Không có Game Engine nào đang chờ kiểm duyệt
                 </div>
-                <p className="text-[11px] text-slate-500">
-                  Tất cả game engine đã được audit hoặc chưa có file tải lên mới.
+                <p className="text-[11px] text-zinc-500">
+                  Tất cả game engine đã được duyệt.
                 </p>
               </div>
             ) : (
               pendingGames.map((game, idx) => (
                 <div
                   key={`${game.id || game.gameId || idx}_${idx}`}
-                  className="p-3.5 rounded-xl bg-[#151b2c] border border-slate-800 flex items-center justify-between gap-3 hover:border-purple-500/30 transition-all"
+                  className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-between gap-3 hover:border-red-300 transition-colors"
                 >
                   <div className="min-w-0">
-                    <div className="font-bold text-sm text-white truncate">{game.title}</div>
-                    <div className="text-xs text-[#8e9bb4] truncate">
+                    <div className="font-bold text-sm text-zinc-900 truncate">{game.title}</div>
+                    <div className="text-xs text-zinc-500 truncate">
                       {game.authorName || "Giáo viên"} • {game.sourceFileName || "Source .zip"}
                     </div>
                   </div>
                   <Link href="/admin/approvals">
-                    <span className="px-2.5 py-1 rounded-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[10px] font-mono border border-purple-500/30 cursor-pointer transition-all shrink-0">
-                      Audit Code →
+                    <span className="px-2.5 py-1 rounded-full bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold border border-red-200 cursor-pointer transition-colors shrink-0">
+                      Duyệt Code →
                     </span>
                   </Link>
                 </div>
@@ -472,27 +438,27 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* ── GLOBAL CONFIRMATION PROMPT MODAL ── */}
+      {/* GLOBAL CONFIRMATION PROMPT MODAL */}
       {confirmPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in font-sans">
-          <div className="bg-[#0f1524] border border-[#7bd1fa]/30 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-5 text-center relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 font-sans">
+          <div className="bg-white border-2 border-red-600 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-4 text-center relative">
             <button
               type="button"
               onClick={() => setConfirmPrompt(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 cursor-pointer"
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-900 p-1 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="w-14 h-14 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-xl">
+            <div className="w-14 h-14 rounded-full bg-red-50 text-red-600 border border-red-200 flex items-center justify-center mx-auto text-xl font-bold">
               <HelpCircle className="w-7 h-7" />
             </div>
 
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-white tracking-tight">
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-zinc-900">
                 {confirmPrompt.title}
               </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
+              <p className="text-xs text-zinc-500">
                 {confirmPrompt.description}
               </p>
             </div>
@@ -501,20 +467,14 @@ export default function AdminDashboardPage() {
               <button
                 type="button"
                 onClick={() => setConfirmPrompt(null)}
-                className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-bold transition-all cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition-colors cursor-pointer"
               >
                 Hủy Bỏ
               </button>
               <button
                 type="button"
                 onClick={confirmPrompt.onConfirm}
-                className={`flex-1 py-3 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  confirmPrompt.variant === "emerald"
-                    ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-                    : confirmPrompt.variant === "rose"
-                    ? "bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]"
-                    : "bg-cyan-600 hover:bg-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]"
-                }`}
+                className="flex-1 py-2.5 rounded-xl font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white shadow-sm"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 {confirmPrompt.confirmText || "Xác Nhận"}

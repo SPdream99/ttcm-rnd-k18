@@ -13,7 +13,6 @@ import {
   UserCheck,
   Coins,
   LogOut,
-  Sparkles,
   Bot,
   ArrowLeft,
   GraduationCap,
@@ -24,13 +23,14 @@ import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { getAuthCookie } from "@/lib/cookies";
 
 const STUDENT_NAV = [
-  { id: "dashboard",      label: "Góc Học Tập",        icon: LayoutDashboard, href: "/student/dashboard" },
-  { id: "learning-paths", label: "Lộ Trình Học Tập",   icon: BookOpen,        href: "/student/learning-paths" },
-  { id: "games",          label: "Kho Trò Chơi (Arcade)", icon: Gamepad2,     href: "/student/games" },
-  { id: "ai-tutor",       label: "Trợ Lý AI Tutor",    icon: Bot,             href: "/student/ai-tutor" },
-  { id: "leaderboard",    label: "Bảng Xếp Hạng",      icon: Trophy,          href: "/student/leaderboard" },
-  { id: "shop",           label: "Cửa Hàng Đổi Thưởng", icon: ShoppingBag,     href: "/student/shop" },
-  { id: "profile",        label: "Hồ Sơ Cá Nhân",      icon: UserCheck,       href: "/student/profile" },
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/student/dashboard" },
+  { id: "learning-paths", label: "Lộ Trình Học Tập", icon: BookOpen, href: "/student/learning-paths" },
+  { id: "classes", label: "Lớp Học Của Tôi", icon: GraduationCap, href: "/student/classes" },
+  { id: "games", label: "Kho Minigame", icon: Gamepad2, href: "/student/games" },
+  { id: "ai-tutor", label: "Gia Sư Học Tập", icon: Bot, href: "/student/ai-tutor" },
+  { id: "leaderboard", label: "Bảng Xếp Hạng", icon: Trophy, href: "/student/leaderboard" },
+  { id: "shop", label: "Đổi Thưởng", icon: ShoppingBag, href: "/student/shop" },
+  { id: "profile", label: "Hồ Sơ Cá Nhân", icon: UserCheck, href: "/student/profile" },
 ];
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
@@ -60,70 +60,68 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     currentUser?.name ||
     (currentUser as any)?.fullName ||
     profile?.fullName ||
-    "Học Sinh";
+    "Học Viên";
   const displayCoins = currentUser?.coins ?? profile?.coins ?? 250;
 
   return (
-    <div className="flex min-h-screen bg-[#0a0e1a] text-[#e1e2ec] font-sans flex-col md:flex-row">
-      {/* ── Student Sidebar ── */}
-      <aside className="w-full md:w-64 md:h-screen bg-[#0d1220] border-r border-[#7bd1fa]/15 p-5 flex flex-col justify-between z-40 md:sticky top-0 shrink-0 overflow-y-auto">
+    <div className="flex min-h-screen bg-zinc-50 text-zinc-900 font-sans flex-col md:flex-row">
+      {/* ── Student Sidebar (Solid Red & White, No Gradients) ── */}
+      <aside className="w-full md:w-64 md:h-screen bg-white border-r-2 border-zinc-200 p-5 flex flex-col justify-between z-40 md:sticky top-0 shrink-0 overflow-y-auto shadow-sm">
         <div className="space-y-6">
           {/* Brand Header */}
           <div className="flex items-center gap-3 px-1">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-400 via-blue-500 to-indigo-600 p-[1px] shadow-[0_0_20px_rgba(6,182,212,0.35)]">
-              <div className="w-full h-full bg-[#0a0e1a] rounded-[11px] flex items-center justify-center">
-                <Rocket className="w-5 h-5 text-cyan-300" />
-              </div>
+            <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-sm">
+              <Rocket className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
+              <h2 className="font-black text-lg tracking-tight text-zinc-900 flex items-center gap-1.5">
                 E-V-E{" "}
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-cyan-500/30 bg-cyan-500/20 text-cyan-300 font-mono">
-                  HỌC SINH
+                <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-red-100 text-red-700">
+                  HỌC VIÊN
                 </span>
               </h2>
-              <p className="text-[11px] text-[#8e9bb4]">Không gian trải nghiệm</p>
+              <p className="text-[11px] text-zinc-500">Hệ Sinh Thái Giáo Dục</p>
             </div>
           </div>
 
           {/* Quick Return Portal for Teacher or Admin */}
           {isTeacher && (
             <Link href="/teacher/dashboard">
-              <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 transition-all flex items-center justify-between gap-2 cursor-pointer shadow-lg group">
-                <div className="flex items-center gap-2 text-xs font-mono font-bold">
-                  <GraduationCap className="w-4 h-4 text-emerald-400" />
-                  <span>Về Bàn Làm Việc GV</span>
+              <div className="p-3 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-800 hover:bg-zinc-200 transition-colors flex items-center justify-between gap-2 cursor-pointer">
+                <div className="flex items-center gap-2 text-xs font-bold">
+                  <GraduationCap className="w-4 h-4 text-red-600" />
+                  <span>Về Trang Giáo Viên</span>
                 </div>
-                <ArrowLeft className="w-3.5 h-3.5 rotate-180 group-hover:translate-x-1 transition-transform" />
+                <ArrowLeft className="w-3.5 h-3.5 rotate-180 text-zinc-600" />
               </div>
             </Link>
           )}
 
           {isAdmin && (
             <Link href="/admin/dashboard">
-              <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-500/25 transition-all flex items-center justify-between gap-2 cursor-pointer shadow-lg group">
-                <div className="flex items-center gap-2 text-xs font-mono font-bold">
-                  <ShieldAlert className="w-4 h-4 text-amber-400" />
-                  <span>Về Trang Quản Trị Admin</span>
+              <div className="p-3 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-800 hover:bg-zinc-200 transition-colors flex items-center justify-between gap-2 cursor-pointer">
+                <div className="flex items-center gap-2 text-xs font-bold">
+                  <ShieldAlert className="w-4 h-4 text-red-600" />
+                  <span>Về Trang Quản Trị</span>
                 </div>
-                <ArrowLeft className="w-3.5 h-3.5 rotate-180 group-hover:translate-x-1 transition-transform" />
+                <ArrowLeft className="w-3.5 h-3.5 rotate-180 text-zinc-600" />
               </div>
             </Link>
           )}
 
           {/* Student Profile & Coins Info */}
-          <div className="px-3 py-3 rounded-xl bg-[#151b2c] border border-cyan-500/20 flex items-center justify-between gap-2">
+          <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <div className="text-xs font-bold text-white truncate" suppressHydrationWarning>
+              <div className="text-xs font-bold text-zinc-900 truncate" suppressHydrationWarning>
                 {displayName}
               </div>
-              <div className="text-[10px] font-mono text-cyan-400 uppercase">
+              <div className="text-[10px] text-zinc-500 uppercase font-medium">
                 {isTeacher ? "Giáo Viên (Xem thử)" : isAdmin ? "Admin (Xem thử)" : "Học Viên"}
               </div>
             </div>
-            <div className="flex items-center gap-1 shrink-0 px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30">
-              <Coins className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-xs font-mono font-bold text-amber-300" suppressHydrationWarning>
+            <div className="flex items-center gap-1 shrink-0 px-2 py-1 rounded-lg bg-red-50 border border-red-200">
+              <Coins className="w-3.5 h-3.5 text-red-600" />
+              <span className="text-xs font-mono font-bold text-red-700" suppressHydrationWarning>
                 {displayCoins}
               </span>
             </div>
@@ -140,13 +138,13 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                 <Link
                   key={item.id}
                   href={item.href}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-colors ${
                     active
-                      ? "bg-gradient-to-r from-cyan-500/25 to-blue-600/20 text-white border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.25)] font-semibold"
-                      : "text-[#8e9bb4] hover:text-white hover:bg-white/5"
+                      ? "bg-red-600 text-white font-bold shadow-sm"
+                      : "text-zinc-600 hover:text-red-600 hover:bg-red-50"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${active ? "text-cyan-400" : "text-slate-400"}`} />
+                  <Icon className={`w-4 h-4 ${active ? "text-white" : "text-zinc-500"}`} />
                   <span className="text-xs tracking-wide">{item.label}</span>
                 </Link>
               );
@@ -155,10 +153,10 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         </div>
 
         {/* Bottom Actions */}
-        <div className="pt-4 border-t border-slate-800 space-y-2">
+        <div className="pt-4 border-t border-zinc-200 space-y-2">
           {isTeacher && (
             <Link href="/teacher/dashboard">
-              <button className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-mono text-xs font-bold transition-all border border-emerald-500/30 cursor-pointer">
+              <button className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold transition-colors border border-zinc-200 cursor-pointer">
                 <ArrowLeft className="w-3.5 h-3.5" /> Thoát Xem Thử Học Sinh
               </button>
             </Link>
@@ -166,7 +164,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
           {isAdmin && (
             <Link href="/admin/dashboard">
-              <button className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 font-mono text-xs font-bold transition-all border border-amber-500/30 cursor-pointer">
+              <button className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold transition-colors border border-zinc-200 cursor-pointer">
                 <ArrowLeft className="w-3.5 h-3.5" /> Thoát Về Admin
               </button>
             </Link>
@@ -174,7 +172,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
           <button
             onClick={() => signOut()}
-            className="w-full flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-mono text-xs font-bold transition-all cursor-pointer border border-rose-500/20"
+            className="w-full flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition-colors cursor-pointer border border-red-200"
           >
             <LogOut className="w-4 h-4" /> Đăng Xuất
           </button>
@@ -185,12 +183,12 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Sticky Experience Banner for Teacher / Admin */}
         {(isTeacher || isAdmin) && (
-          <div className="bg-gradient-to-r from-[#0f1d24] via-[#102435] to-[#0f1d24] border-b border-cyan-500/30 px-4 py-2.5 flex items-center justify-between gap-3 text-xs font-mono sticky top-0 z-30 shadow-md">
-            <div className="flex items-center gap-2 text-cyan-300 truncate">
+          <div className="bg-white border-b-2 border-red-600 px-4 py-2.5 flex items-center justify-between gap-3 text-xs sticky top-0 z-30 shadow-sm">
+            <div className="flex items-center gap-2 text-zinc-800 truncate">
               {isTeacher ? (
-                <GraduationCap className="w-4 h-4 text-emerald-400 shrink-0" />
+                <GraduationCap className="w-4 h-4 text-red-600 shrink-0" />
               ) : (
-                <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+                <ShieldAlert className="w-4 h-4 text-red-600 shrink-0" />
               )}
               <span className="truncate">
                 Đang ở chế độ <strong>Trải nghiệm Học sinh</strong> ({isTeacher ? "Tài khoản Giáo viên" : "Tài khoản Admin"})
@@ -198,7 +196,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             </div>
 
             <Link href={isTeacher ? "/teacher/dashboard" : "/admin/dashboard"}>
-              <button className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.35)] transition-all shrink-0 cursor-pointer">
+              <button className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer">
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>{isTeacher ? "Quay Về Trang Giáo Viên" : "Quay Về Trang Admin"}</span>
               </button>
