@@ -13,7 +13,7 @@ export default function GameStatus({
       : 0;
 
   return (
-    <div className="mt-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="mt-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm font-sans">
 
       <div className="mb-3 flex items-center justify-between">
         <span className="text-xs font-bold tracking-wide text-slate-700">

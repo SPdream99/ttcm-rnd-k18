@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, LogOut, LayoutDashboard, UserCheck, ChevronDown } from "lucide-react";
+import { User, LogOut, LayoutDashboard, UserCheck, ChevronDown, Rocket } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { useAuth } from "@/context/AuthContext";
 
@@ -14,7 +14,6 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -55,26 +54,20 @@ export default function Navbar() {
   };
 
   return (
-    <header
-      className="fixed top-0 w-full z-50 bg-[#0a0e1a]/80 backdrop-blur-md border-b border-[#7bd1fa]/15 shadow-lg transition-all duration-300"
-      id="main-header"
-    >
+    <header className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b-2 border-zinc-200 shadow-sm transition-all">
       <div className="flex justify-between items-center px-4 md:px-8 py-3.5 max-w-7xl mx-auto">
         {/* Brand Logo */}
-        <Link href="/" className="font-extrabold text-xl text-white tracking-widest flex items-center gap-2">
-          <span
-            className="material-symbols-outlined text-cyan-400 text-2xl"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            school
-          </span>
-          <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">E-V-E</span>
+        <Link href="/" className="font-black text-xl text-red-600 tracking-tight flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center font-bold">
+            <Rocket className="w-4 h-4" />
+          </div>
+          <span>E-V-E</span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6 font-mono text-sm">
+        <nav className="hidden md:flex items-center gap-6 text-sm font-bold">
           <Link href="/">
-            <span className="text-cyan-400 border-b-2 border-cyan-400 pb-0.5 hover:text-white transition-colors cursor-pointer">
+            <span className="text-red-600 border-b-2 border-red-600 pb-0.5 hover:text-red-700 transition-colors cursor-pointer">
               Trang Chủ
             </span>
           </Link>
@@ -83,76 +76,68 @@ export default function Navbar() {
         {/* Actions / User Profile Section */}
         <div className="flex items-center gap-4">
           {loading ? (
-            <div className="text-xs font-mono text-cyan-400 animate-pulse">Đang tải...</div>
+            <div className="text-xs text-red-600 font-bold">Đang tải...</div>
           ) : isLoggedIn ? (
-            /* User Profile Pill & Dropdown */
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[#151b2c] border border-cyan-500/30 hover:border-cyan-400/60 transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+                className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-zinc-50 border border-zinc-200 hover:border-red-600 transition-colors cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 p-[1.5px]">
-                  <div className="w-full h-full rounded-full bg-[#0a0e1a] flex items-center justify-center">
-                    <User className="w-4 h-4 text-cyan-300" />
-                  </div>
+                <div className="w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-xs font-mono">
+                  {displayName.charAt(0)}
                 </div>
                 <div className="hidden sm:block text-left">
-                  <div className="text-xs font-bold text-white leading-tight" suppressHydrationWarning>{displayName}</div>
-                  <div className="text-[10px] font-mono text-cyan-400" suppressHydrationWarning>{displayRole}</div>
+                  <div className="text-xs font-bold text-zinc-900 leading-tight" suppressHydrationWarning>{displayName}</div>
+                  <div className="text-[10px] text-zinc-500 uppercase font-medium" suppressHydrationWarning>{displayRole}</div>
                 </div>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
+                <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
               </button>
 
-              {/* Profile Dropdown Menu */}
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#0f1524] border border-cyan-500/30 shadow-2xl p-3 space-y-2 z-50 animate-fade-in backdrop-blur-xl">
-                  <div className="p-3 rounded-xl bg-[#151b2c] border border-slate-800 space-y-1">
-                    <div className="font-bold text-sm text-white truncate" suppressHydrationWarning>{displayName}</div>
-                    <div className="text-xs text-slate-400 truncate" suppressHydrationWarning>{displayEmail}</div>
-                    <span className="inline-block px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono border border-cyan-500/30 mt-1" suppressHydrationWarning>
-                      {displayRole}
-                    </span>
+                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-zinc-200 shadow-xl py-2 z-50">
+                  <div className="px-4 py-2.5 border-b border-zinc-100">
+                    <div className="text-xs font-bold text-zinc-900 truncate">{displayName}</div>
+                    <div className="text-[11px] text-zinc-500 truncate">{displayEmail}</div>
                   </div>
 
-                  <div className="space-y-1 font-mono text-xs">
+                  <div className="py-1">
                     <Link
                       href={getDashboardUrl()}
                       onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+                      className="flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-zinc-700 hover:bg-red-50 hover:text-red-600 transition-colors"
                     >
-                      <LayoutDashboard className="w-4 h-4 text-cyan-400" /> Bảng Điều Khiển
+                      <LayoutDashboard className="w-4 h-4 text-red-600" /> Bảng Điều Khiển
                     </Link>
 
                     <Link
                       href={getProfileUrl()}
                       onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+                      className="flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-zinc-700 hover:bg-red-50 hover:text-red-600 transition-colors"
                     >
-                      <UserCheck className="w-4 h-4 text-emerald-400" /> Trang Cá Nhân
+                      <UserCheck className="w-4 h-4 text-red-600" /> Hồ Sơ & Bảo Mật
                     </Link>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-800">
+                  <div className="pt-1 border-t border-zinc-100">
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 font-mono text-xs font-bold transition-all cursor-pointer border border-red-500/20"
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer text-left"
                     >
-                      <LogOut className="w-4 h-4 text-red-400" /> Đăng Xuất
+                      <LogOut className="w-4 h-4" /> Đăng Xuất
                     </button>
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            /* Logged Out Actions */
             <div className="flex items-center gap-3">
               <Link href="/login">
-                <button className="text-slate-300 hover:text-white font-mono text-xs px-4 py-2 rounded-xl transition-all cursor-pointer">
+                <button className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-700 hover:text-zinc-900 transition cursor-pointer">
                   Đăng Nhập
                 </button>
               </Link>
               <Link href="/register">
-                <button className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold font-mono text-xs shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all cursor-pointer">
+                <button className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition shadow-sm cursor-pointer">
                   Đăng Ký
                 </button>
               </Link>

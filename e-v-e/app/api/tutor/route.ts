@@ -14,7 +14,7 @@ function solveMathExpression(text: string): string | null {
         // eslint-disable-next-line no-eval
         const result = Function(`'use strict'; return (${safeExpr})`)();
         if (typeof result === "number" && !isNaN(result) && isFinite(result)) {
-          return `### 🧮 Kết quả phép tính:
+          return `###  Kết quả phép tính:
 
 $$\\mathbf{${cleaned} = ${result}}$$
 
@@ -22,7 +22,7 @@ $$\\mathbf{${cleaned} = ${result}}$$
 - Thực hiện phép toán: \`${cleaned}\`
 - Kết quả chính xác là: **${result}**
 
-👉 Trong lập trình Python, bạn có thể tính trực tiếp bằng lệnh: \`print(${cleaned})\` nhé!`;
+ Trong lập trình Python, bạn có thể tính trực tiếp bằng lệnh: \`print(${cleaned})\` nhé!`;
         }
       }
     } catch {}
@@ -71,7 +71,7 @@ function cleanAIReply(text: string): string {
       )
       .trim();
 
-    // 2.3 Bỏ qua dòng nếu là phần tùy chọn phụ (ví dụ: 'or "Xin chào! 😊"')
+    // 2.3 Bỏ qua dòng nếu là phần tùy chọn phụ (ví dụ: 'or "Xin chào! "')
     if (/^\s*or\s+["'“]/i.test(line)) {
       continue;
     }
@@ -220,7 +220,7 @@ Hãy phản hồi trực tiếp, thân thiện, tự nhiên bằng tiếng Việ
         const funcCallPart = parts.find((p: any) => p.functionCall);
         if (funcCallPart?.functionCall) {
           const { name, args } = funcCallPart.functionCall;
-          console.log(`🤖 AI đang kích hoạt Agent Skill [${name}] với tham số:`, args);
+          console.log(` AI đang kích hoạt Agent Skill [${name}] với tham số:`, args);
 
           // Thực thi Agent Skill lấy dữ liệu từ Firebase / Hệ thống
           const skillResult = await executeEveSkill(name, args || {});
@@ -344,13 +344,13 @@ async function handleFallbackPlatformQueries(q: string): Promise<string | null> 
             `| **#${item.rank}** | **${item.name}** | ${item.totalScore} | ${item.gamesPlayed} |`
         )
         .join("\n");
-      return `### 🏆 BẢNG XẾP HẠNG HỌC VIÊN E-V-E (CÔNG KHAI)
+      return `###  BẢNG XẾP HẠNG HỌC VIÊN E-V-E (CÔNG KHAI)
 
 | Hạng | Học sinh | Tổng Điểm | Số Game Đã Chơi |
 | :---: | :--- | :---: | :---: |
 ${rows}
 
-👉 Bạn có thể vào mục **[Bảng Xếp Hạng](/student/leaderboard)** để xem chi tiết đầy đủ nhé!`;
+ Bạn có thể vào mục **[Bảng Xếp Hạng](/student/leaderboard)** để xem chi tiết đầy đủ nhé!`;
     }
   }
 
@@ -364,13 +364,13 @@ ${rows}
     const data = await executeEveSkill("search_games", {});
     if (data && data.games && data.games.length > 0) {
       const list = data.games
-        .map((g: any) => `- 🎮 **${g.title}**: ${g.description}`)
+        .map((g: any) => `-  **${g.title}**: ${g.description}`)
         .join("\n");
-      return `### 🎮 DANH SÁCH TRÒ CHƠI HỌC TẬP TRÊN E-V-E:
+      return `###  DANH SÁCH TRÒ CHƠI HỌC TẬP TRÊN E-V-E:
 
 ${list}
 
-👉 Hãy truy cập ngay mục **[Phòng Game Học Tập](/student/games)** để thử thách bản thân và tích lũy điểm thưởng!`;
+ Hãy truy cập ngay mục **[Phòng Game Học Tập](/student/games)** để thử thách bản thân và tích lũy điểm thưởng!`;
     }
   }
 
@@ -386,14 +386,14 @@ ${list}
       const list = data.learningPaths
         .map(
           (p: any) =>
-            `- 🗺️ **${p.title}** (${p.totalCourses} khóa học con): ${p.description}`
+            `-  **${p.title}** (${p.totalCourses} khóa học con): ${p.description}`
         )
         .join("\n");
-      return `### 🗺️ CÁC LỘ TRÌNH HỌC TẬP CHUẨN TRÊN E-V-E:
+      return `###  CÁC LỘ TRÌNH HỌC TẬP CHUẨN TRÊN E-V-E:
 
 ${list}
 
-👉 Khám phá chi tiết tại mục **[Lộ Trình Học](/student/learning-paths)** nhé!`;
+ Khám phá chi tiết tại mục **[Lộ Trình Học](/student/learning-paths)** nhé!`;
     }
   }
 
@@ -408,14 +408,14 @@ ${list}
       const list = data.courses
         .map(
           (c: any) =>
-            `- 📚 **${c.title}**: ${c.description} (Thời lượng: ${c.totalDuration})`
+            `-  **${c.title}**: ${c.description} (Thời lượng: ${c.totalDuration})`
         )
         .join("\n");
-      return `### 📚 CÁC KHÓA HỌC ĐANG MỞ TRÊN E-V-E:
+      return `###  CÁC KHÓA HỌC ĐANG MỞ TRÊN E-V-E:
 
 ${list}
 
-👉 Bạn có thể xem đề cương chi tiết trong giao diện học tập!`;
+ Bạn có thể xem đề cương chi tiết trong giao diện học tập!`;
     }
   }
 
@@ -431,10 +431,10 @@ ${list}
       const list = data.teachers
         .map(
           (t: any) =>
-            `- 👨‍🏫 **${t.name}**: ${t.bio} *(Chuyên môn: ${t.subjects.join(", ")})*`
+            `-  **${t.name}**: ${t.bio} *(Chuyên môn: ${t.subjects.join(", ")})*`
         )
         .join("\n");
-      return `### 👨‍🏫 DANH SÁCH GIÁO VIÊN & GIẢNG VIÊN E-V-E:
+      return `###  DANH SÁCH GIÁO VIÊN & GIẢNG VIÊN E-V-E:
 
 ${list}`;
     }
@@ -455,26 +455,26 @@ function getIntelligentEducationalResponse(question: string, role: string = "stu
     q === "xin chào" ||
     q === "hey"
   ) {
-    return `Chào bạn! 👋 Rất vui được đồng hành cùng bạn hôm nay.
+    return `Chào bạn!  Rất vui được đồng hành cùng bạn hôm nay.
 
 Tôi là **Trợ Lý AI E-V-E**, sẵn sàng giúp bạn:
-1. 🐍 **Học lập trình Python, Scratch & Tư duy thuật toán**
-2. 🎮 **Tìm kiếm thông tin Game học tập, Lộ trình, Khóa học & Bảng xếp hạng**
-3. 🖥️ **Khám phá phần cứng máy tính 3D & Công nghệ**
-4. 🧮 **Giải đáp toán học & logic vui nhộn**
-5. 🐞 **Tìm và sửa lỗi code (Debug)**
+1.  **Học lập trình Python, Scratch & Tư duy thuật toán**
+2.  **Tìm kiếm thông tin Game học tập, Lộ trình, Khóa học & Bảng xếp hạng**
+3.  **Khám phá phần cứng máy tính 3D & Công nghệ**
+4.  **Giải đáp toán học & logic vui nhộn**
+5.  **Tìm và sửa lỗi code (Debug)**
 
 Bạn muốn cùng tôi khám phá chủ đề nào trước?`;
   }
 
   if (q.includes("bạn là ai") || q.includes("tên là gì") || q.includes("ai tutor")) {
-    return `Tôi là **E-V-E AI Tutor** - Người bạn trợ lý học tập thông minh được tích hợp hệ thống Agent Skill trên nền tảng giáo dục công nghệ E-V-E! 🤖
+    return `Tôi là **E-V-E AI Tutor** - Người bạn trợ lý học tập thông minh được tích hợp hệ thống Agent Skill trên nền tảng giáo dục công nghệ E-V-E! 
 
 Tôi có thể hỗ trợ bạn học lập trình, giải toán và tra cứu toàn bộ thông tin công khai về Games, Khóa học, Lộ trình, Giáo viên và Bảng xếp hạng trên hệ thống.`;
   }
 
   if (q.includes("biến") || q.includes("variable") || q.includes("kiểu dữ liệu")) {
-    return `### 💡 Khái niệm Biến số (Variables) trong Lập trình:
+    return `###  Khái niệm Biến số (Variables) trong Lập trình:
 
 **Biến số** giống như một **chiếc hộp có dán nhãn** để lưu trữ thông tin (số, chữ, dữ liệu) trong bộ nhớ máy tính.
 
@@ -488,11 +488,11 @@ da_hoan_thanh = True       # Kiểu Đúng/Sai (Boolean)
 print("Xin chào", ten_hoc_sinh, "- Điểm của bạn là:", diem_so)
 \`\`\`
 
-👉 **Gợi ý thực hành:** Hãy thử tạo 2 biến \`a = 5\` và \`b = 10\`, sau đó in ra tổng \`a + b\` nhé!`;
+ **Gợi ý thực hành:** Hãy thử tạo 2 biến \`a = 5\` và \`b = 10\`, sau đó in ra tổng \`a + b\` nhé!`;
   }
 
   if (q.includes("vòng lặp") || q.includes("loop") || q.includes("for") || q.includes("while")) {
-    return `### 🔁 Vòng Lặp (Loops) trong Lập trình:
+    return `###  Vòng Lặp (Loops) trong Lập trình:
 
 Vòng lặp giúp máy tính tự động lặp lại một hành động nhiều lần mà không cần viết lại mã nguồn.
 
@@ -512,11 +512,11 @@ while nang_luong > 0:
 print("Đã hết năng lượng!")
 \`\`\`
 
-👉 **Ứng dụng trong Game:** Vòng lặp dùng để kiểm tra va chạm, cập nhật chuyển động nhân vật liên tục!`;
+ **Ứng dụng trong Game:** Vòng lặp dùng để kiểm tra va chạm, cập nhật chuyển động nhân vật liên tục!`;
   }
 
   if (q.includes("điều kiện") || q.includes("if") || q.includes("else") || q.includes("so sánh")) {
-    return `### 🔀 Câu Lệnh Điều Kiện (If - Else):
+    return `###  Câu Lệnh Điều Kiện (If - Else):
 
 Câu lệnh điều kiện giúp chương trình đưa ra **quyết định** dựa trên tình huống cụ thể (giống như *"Nếu trời mưa thì mang ô, ngược lại thì đội mũ"*).
 
@@ -524,14 +524,14 @@ Câu lệnh điều kiện giúp chương trình đưa ra **quyết định** d�
 diem_kiem_tra = 85
 
 if diem_kiem_tra >= 90:
-    print("Xếp loại: Xuất sắc! 🌟")
+    print("Xếp loại: Xuất sắc! ")
 elif diem_kiem_tra >= 70:
-    print("Xếp loại: Khá giỏi! 👍")
+    print("Xếp loại: Khá giỏi! ")
 else:
-    print("Cần cố gắng thêm ở bài sau nhé! 💪")
+    print("Cần cố gắng thêm ở bài sau nhé! ")
 \`\`\`
 
-👉 **Mẹo nhỏ:** Đừng quên thụt lề 4 dấu cách sau dấu hai chấm \`:\` trong Python nhé!`;
+ **Mẹo nhỏ:** Đừng quên thụt lề 4 dấu cách sau dấu hai chấm \`:\` trong Python nhé!`;
   }
 
   if (
@@ -542,7 +542,7 @@ else:
     q.includes("ssd") ||
     q.includes("máy tính")
   ) {
-    return `### 🖥️ Các Linh Kiện Phần Cứng Máy Tính Cơ Bản:
+    return `###  Các Linh Kiện Phần Cứng Máy Tính Cơ Bản:
 
 1. **CPU (Bộ vi xử lý):** "Bộ não" của máy tính, chịu trách nhiệm tính toán và thực thi mọi câu lệnh.
 2. **RAM (Bộ nhớ tạm thời):** Lưu trữ dữ liệu các ứng dụng đang chạy. Khi tắt máy tính, dữ liệu trên RAM sẽ bị xóa sạch.
@@ -550,11 +550,11 @@ else:
 4. **SSD (Ổ cứng thể rắn):** Nơi lưu trữ vĩnh viễn hệ điều hành, game và tài liệu với tốc độ đọc ghi siêu tốc.
 5. **Mainboard (Bo mạch chủ):** "Xương sống" kết nối tất cả các linh kiện trên với nhau.
 
-👉 Bạn có thể vào phòng thí nghiệm **3D Hardware Assembly Lab** trong Lộ trình để tự tay lắp ráp các linh kiện này!`;
+ Bạn có thể vào phòng thí nghiệm **3D Hardware Assembly Lab** trong Lộ trình để tự tay lắp ráp các linh kiện này!`;
   }
 
   if (role === "teacher" || q.includes("soạn") || q.includes("json pair") || q.includes("đề thi")) {
-    return `### 📋 Gợi Ý Cặp Dữ Liệu (JSON Pairs) Cho Bài Giảng:
+    return `###  Gợi Ý Cặp Dữ Liệu (JSON Pairs) Cho Bài Giảng:
 
 Thầy/Cô có thể tham khảo mẫu cặp câu hỏi dưới đây để nhập nhanh vào Trung Tâm Soạn Bài:
 
@@ -578,10 +578,10 @@ Thầy/Cô có thể tham khảo mẫu cặp câu hỏi dưới đây để nh�
 ]
 \`\`\`
 
-👉 Thầy/Cô chỉ cần dán các cặp này vào Tab 1 ở mục **Soạn Bài & Học Liệu** để hệ thống tự động bốc vào Game Quiz và Card Matching!`;
+ Thầy/Cô chỉ cần dán các cặp này vào Tab 1 ở mục **Soạn Bài & Học Liệu** để hệ thống tự động bốc vào Game Quiz và Card Matching!`;
   }
 
-  return `### 💡 Trả Lời Về "${question}":
+  return `###  Trả Lời Về "${question}":
 
 1. **Khái niệm & Ý nghĩa:**
    - Trong học tập và tư duy máy tính, câu hỏi **"${question}"** giúp chúng ta hiểu sâu hơn về cách giải quyết vấn đề logic theo từng bước (Step-by-step).
@@ -594,7 +594,7 @@ Thầy/Cô có thể tham khảo mẫu cặp câu hỏi dưới đây để nh�
 3. **Ví dụ thực tế:**
    - Nếu áp dụng vào lập trình, bạn có thể dùng Python để mô phỏng và kiểm tra nhanh kết quả!
 
-👉 Bạn muốn tôi làm rõ thêm chi tiết nào hay viết code mẫu minh họa không?`;
+ Bạn muốn tôi làm rõ thêm chi tiết nào hay viết code mẫu minh họa không?`;
 }
 
 export async function POST(req: Request) {
@@ -683,10 +683,10 @@ Vai trò người dùng đang trò chuyện: ${role}.`;
             });
           }
         } catch (openAiErr: any) {
-          console.error("⚠️ OpenAI Live Call Error:", openAiErr.message);
+          console.error(" OpenAI Live Call Error:", openAiErr.message);
           return NextResponse.json({
             success: false,
-            reply: `⚠️ **Lỗi OpenAI API Key:** ${openAiErr.message || "Không thể xác thực khóa OpenAI"}.\n\nThầy/Cô hãy kiểm tra lại mã API Key OpenAI trong phần Cài đặt nhé!`,
+            reply: ` **Lỗi OpenAI API Key:** ${openAiErr.message || "Không thể xác thực khóa OpenAI"}.\n\nThầy/Cô hãy kiểm tra lại mã API Key OpenAI trong phần Cài đặt nhé!`,
             source: "openai-error",
           });
         }
@@ -707,10 +707,10 @@ Vai trò người dùng đang trò chuyện: ${role}.`;
           });
         }
       } catch (geminiErr: any) {
-        console.error("⚠️ Gemini Live Call Error:", geminiErr.message);
+        console.error(" Gemini Live Call Error:", geminiErr.message);
         return NextResponse.json({
           success: false,
-          reply: `⚠️ **Không thể kết nối Google Gemini API với Key đã nhập:**\n\`${geminiErr.message || "Lỗi xác thực API Key"}\`\n\n👉 **Gợi ý khắc phục:**\n1. Kiểm tra mã Gemini API Key tại [Google AI Studio](https://aistudio.google.com/app/apikey).\n2. Đảm bảo API Key còn hạn mức sử dụng (Quota) và chưa bị vô hiệu hóa.`,
+          reply: ` **Không thể kết nối Google Gemini API với Key đã nhập:**\n\`${geminiErr.message || "Lỗi xác thực API Key"}\`\n\n **Gợi ý khắc phục:**\n1. Kiểm tra mã Gemini API Key tại [Google AI Studio](https://aistudio.google.com/app/apikey).\n2. Đảm bảo API Key còn hạn mức sử dụng (Quota) và chưa bị vô hiệu hóa.`,
           source: "gemini-error",
         });
       }

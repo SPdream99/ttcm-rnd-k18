@@ -74,17 +74,17 @@ export default function StudentDashboardPage() {
 
         gamesList.push({
           id: "game_card_match_vr",
-          title: "Memory Matching Game 🎴",
+          title: "Memory Matching Game ",
           courseName: "Lật Thẻ Trí Nhớ & Khái Niệm",
           genre: "Game Trí Nhớ 3D",
           reward: "+50 Coins",
           badge: "NỔI BẬT",
-          href: "/game/MemoryMatchingGame/play",
+          href: "/student/play/game_card_match_vr/crs_coding_basics",
         });
 
         gamesList.push({
           id: "boss_battle_quiz",
-          title: "Boss Slayer Marathon Quiz 🗡️",
+          title: "Boss Slayer Marathon Quiz ",
           courseName: "Giải Đố Phản Xạ Đấu Trùm",
           genre: "Trắc Nghiệm Phản Xạ",
           reward: "+60 Coins",
@@ -135,7 +135,7 @@ export default function StudentDashboardPage() {
                 E-V-E Educational Ecosystem
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-bold">
-                <Flame className="w-3.5 h-3.5 text-red-600" /> Chuỗi học 7 ngày 🔥
+                <Flame className="w-3.5 h-3.5 text-red-600" /> Chuỗi học 7 ngày 
               </span>
             </div>
 
@@ -266,7 +266,7 @@ export default function StudentDashboardPage() {
             <div className="flex items-center gap-2">
               <Gamepad2 className="w-5 h-5 text-red-600" />
               <h2 className="text-lg md:text-xl font-bold text-zinc-900 tracking-tight">
-                Kho Minigame Sẵn Sàng 🎮
+                Kho Minigame Sẵn Sàng 
               </h2>
             </div>
 
@@ -315,7 +315,7 @@ export default function StudentDashboardPage() {
             <div className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-red-600" />
               <h2 className="text-lg md:text-xl font-bold text-zinc-900 tracking-tight">
-                Bảng Vinh Danh 🏆
+                Bảng Vinh Danh 
               </h2>
             </div>
 

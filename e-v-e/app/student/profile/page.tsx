@@ -125,9 +125,9 @@ export default function StudentProfilePage() {
   ];
 
   const ownedBadges = [
-    { id: "badge_cosmic_legend", name: "🥇 Học Viên Tiêu Biểu" },
-    { id: "badge_master_coder", name: "⚡ Chuyên Gia Lập Trình" },
-    { id: "badge_quantum_quizzer", name: "🎯 Vua Giải Đố Minigame" },
+    { id: "badge_cosmic_legend", name: "#1 Học Viên Tiêu Biểu" },
+    { id: "badge_master_coder", name: " Chuyên Gia Lập Trình" },
+    { id: "badge_quantum_quizzer", name: " Vua Giải Đố Minigame" },
   ];
 
   const handleSaveAIKey = (e: React.FormEvent) => {
@@ -381,7 +381,7 @@ export default function StudentProfilePage() {
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         {c.category}
                       </span>
-                      <span className="text-xs font-mono font-bold text-emerald-600">100% ✓</span>
+                      <span className="text-xs font-mono font-bold text-emerald-600">100% </span>
                     </div>
                     <h5 className="font-bold text-zinc-900 text-xs md:text-sm">{c.title}</h5>
                     <p className="text-[11px] text-zinc-500">Giảng viên: {c.teacherName}</p>
@@ -472,7 +472,7 @@ export default function StudentProfilePage() {
             </button>
 
             <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl font-bold">
-              🛡️
+              
             </div>
 
             <div className="space-y-1">
@@ -490,7 +490,7 @@ export default function StudentProfilePage() {
                   onClick={() => setOtpInput(demoOtpHint)}
                   className="px-2 py-0.5 rounded bg-red-200 text-[10px] font-bold"
                 >
-                  Điền nhanh ⚡
+                  Điền nhanh 
                 </button>
               </div>
             )}
@@ -648,7 +648,7 @@ export default function StudentProfilePage() {
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center text-xs ${frame.ringClass}`}>
-                    ✦
+                    
                   </div>
                   <span className="text-xs font-bold text-zinc-900">{frame.name}</span>
                 </div>

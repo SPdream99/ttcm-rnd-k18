@@ -13,7 +13,6 @@ import {
   Trash2,
   Play,
   Inbox,
-  Sparkles,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
@@ -32,26 +31,6 @@ export default function TeacherMyContentsPage() {
   const [paths, setPaths] = useState<any[]>([]);
   const [games, setGames] = useState<any[]>([]);
 
-  // Kiểm tra quyền sở hữu nội dung
-  const isOwner = (item: any) => {
-    if (!teacherUid && !teacherEmail) return false;
-    const author =
-      item.authorId ||
-      item.author_id ||
-      item.instructorId ||
-      item.instructor_id ||
-      item.uploaderId ||
-      item.uploader_id;
-    const authorEmail = item.authorEmail || item.email || item.uploaderEmail;
-
-    return (
-      (teacherUid && author === teacherUid) ||
-      (teacherEmail && authorEmail === teacherEmail) ||
-      (!author && !authorEmail && item.isLocalOwner)
-    );
-  };
-
-  // Load CHỈ nội dung của giáo viên hiện tại từ Firestore & LocalStorage
   const loadOwnContent = async () => {
     if (!teacherUid && !teacherEmail) {
       setCourses([]);
@@ -63,7 +42,7 @@ export default function TeacherMyContentsPage() {
 
     setLoading(true);
     try {
-      // 1. Courses của chính giáo viên này
+      // 1. Courses
       let myCourses: any[] = [];
       try {
         const cSnap = await getDocs(collection(db, "courses"));
@@ -101,10 +80,10 @@ export default function TeacherMyContentsPage() {
           });
         }
       } catch (err) {
-        console.warn("Lỗi tải courses của giáo viên:", err);
+        console.warn("Lỗi tải courses:", err);
       }
 
-      // Merge local courses của chính giáo viên
+      // Merge local courses
       try {
         if (typeof window !== "undefined") {
           const localCourses = JSON.parse(
@@ -113,24 +92,28 @@ export default function TeacherMyContentsPage() {
           localCourses.forEach((lc: any) => {
             const lcAuthor =
               lc.authorId || lc.author_id || lc.instructorId || lc.instructor_id;
-            if (
-              (!lcAuthor || lcAuthor === teacherUid) &&
-              !myCourses.some((c) => c.id === lc.id || c.title === lc.title)
-            ) {
-              myCourses.push({
+            if (!lcAuthor || lcAuthor === teacherUid) {
+              const pairs = Array.isArray(lc.contentData)
+                ? lc.contentData
+                : lc.contentData?.pairs || lc.pairs || [];
+              const existingIdx = myCourses.findIndex((c) => c.id === lc.id);
+              const formatted = {
                 id: lc.id,
                 title: lc.title || "Khóa học mới",
                 description: lc.description || "",
-                pairsCount: Array.isArray(lc.pairs)
-                  ? lc.pairs.length
-                  : lc.contentData?.pairs?.length || 0,
+                pairsCount: pairs.length,
                 resourcesCount: lc.resources?.length || 0,
                 authorId: lcAuthor || teacherUid,
                 isAccepted: Boolean(lc.isAccepted ?? lc.is_accepted),
                 createdAt: lc.createdAt
                   ? new Date(lc.createdAt).toLocaleDateString("vi-VN")
-                  : "Hôm nay",
-              });
+                  : "Vừa tạo",
+              };
+              if (existingIdx === -1) {
+                myCourses.unshift(formatted);
+              } else {
+                myCourses[existingIdx] = { ...myCourses[existingIdx], ...formatted };
+              }
             }
           });
         }
@@ -138,24 +121,35 @@ export default function TeacherMyContentsPage() {
 
       setCourses(myCourses);
 
-      // 2. Learning Paths của chính giáo viên này
+      // 2. Paths
       let myPaths: any[] = [];
       try {
-        let pSnap = await getDocs(collection(db, "learning_path"));
-        if (pSnap.empty) {
-          pSnap = await getDocs(collection(db, "learning_paths"));
-        }
-
+        const pSnap = await getDocs(collection(db, "learning_path"));
         if (!pSnap.empty) {
           pSnap.docs.forEach((d) => {
             const data = d.data();
-            const docAuthor = data.authorId || data.author_id;
-            if (teacherUid && docAuthor === teacherUid) {
+            const docAuthor =
+              data.authorId ||
+              data.author_id ||
+              data.creatorId ||
+              data.creator_id;
+            const docEmail = data.authorEmail || data.email;
+
+            if (
+              (teacherUid && docAuthor === teacherUid) ||
+              (teacherEmail && docEmail === teacherEmail)
+            ) {
+              const courseIds =
+                data.courseIds ||
+                data.course_ids ||
+                data.courses ||
+                [];
+
               myPaths.push({
                 id: d.id,
                 title: data.title || "Lộ trình học tập",
                 description: data.description || "",
-                coursesCount: Array.isArray(data.courses) ? data.courses.length : 0,
+                coursesCount: courseIds.length,
                 authorId: docAuthor,
                 isAccepted: Boolean(data.isAccepted ?? data.is_accepted),
                 createdAt: data.createdAt
@@ -166,12 +160,12 @@ export default function TeacherMyContentsPage() {
           });
         }
       } catch (err) {
-        console.warn("Lỗi tải learning paths của giáo viên:", err);
+        console.warn("Lỗi tải learning paths:", err);
       }
 
       setPaths(myPaths);
 
-      // 3. Games của chính giáo viên này
+      // 3. Games
       let myGames: any[] = [];
       try {
         const gSnap = await getDocs(collection(db, "game_info"));
@@ -191,18 +185,16 @@ export default function TeacherMyContentsPage() {
             ) {
               myGames.push({
                 id: d.id,
-                gameId: data.gameId || d.id,
-                title: data.title || "Game Quiz",
-                description: data.description || "Trò chơi học tập tương tác.",
+                gameId: data.gameId || data.id || d.id,
+                title: data.title || "Game Mới",
+                description: data.description || "Mô tả game",
                 needExtraData: Boolean(data.needExtraData ?? data.need_extra_data),
-                playsCount: Number(data.playsCount ?? data.plays_count ?? 0),
+                playsCount: Number(data.playsCount ?? data.plays_count ?? data.playCount ?? data.plays ?? 0),
                 authorId: docAuthor,
                 authorName:
                   data.authorName ||
                   (Array.isArray(data.authors) ? data.authors.join(", ") : "Tôi"),
                 isAccepted: Boolean(data.isAccepted ?? data.is_accepted),
-                downloadSourceUrl:
-                  data.downloadSourceUrl || data.download_source_url || "",
                 createdAt: data.createdAt
                   ? new Date(data.createdAt).toLocaleDateString("vi-VN")
                   : "Hôm nay",
@@ -214,7 +206,7 @@ export default function TeacherMyContentsPage() {
         console.warn("Lỗi tải games của giáo viên:", err);
       }
 
-      // Merge local games của chính giáo viên
+      // Merge local games
       try {
         if (typeof window !== "undefined") {
           const localGames = JSON.parse(
@@ -239,8 +231,6 @@ export default function TeacherMyContentsPage() {
                 authorId: lgAuthor || teacherUid,
                 authorName: lg.authorName || "Tôi",
                 isAccepted: Boolean(lg.isAccepted ?? lg.is_accepted),
-                downloadSourceUrl:
-                  lg.downloadSourceUrl || lg.download_source_url || "",
                 createdAt: lg.createdAt
                   ? new Date(lg.createdAt).toLocaleDateString("vi-VN")
                   : "Vừa tải lên",
@@ -277,7 +267,6 @@ export default function TeacherMyContentsPage() {
     }
   }, [teacherUid, teacherEmail]);
 
-  // Xóa nội dung
   const handleDeleteItem = async (
     type: "course" | "path" | "game",
     id: string,
@@ -296,7 +285,6 @@ export default function TeacherMyContentsPage() {
       await deleteDoc(doc(db, collectionName, id));
     } catch {}
 
-    // Clean LocalStorage
     try {
       if (typeof window !== "undefined") {
         if (type === "game") {
@@ -331,39 +319,39 @@ export default function TeacherMyContentsPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in font-sans pb-12">
+    <div className="space-y-6 font-sans pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b-2 border-zinc-200">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <FolderKanban className="w-7 h-7 text-emerald-400" /> Quản Lý Nội Dung Đã Tạo
+          <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight flex items-center gap-2">
+            <FolderKanban className="w-7 h-7 text-red-600" /> Quản Lý Nội Dung Đã Tạo
           </h1>
-          <p className="text-sm text-[#8e9bb4] mt-1">
+          <p className="text-sm text-zinc-500 mt-1">
             Chỉ hiển thị các Bài học, Lộ trình và Game do chính Thầy/Cô tạo ra và quản lý.
           </p>
         </div>
 
         <Link href="/teacher/upload-center">
-          <button className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all cursor-pointer flex items-center gap-2">
+          <button className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 shadow-sm">
             <PlusCircle className="w-4 h-4" /> Tải Lên Thêm Mới
           </button>
         </Link>
       </div>
 
       {actionNotice && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-mono">
+        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
           {actionNotice}
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-3 border-b border-slate-800 pb-3 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-zinc-200 pb-3 overflow-x-auto">
         <button
           onClick={() => setActiveTab("courses")}
-          className={`px-4 py-2 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border whitespace-nowrap ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border whitespace-nowrap ${
             activeTab === "courses"
-              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-              : "bg-transparent text-slate-400 border-transparent hover:text-white"
+              ? "bg-red-600 text-white border-red-600 shadow-sm"
+              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
           }`}
         >
           <BookOpen className="w-4 h-4" /> Bài Học Của Tôi ({courses.length})
@@ -371,10 +359,10 @@ export default function TeacherMyContentsPage() {
 
         <button
           onClick={() => setActiveTab("paths")}
-          className={`px-4 py-2 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border whitespace-nowrap ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border whitespace-nowrap ${
             activeTab === "paths"
-              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
-              : "bg-transparent text-slate-400 border-transparent hover:text-white"
+              ? "bg-red-600 text-white border-red-600 shadow-sm"
+              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
           }`}
         >
           <Layers className="w-4 h-4" /> Lộ Trình Của Tôi ({paths.length})
@@ -382,32 +370,32 @@ export default function TeacherMyContentsPage() {
 
         <button
           onClick={() => setActiveTab("games")}
-          className={`px-4 py-2 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border whitespace-nowrap ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border whitespace-nowrap ${
             activeTab === "games"
-              ? "bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
-              : "bg-transparent text-slate-400 border-transparent hover:text-white"
+              ? "bg-red-600 text-white border-red-600 shadow-sm"
+              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
           }`}
         >
           <Gamepad2 className="w-4 h-4" /> Game Engine Của Tôi ({games.length})
         </button>
       </div>
 
-      {/* ── TAB 1: COURSES ── */}
+      {/* TAB 1: COURSES */}
       {activeTab === "courses" && (
         <>
           {courses.length === 0 && !loading ? (
-            <div className="p-12 rounded-3xl bg-[#0f1524]/60 border border-dashed border-slate-800 text-center space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center mx-auto">
-                <Inbox className="w-8 h-8" />
+            <div className="p-12 rounded-2xl bg-white border-2 border-dashed border-zinc-200 text-center space-y-4 shadow-sm">
+              <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+                <Inbox className="w-7 h-7" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-white">Thầy/Cô chưa có Bài Học / Khóa Học nào</h3>
-                <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  Hãy soạn bài học đầu tiên với các cặp câu hỏi JSON trắc nghiệm để học sinh có thể thực hành qua các trò chơi tương tác.
+                <h3 className="text-base font-bold text-zinc-900">Thầy/Cô chưa có Bài Học nào</h3>
+                <p className="text-xs text-zinc-500 max-w-md mx-auto">
+                  Hãy soạn bài học đầu tiên với các câu hỏi trắc nghiệm để học sinh thực hành qua trò chơi.
                 </p>
               </div>
               <Link href="/teacher/upload-center">
-                <button className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-xs font-bold transition-all inline-flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                <button className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors inline-flex items-center gap-2 cursor-pointer shadow-sm">
                   <PlusCircle className="w-4 h-4" /> Soạn Bài Học Mới
                 </button>
               </Link>
@@ -417,15 +405,15 @@ export default function TeacherMyContentsPage() {
               {courses.map((course) => (
                 <div
                   key={course.id}
-                  className="p-6 rounded-2xl bg-[#0f1524]/90 border border-slate-800 hover:border-cyan-500/40 transition-all flex flex-col justify-between space-y-4"
+                  className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 transition-colors flex flex-col justify-between space-y-4 shadow-sm"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           course.isAccepted
-                            ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                            : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                            ? "bg-red-50 text-red-700 border border-red-200"
+                            : "bg-zinc-100 text-zinc-600 border border-zinc-200"
                         }`}
                       >
                         {course.isAccepted ? (
@@ -435,27 +423,27 @@ export default function TeacherMyContentsPage() {
                         )}
                         {course.isAccepted ? "Đã Phê Duyệt" : "Chờ Admin Duyệt"}
                       </span>
-                      <span className="text-[11px] font-mono text-slate-500">
+                      <span className="text-xs text-zinc-400">
                         {course.createdAt}
                       </span>
                     </div>
 
-                    <h3 className="text-base font-bold text-white">{course.title}</h3>
-                    <p className="text-xs text-[#8e9bb4] line-clamp-2">
+                    <h3 className="text-base font-bold text-zinc-900">{course.title}</h3>
+                    <p className="text-xs text-zinc-500 line-clamp-2">
                       {course.description || "Không có mô tả chi tiết."}
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono text-slate-400">
-                    <span className="text-cyan-300 font-bold">
-                      {course.pairsCount} Cặp Câu Hỏi Trắc Nghiệm
+                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-600 font-medium">
+                    <span className="text-red-600 font-bold">
+                      {course.pairsCount} Cặp Câu Hỏi
                     </span>
 
                     <button
                       onClick={() =>
                         handleDeleteItem("course", course.id, course.authorId)
                       }
-                      className="text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-rose-500/10"
+                      className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold"
                     >
                       <Trash2 className="w-4 h-4" /> Xóa
                     </button>
@@ -467,22 +455,22 @@ export default function TeacherMyContentsPage() {
         </>
       )}
 
-      {/* ── TAB 2: PATHS ── */}
+      {/* TAB 2: PATHS */}
       {activeTab === "paths" && (
         <>
           {paths.length === 0 && !loading ? (
-            <div className="p-12 rounded-3xl bg-[#0f1524]/60 border border-dashed border-slate-800 text-center space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto">
-                <Layers className="w-8 h-8" />
+            <div className="p-12 rounded-2xl bg-white border-2 border-dashed border-zinc-200 text-center space-y-4 shadow-sm">
+              <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+                <Layers className="w-7 h-7" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-white">Thầy/Cô chưa tạo Lộ Trình nào</h3>
-                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                <h3 className="text-base font-bold text-zinc-900">Thầy/Cô chưa tạo Lộ Trình nào</h3>
+                <p className="text-xs text-zinc-500 max-w-md mx-auto">
                   Hãy kết hợp các bài học đã tạo thành một lộ trình học tập toàn diện cho học sinh.
                 </p>
               </div>
               <Link href="/teacher/upload-center">
-                <button className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-bold transition-all inline-flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                <button className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors inline-flex items-center gap-2 cursor-pointer shadow-sm">
                   <PlusCircle className="w-4 h-4" /> Tạo Lộ Trình Mới
                 </button>
               </Link>
@@ -492,15 +480,15 @@ export default function TeacherMyContentsPage() {
               {paths.map((path) => (
                 <div
                   key={path.id}
-                  className="p-6 rounded-2xl bg-[#0f1524]/90 border border-slate-800 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-4"
+                  className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 transition-colors flex flex-col justify-between space-y-4 shadow-sm"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           path.isAccepted
-                            ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                            : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                            ? "bg-red-50 text-red-700 border border-red-200"
+                            : "bg-zinc-100 text-zinc-600 border border-zinc-200"
                         }`}
                       >
                         {path.isAccepted ? (
@@ -510,19 +498,19 @@ export default function TeacherMyContentsPage() {
                         )}
                         {path.isAccepted ? "Đã Phê Duyệt" : "Chờ Admin Duyệt"}
                       </span>
-                      <span className="text-[11px] font-mono text-slate-500">
+                      <span className="text-xs text-zinc-400">
                         {path.createdAt}
                       </span>
                     </div>
 
-                    <h3 className="text-base font-bold text-white">{path.title}</h3>
-                    <p className="text-xs text-[#8e9bb4] line-clamp-2">
+                    <h3 className="text-base font-bold text-zinc-900">{path.title}</h3>
+                    <p className="text-xs text-zinc-500 line-clamp-2">
                       {path.description || "Không có mô tả chi tiết."}
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono text-slate-400">
-                    <span className="text-emerald-300 font-bold">
+                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-600 font-medium">
+                    <span className="text-red-600 font-bold">
                       {path.coursesCount} Khóa Học Trong Lộ Trình
                     </span>
 
@@ -530,7 +518,7 @@ export default function TeacherMyContentsPage() {
                       onClick={() =>
                         handleDeleteItem("path", path.id, path.authorId)
                       }
-                      className="text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-rose-500/10"
+                      className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold"
                     >
                       <Trash2 className="w-4 h-4" /> Xóa
                     </button>
@@ -542,22 +530,22 @@ export default function TeacherMyContentsPage() {
         </>
       )}
 
-      {/* ── TAB 3: GAMES ── */}
+      {/* TAB 3: GAMES */}
       {activeTab === "games" && (
         <>
           {games.length === 0 && !loading ? (
-            <div className="p-12 rounded-3xl bg-[#0f1524]/60 border border-dashed border-slate-800 text-center space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center mx-auto">
-                <Gamepad2 className="w-8 h-8" />
+            <div className="p-12 rounded-2xl bg-white border-2 border-dashed border-zinc-200 text-center space-y-4 shadow-sm">
+              <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+                <Gamepad2 className="w-7 h-7" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-white">Thầy/Cô chưa tải lên Game nào</h3>
-                <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  Tải lên gói game nén (.zip) theo chuẩn E-V-E SDK để tích hợp đề bài và bảng xếp hạng trực tiếp.
+                <h3 className="text-base font-bold text-zinc-900">Thầy/Cô chưa tải lên Game nào</h3>
+                <p className="text-xs text-zinc-500 max-w-md mx-auto">
+                  Tải lên gói game nén (.zip) theo chuẩn E-V-E SDK để tích hợp đề bài và bảng xếp hạng.
                 </p>
               </div>
               <Link href="/teacher/upload-center">
-                <button className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-bold transition-all inline-flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                <button className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors inline-flex items-center gap-2 cursor-pointer shadow-sm">
                   <PlusCircle className="w-4 h-4" /> Tải Lên Game (.zip)
                 </button>
               </Link>
@@ -567,15 +555,15 @@ export default function TeacherMyContentsPage() {
               {games.map((game, idx) => (
                 <div
                   key={`${game.id || game.gameId || idx}_${idx}`}
-                  className="p-6 rounded-2xl bg-[#0f1524]/90 border border-slate-800 hover:border-purple-500/40 transition-all flex flex-col justify-between space-y-4"
+                  className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 transition-colors flex flex-col justify-between space-y-4 shadow-sm"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           game.isAccepted
-                            ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                            : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                            ? "bg-red-50 text-red-700 border border-red-200"
+                            : "bg-zinc-100 text-zinc-600 border border-zinc-200"
                         }`}
                       >
                         {game.isAccepted ? (
@@ -583,27 +571,21 @@ export default function TeacherMyContentsPage() {
                         ) : (
                           <Clock className="w-3.5 h-3.5" />
                         )}
-                        {game.isAccepted ? "ĐÃ PHÊ DUYỆT ✅" : "CHỜ ADMIN DUYỆT ⏳"}
+                        {game.isAccepted ? "ĐÃ PHÊ DUYỆT " : "CHỜ ADMIN DUYỆT "}
                       </span>
-                      <span className="text-[11px] font-mono text-slate-500">
+                      <span className="text-xs text-zinc-400">
                         {game.createdAt}
                       </span>
                     </div>
 
-                    <h3 className="text-base font-bold text-white">{game.title}</h3>
-                    <p className="text-xs text-[#8e9bb4] line-clamp-2">
+                    <h3 className="text-base font-bold text-zinc-900">{game.title}</h3>
+                    <p className="text-xs text-zinc-500 line-clamp-2">
                       {game.description}
                     </p>
-                    <div className="text-[11px] font-mono text-purple-300/80">
-                      Tác giả: {game.authorName || "Tôi"} •{" "}
-                      {game.needExtraData
-                        ? "🧩 Yêu cầu Extra Data"
-                        : "⚡ Standalone Engine"}
-                    </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono text-slate-400">
-                    <span className="text-purple-300 font-bold">
+                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-600">
+                    <span className="text-red-600 font-bold">
                       {game.playsCount} Lượt Học Sinh Chơi
                     </span>
 
@@ -611,7 +593,7 @@ export default function TeacherMyContentsPage() {
                       <Link
                         href={`/student/play/${game.id}/${courses[0]?.id || "crs_coding_basics"}`}
                       >
-                        <span className="px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[11px] border border-purple-500/30 cursor-pointer transition-all flex items-center gap-1">
+                        <span className="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-red-50 text-zinc-800 hover:text-red-700 text-xs font-bold border border-zinc-200 cursor-pointer transition-colors flex items-center gap-1">
                           <Play className="w-3 h-3" /> Chơi thử
                         </span>
                       </Link>
@@ -620,7 +602,7 @@ export default function TeacherMyContentsPage() {
                         onClick={() =>
                           handleDeleteItem("game", game.id, game.authorId)
                         }
-                        className="text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-rose-500/10"
+                        className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold"
                       >
                         <Trash2 className="w-4 h-4" /> Xóa
                       </button>

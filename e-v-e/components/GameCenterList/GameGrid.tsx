@@ -10,13 +10,13 @@ const games = [
   {
     title: "Puzzle",
     description: "Solve the puzzle",
-    icon: "🧩",
+    icon: "",
     href: "/game/puzzle",
   },
   {
     title: "Math Challenge",
     description: "Test your math skills",
-    icon: "🔢",
+    icon: "",
     href: "/game/math",
   },
   {

@@ -142,7 +142,7 @@ export default function LearningPathMap({
                             : "bg-zinc-200 text-zinc-500"
                         }`}
                       >
-                        {isCompleted ? "Đã xong ✓" : isCurrent ? "Đang học" : "Chưa mở"}
+                        {isCompleted ? "Đã xong " : isCurrent ? "Đang học" : "Chưa mở"}
                       </span>
                     </div>
 

@@ -118,7 +118,7 @@ export default function LoginForm() {
 
       const data = await res.json();
       if (data.success && data.verified) {
-        setMessage("✅ Xác thực 2FA thành công!");
+        setMessage(" Xác thực 2FA thành công!");
         setTimeout(() => finishLogin(pendingUser), 600);
       } else {
         setMessage(data.error || "Mã OTP không chính xác hoặc đã hết hạn.");
@@ -151,7 +151,7 @@ export default function LoginForm() {
                 }}
                 className="px-2 py-0.5 rounded bg-amber-500/20 text-[10px]"
               >
-                Điền nhanh ⚡
+                Điền nhanh 
               </button>
             </div>
           )}

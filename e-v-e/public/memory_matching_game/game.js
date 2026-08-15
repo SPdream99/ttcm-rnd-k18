@@ -237,8 +237,8 @@
           </div>
 
           <!-- BACK FACE (SHOWN BY DEFAULT) -->
-          <div class="card-back absolute inset-0 w-full h-full rounded-2xl bg-gradient-to-br from-indigo-700 via-blue-800 to-cyan-900 border-2 border-cyan-400/40 flex items-center justify-center text-center backface-hidden shadow-lg hover:border-cyan-300 transition-all">
-            <span class="text-3xl font-black text-white/90 drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]">?</span>
+          <div class="card-back absolute inset-0 w-full h-full rounded-2xl bg-red-600 border-2 border-red-500 flex items-center justify-center text-center backface-hidden shadow-md hover:bg-red-700 transition-colors">
+            <span class="text-3xl font-black text-white">?</span>
           </div>
         </div>
       `;

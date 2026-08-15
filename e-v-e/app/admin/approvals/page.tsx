@@ -9,15 +9,12 @@ import {
   CheckCircle,
   XCircle,
   Eye,
-  Clock,
-  Layers,
-  Sparkles,
-  HelpCircle,
   FileCode,
   ShieldCheck,
   CheckCircle2,
   X,
   Trash2,
+  HelpCircle,
 } from "lucide-react";
 import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -38,8 +35,6 @@ export default function AdminApprovalsPage() {
   const [games, setGames] = useState<Game[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
-
-  // ── Confirmation Prompt State ──
   const [confirmPrompt, setConfirmPrompt] = useState<ConfirmModalData | null>(null);
 
   useEffect(() => {
@@ -76,7 +71,6 @@ export default function AdminApprovalsPage() {
         console.warn("Firestore games fetch:", e);
       }
 
-      // Read from LocalStorage persistent cache
       try {
         if (typeof window !== "undefined") {
           const localGames = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
@@ -103,102 +97,46 @@ export default function AdminApprovalsPage() {
             }
           });
         }
-      } catch (e) {
-        console.warn("LocalStorage games read:", e);
-      }
+      } catch {}
 
-      // Strict deduplication by unique identifier or title
-      const uniqueGamesMap = new Map<string, any>();
-      combinedGames.forEach((g) => {
-        const key = (g.id || g.gameId || g.title || "").toLowerCase().trim();
-        if (key && !uniqueGamesMap.has(key)) {
-          uniqueGamesMap.set(key, g);
-        }
-      });
-
-      setGames(Array.from(uniqueGamesMap.values()));
+      setGames(combinedGames);
     }
-
     loadData();
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("eve_games_updated", loadData);
-      window.addEventListener("storage", loadData);
-      return () => {
-        window.removeEventListener("eve_games_updated", loadData);
-        window.removeEventListener("storage", loadData);
-      };
-    }
   }, []);
 
-  // ── Prompt Handlers ──
-  const handlePromptApproveCourse = (course: Course, approved: boolean) => {
+  const handlePromptApproveCourse = (course: Course, accepted: boolean) => {
+    const actionText = accepted ? "phê duyệt" : "từ chối / hủy duyệt";
     setConfirmPrompt({
-      title: approved ? "Xác Nhận Phê Duyệt Khóa Học" : "Xác Nhận Từ Chối / Hủy Duyệt",
-      description: approved
-        ? `Bạn có chắc muốn PHÊ DUYỆT khóa học "${course.title}"? Khóa học sẽ lập tức xuất hiện cho học sinh ôn luyện trên toàn hệ thống.`
-        : `Bạn có chắc muốn ${course.isAccepted ? "HỦY PHÊ DUYỆT" : "TỪ CHỐI"} khóa học "${course.title}"?`,
-      confirmText: approved ? "Xác Nhận Duyệt" : "Xác Nhận Từ Chối",
-      variant: approved ? "emerald" : "rose",
-      onConfirm: () => executeApproveCourse(course.id, approved),
+      title: accepted ? "Xác Nhận Duyệt Khóa Học" : "Hủy Duyệt Khóa Học",
+      description: `Bạn có chắc chắn muốn ${actionText} khóa học "${course.title}"?`,
+      confirmText: accepted ? "Xác Nhận Duyệt" : "Xác Nhận",
+      variant: accepted ? "emerald" : "rose",
+      onConfirm: () => executeApproveCourse(course.id, accepted),
     });
   };
 
-  const executeApproveCourse = async (courseId: string, approved: boolean) => {
+  const executeApproveCourse = async (courseId: string, isAccepted: boolean) => {
     setConfirmPrompt(null);
     try {
-      await updateDoc(doc(db, "courses", courseId), { is_accepted: approved, isAccepted: approved });
-    } catch {}
-    setCourses((prev) =>
-      prev.map((c) => (c.id === courseId ? { ...c, isAccepted: approved } : c))
-    );
-    setActionMsg(approved ? "✅ Đã phê duyệt Khóa học thành công!" : "⚠️ Đã từ chối / hủy duyệt Khóa học.");
-    setTimeout(() => setActionMsg(null), 3500);
-  };
-
-  const handlePromptApproveGame = (game: Game, approved: boolean) => {
-    setConfirmPrompt({
-      title: approved ? "Xác Nhận Phê Duyệt Game Engine" : "Xác Nhận Từ Chối Game",
-      description: approved
-        ? `Bạn đã audit source code và xác nhận PHÊ DUYỆT cho Game Engine "${game.title}"? Trò chơi sẽ sẵn sàng để giáo viên và học sinh liên kết vào các bộ đề trắc nghiệm.`
-        : `Bạn có chắc muốn ${game.isAccepted ? "HỦY PHÊ DUYỆT" : "TỪ CHỐI"} Game Engine "${game.title}"?`,
-      confirmText: approved ? "Xác Nhận Duyệt Game" : "Xác Nhận Từ Chối",
-      variant: approved ? "emerald" : "rose",
-      onConfirm: () => executeApproveGame(game.id, approved),
-    });
-  };
-
-  const executeApproveGame = async (gameId: string, approved: boolean) => {
-    setConfirmPrompt(null);
-    try {
-      await updateDoc(doc(db, "game_info", gameId), { is_accepted: approved, isAccepted: approved });
-    } catch (err) {
-      console.warn("Firestore updateDoc game_info warning:", err);
+      await updateDoc(doc(db, "courses", courseId), {
+        isAccepted,
+        is_accepted: isAccepted,
+      });
+      setCourses((prev) =>
+        prev.map((c) => (c.id === courseId ? { ...c, isAccepted } : c))
+      );
+      setActionMsg(`Đã ${isAccepted ? "DUYỆT" : "HỦY DUYỆT"} khóa học thành công!`);
+      setTimeout(() => setActionMsg(null), 3500);
+    } catch {
+      alert("Lỗi khi cập nhật trạng thái khóa học.");
     }
-
-    try {
-      if (typeof window !== "undefined") {
-        const local = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
-        const updated = local.map((g: any) =>
-          g.id === gameId || g.gameId === gameId ? { ...g, isAccepted: approved, is_accepted: approved } : g
-        );
-        localStorage.setItem("eve_uploaded_games", JSON.stringify(updated));
-        window.dispatchEvent(new Event("eve_games_updated"));
-      }
-    } catch {}
-
-    setGames((prev) =>
-      prev.map((g) => (g.id === gameId || g.gameId === gameId ? { ...g, isAccepted: approved, is_accepted: approved } : g))
-    );
-    setActionMsg(approved ? "✅ Đã phê duyệt Game Engine thành công! Game đã sẵn sàng trên toàn hệ thống." : "⚠️ Đã từ chối / hủy duyệt Game.");
-    setTimeout(() => setActionMsg(null), 3500);
   };
 
   const handlePromptDeleteCourse = (course: Course) => {
     setConfirmPrompt({
-      title: "Xác Nhận XÓA VĨNH VIỄN Khóa Học",
-      description: `Bạn có chắc chắn muốn XÓA VĨNH VIỄN khóa học "${course.title}" (Mã: ${course.id}) khỏi toàn bộ hệ thống? Thao tác này không thể hoàn tác!`,
-      confirmText: "Xác Nhận Xóa",
+      title: "Xóa Vĩnh Viễn Khóa Học",
+      description: `Bạn có chắc chắn muốn XÓA VĨNH VIỄN khóa học "${course.title}" (${course.id}) khỏi toàn bộ hệ thống không?`,
+      confirmText: "Xóa Vĩnh Viễn",
       variant: "rose",
       onConfirm: () => executeDeleteCourse(course.id),
     });
@@ -208,32 +146,65 @@ export default function AdminApprovalsPage() {
     setConfirmPrompt(null);
     try {
       await deleteDoc(doc(db, "courses", courseId));
-    } catch (err) {
-      console.warn("Firestore deleteDoc course warning:", err);
-    }
-
-    try {
       if (typeof window !== "undefined") {
         const local = JSON.parse(localStorage.getItem("eve_uploaded_courses") || "[]");
         const updated = local.filter((c: any) => c.id !== courseId);
         localStorage.setItem("eve_uploaded_courses", JSON.stringify(updated));
       }
+      setCourses((prev) => prev.filter((c) => c.id !== courseId));
+      if (selectedCourse?.id === courseId) setSelectedCourse(null);
+      setActionMsg("Đã xóa vĩnh viễn khóa học khỏi hệ thống thành công!");
+      setTimeout(() => setActionMsg(null), 3500);
+    } catch {
+      alert("Lỗi khi xóa khóa học.");
+    }
+  };
+
+  const handlePromptApproveGame = (game: Game, accepted: boolean) => {
+    const actionText = accepted ? "phê duyệt" : "từ chối / hủy duyệt";
+    setConfirmPrompt({
+      title: accepted ? "Xác Nhận Duyệt Game Engine" : "Hủy Duyệt Game Engine",
+      description: `Bạn có chắc chắn muốn ${actionText} Game "${game.title}" không?`,
+      confirmText: accepted ? "Xác Nhận Duyệt" : "Xác Nhận",
+      variant: accepted ? "emerald" : "rose",
+      onConfirm: () => executeApproveGame(game.id, accepted),
+    });
+  };
+
+  const executeApproveGame = async (gameId: string, isAccepted: boolean) => {
+    setConfirmPrompt(null);
+    try {
+      await updateDoc(doc(db, "game_info", gameId), {
+        isAccepted,
+        is_accepted: isAccepted,
+      });
     } catch {}
 
-    setCourses((prev) => prev.filter((c) => c.id !== courseId));
-    if (selectedCourse?.id === courseId) setSelectedCourse(null);
-    setActionMsg("🗑️ Đã xóa vĩnh viễn khóa học khỏi hệ thống thành công!");
+    try {
+      if (typeof window !== "undefined") {
+        const local = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
+        const updated = local.map((g: any) =>
+          g.id === gameId || g.gameId === gameId ? { ...g, isAccepted, is_accepted: isAccepted } : g
+        );
+        localStorage.setItem("eve_uploaded_games", JSON.stringify(updated));
+        window.dispatchEvent(new Event("eve_games_updated"));
+      }
+    } catch {}
+
+    setGames((prev) =>
+      prev.map((g) => (g.id === gameId || g.gameId === gameId ? { ...g, isAccepted } : g))
+    );
+    setActionMsg(`Đã ${isAccepted ? "DUYỆT" : "HỦY DUYỆT"} Game Engine thành công!`);
     setTimeout(() => setActionMsg(null), 3500);
   };
 
-  const handlePromptDeleteGame = (game: any) => {
-    const targetId = game.id || game.gameId;
+  const handlePromptDeleteGame = (game: Game) => {
     setConfirmPrompt({
-      title: "Xác Nhận XÓA VĨNH VIỄN Game Engine",
-      description: `Bạn có chắc chắn muốn XÓA VĨNH VIỄN Game Engine "${game.title}" (Mã: ${targetId}) khỏi toàn bộ hệ thống E-V-E? Học sinh sẽ không thể chơi game này nữa.`,
-      confirmText: "Xác Nhận Xóa Game",
+      title: "Xóa Vĩnh Viễn Game Engine",
+      description: `Bạn có chắc chắn muốn XÓA VĨNH VIỄN Game Engine "${game.title}" (${game.id}) khỏi hệ thống không?`,
+      confirmText: "Xóa Game",
       variant: "rose",
-      onConfirm: () => executeDeleteGame(targetId),
+      onConfirm: () => executeDeleteGame(game.id),
     });
   };
 
@@ -241,9 +212,7 @@ export default function AdminApprovalsPage() {
     setConfirmPrompt(null);
     try {
       await deleteDoc(doc(db, "game_info", gameId));
-    } catch (err) {
-      console.warn("Firestore deleteDoc game_info warning:", err);
-    }
+    } catch {}
 
     try {
       if (typeof window !== "undefined") {
@@ -255,14 +224,14 @@ export default function AdminApprovalsPage() {
     } catch {}
 
     setGames((prev) => prev.filter((g) => g.id !== gameId && g.gameId !== gameId));
-    setActionMsg("🗑️ Đã xóa vĩnh viễn Game Engine khỏi hệ thống thành công!");
+    setActionMsg("Đã xóa vĩnh viễn Game Engine khỏi hệ thống thành công!");
     setTimeout(() => setActionMsg(null), 3500);
   };
 
   const handlePromptDownloadSource = (game: any) => {
     setConfirmPrompt({
-      title: "Xác Nhận Tải Gói Source Code",
-      description: `Bạn có muốn tải file zip mã nguồn của Game Engine "${game.title}" về máy tính để thực hiện kiểm định bảo mật (Audit code) không?`,
+      title: "Tải Gói Source Code",
+      description: `Tải file zip mã nguồn của Game "${game.title}" về máy để kiểm tra bảo mật?`,
       confirmText: "Tải Xuống (.zip)",
       variant: "purple",
       onConfirm: () => executeDownloadSource(game),
@@ -279,66 +248,66 @@ export default function AdminApprovalsPage() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setActionMsg(`📥 Đang tải source code của "${game.title}" (.zip) về máy để audit...`);
+    setActionMsg(`Đang tải source code của "${game.title}" (.zip)...`);
     setTimeout(() => setActionMsg(null), 4000);
   };
 
   return (
-    <div className="space-y-6 animate-fade-in font-sans pb-12">
+    <div className="space-y-6 font-sans pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#7bd1fa]/15">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b-2 border-zinc-200">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <CheckSquare className="w-7 h-7 text-rose-400" /> Trung Tâm Kiểm Duyệt Nội Dung & Audit Source Code
+          <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight flex items-center gap-2">
+            <CheckSquare className="w-7 h-7 text-red-600" /> Trung Tâm Kiểm Duyệt & Audit Nội Dung
           </h1>
-          <p className="text-sm text-[#8e9bb4] mt-1">
-            Xem trước cấu trúc câu hỏi JSON Pairs, tải source code Game để kiểm định an toàn trước khi kích hoạt.
+          <p className="text-sm text-zinc-500 mt-1">
+            Xem trước câu hỏi bài học và kiểm định Game trước khi kích hoạt.
           </p>
         </div>
       </div>
 
       {actionMsg && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-xs flex items-center justify-between animate-fade-in">
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center justify-between">
           <span>{actionMsg}</span>
-          <button onClick={() => setActionMsg(null)} className="text-slate-400 hover:text-white cursor-pointer">✕</button>
+          <button onClick={() => setActionMsg(null)} className="text-zinc-400 hover:text-zinc-900 cursor-pointer"></button>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+      <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
         <button
           onClick={() => setActiveTab("courses")}
-          className={`px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
             activeTab === "courses"
-              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.25)]"
-              : "bg-[#151b2c] text-slate-400 border-slate-800 hover:border-slate-700"
+              ? "bg-red-600 text-white border-red-600 shadow-sm"
+              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
           }`}
         >
-          <BookOpen className="w-4 h-4 text-cyan-400" />
-          Duyệt Khóa Học & Lộ Trình ({courses.filter((c) => !c.isAccepted).length})
+          <BookOpen className="w-4 h-4" />
+          Duyệt Bài Học ({courses.filter((c) => !c.isAccepted).length})
         </button>
 
         <button
           onClick={() => setActiveTab("games")}
-          className={`px-4 py-2.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
             activeTab === "games"
-              ? "bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.25)]"
-              : "bg-[#151b2c] text-slate-400 border-slate-800 hover:border-slate-700"
+              ? "bg-red-600 text-white border-red-600 shadow-sm"
+              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
           }`}
         >
-          <Gamepad2 className="w-4 h-4 text-purple-400" />
-          Duyệt & Audit Game Engine ({games.filter((g) => !g.isAccepted).length})
+          <Gamepad2 className="w-4 h-4" />
+          Duyệt Game Engine ({games.filter((g) => !g.isAccepted).length})
         </button>
       </div>
 
-      {/* ── TAB 1: COURSES APPROVAL ── */}
+      {/* TAB 1: COURSES APPROVAL */}
       {activeTab === "courses" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* List of courses */}
           <div className="lg:col-span-2 space-y-4">
             {courses.length === 0 ? (
-              <div className="p-8 rounded-2xl bg-[#0f1524] border border-slate-800 text-center text-slate-500 font-mono text-xs">
-                Hiện không có khóa học nào trong danh sách chờ duyệt.
+              <div className="p-8 rounded-2xl bg-white border border-zinc-200 text-center text-zinc-500 text-xs">
+                Hiện không có bài học nào trong danh sách chờ duyệt.
               </div>
             ) : (
               courses.map((course) => {
@@ -349,45 +318,45 @@ export default function AdminApprovalsPage() {
                 return (
                   <div
                     key={course.id}
-                    className={`p-6 rounded-2xl bg-[#0f1524]/90 border transition-all ${
+                    className={`p-6 rounded-2xl bg-white border transition-colors shadow-sm ${
                       selectedCourse?.id === course.id
-                        ? "border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.2)]"
-                        : "border-slate-800 hover:border-slate-700"
+                        ? "border-2 border-red-600"
+                        : "border-zinc-200 hover:border-zinc-300"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                          <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 font-bold border border-zinc-200">
                             {course.id}
                           </span>
                           <span
-                            className={`font-mono text-[10px] px-2 py-0.5 rounded-full border ${
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
                               course.isAccepted
-                                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                                : "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                                ? "bg-red-50 text-red-700 border-red-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
                             }`}
                           >
                             {course.isAccepted ? "Đã duyệt" : "Chờ duyệt"}
                           </span>
                         </div>
-                        <h3 className="font-bold text-lg text-white">{course.title}</h3>
-                        <p className="text-xs text-[#8e9bb4] mt-1">{course.description}</p>
+                        <h3 className="font-bold text-lg text-zinc-900">{course.title}</h3>
+                        <p className="text-xs text-zinc-500 mt-1">{course.description}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-800/80 font-mono">
-                      <span>Bởi: <strong className="text-white">{course.authorName || course.authorId}</strong></span>
-                      <span>{pairs.length} Cặp Câu Hỏi JSON</span>
+                    <div className="flex items-center justify-between text-xs text-zinc-500 pt-3 border-t border-zinc-100">
+                      <span>Bởi: <strong className="text-zinc-900">{course.authorName || course.authorId}</strong></span>
+                      <span>{pairs.length} Cặp Câu Hỏi</span>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-slate-800">
+                    <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-zinc-100">
                       <button
                         onClick={() => setSelectedCourse(course)}
-                        className="px-3 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 font-mono text-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                        className="px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors border border-zinc-200"
                       >
-                        <Eye className="w-3.5 h-3.5" /> Xem Data Pairs
+                        <Eye className="w-3.5 h-3.5 text-red-600" /> Xem Data Pairs
                       </button>
 
                       <div className="flex items-center gap-2">
@@ -395,13 +364,13 @@ export default function AdminApprovalsPage() {
                           <>
                             <button
                               onClick={() => handlePromptApproveCourse(course, true)}
-                              className="px-3.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-mono text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                              className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-sm"
                             >
                               <CheckCircle className="w-3.5 h-3.5" /> Duyệt
                             </button>
                             <button
                               onClick={() => handlePromptApproveCourse(course, false)}
-                              className="px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 font-mono text-xs cursor-pointer transition-all"
+                              className="px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold border border-zinc-200 cursor-pointer transition-colors"
                             >
                               <XCircle className="w-3.5 h-3.5" /> Từ Chối
                             </button>
@@ -409,19 +378,18 @@ export default function AdminApprovalsPage() {
                         ) : (
                           <button
                             onClick={() => handlePromptApproveCourse(course, false)}
-                            className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-mono text-xs cursor-pointer transition-all"
+                            className="px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-red-50 text-zinc-700 hover:text-red-700 border border-zinc-200 text-xs font-bold cursor-pointer transition-colors"
                           >
                             Hủy phê duyệt
                           </button>
                         )}
 
-                        {/* Admin Delete Course Button */}
                         <button
                           onClick={() => handlePromptDeleteCourse(course)}
-                          className="px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 cursor-pointer transition-all flex items-center gap-1 text-xs font-mono"
+                          className="px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-red-50 text-zinc-700 hover:text-red-700 border border-zinc-200 cursor-pointer transition-colors flex items-center gap-1 text-xs font-bold"
                           title="Xóa vĩnh viễn khóa học này"
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> Xóa
+                          <Trash2 className="w-3.5 h-3.5 text-red-600" /> Xóa
                         </button>
                       </div>
                     </div>
@@ -432,16 +400,16 @@ export default function AdminApprovalsPage() {
           </div>
 
           {/* Preview Details Pane */}
-          <div className="p-6 rounded-2xl bg-[#0f1524]/90 border border-[#7bd1fa]/15 sticky top-24 h-fit space-y-4">
-            <h3 className="font-bold text-sm text-white flex items-center gap-2 pb-3 border-b border-slate-800">
-              <FileCode className="w-4 h-4 text-cyan-400" /> Cấu Trúc JSON Data Pairs
+          <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm sticky top-24 h-fit space-y-4">
+            <h3 className="font-bold text-sm text-zinc-900 flex items-center gap-2 pb-3 border-b border-zinc-100">
+              <FileCode className="w-4 h-4 text-red-600" /> Cấu Trúc Câu Hỏi
             </h3>
 
             {selectedCourse ? (
               <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
                 <div>
-                  <div className="text-xs font-bold text-cyan-300">{selectedCourse.title}</div>
-                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">Mã: {selectedCourse.id}</div>
+                  <div className="text-xs font-bold text-zinc-900">{selectedCourse.title}</div>
+                  <div className="text-[11px] text-zinc-500 font-mono mt-0.5">Mã: {selectedCourse.id}</div>
                 </div>
 
                 <div className="space-y-3">
@@ -450,17 +418,17 @@ export default function AdminApprovalsPage() {
                       ? selectedCourse.contentData
                       : selectedCourse.contentData?.pairs) || []
                   ).map((pair: CourseContentPair, idx: number) => (
-                    <div key={idx} className="p-3.5 rounded-xl bg-[#151b2c] border border-slate-800 space-y-2">
-                      <div className="text-xs font-bold text-white">
+                    <div key={idx} className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 space-y-2">
+                      <div className="text-xs font-bold text-zinc-900">
                         #{idx + 1}: {pair.title}
                       </div>
-                      <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
-                        <strong className="text-[10px] uppercase font-mono block text-emerald-400">Đáp án đúng:</strong>
+                      <div className="p-2 rounded-lg bg-white border border-emerald-300 text-xs text-emerald-800">
+                        <strong className="text-[10px] uppercase font-bold block text-emerald-700">Đáp án đúng:</strong>
                         {pair.description || pair.rightAnswer}
                       </div>
                       {(pair.distractions || pair.wrongAnswers || []).length > 0 && (
-                        <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 space-y-1">
-                          <strong className="text-[10px] uppercase font-mono block text-rose-400">Gây nhiễu (Sai):</strong>
+                        <div className="p-2 rounded-lg bg-white border border-red-200 text-xs text-red-700 space-y-1">
+                          <strong className="text-[10px] uppercase font-bold block text-red-600">Gây nhiễu (Sai):</strong>
                           {(pair.distractions || pair.wrongAnswers || []).map((w, wIdx) => (
                             <div key={wIdx} className="text-[11px]">• {w}</div>
                           ))}
@@ -471,7 +439,7 @@ export default function AdminApprovalsPage() {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12 text-slate-500 text-xs">
+              <div className="text-center py-12 text-zinc-500 text-xs">
                 Chọn một Khóa học bên trái để xem trước các cặp câu hỏi & đáp án.
               </div>
             )}
@@ -479,53 +447,52 @@ export default function AdminApprovalsPage() {
         </div>
       )}
 
-      {/* ── TAB 2: GAMES APPROVAL & AUDIT ── */}
+      {/* TAB 2: GAMES APPROVAL */}
       {activeTab === "games" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {games.length === 0 ? (
-            <div className="col-span-2 p-8 rounded-2xl bg-[#0f1524] border border-slate-800 text-center text-slate-500 font-mono text-xs">
+            <div className="col-span-2 p-8 rounded-2xl bg-white border border-zinc-200 text-center text-zinc-500 text-xs">
               Hiện không có Game nào cần duyệt.
             </div>
           ) : (
             games.map((game, idx) => (
               <div
                 key={`${game.id || game.gameId || idx}_${idx}`}
-                className="p-6 rounded-2xl bg-[#0f1524]/90 border border-purple-500/20 shadow-lg space-y-4"
+                className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20 inline-block mb-1.5">
+                    <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 font-bold border border-zinc-200 inline-block mb-1.5">
                       {game.id}
                     </span>
-                    <h3 className="font-bold text-lg text-white">{game.title}</h3>
-                    <p className="text-xs text-[#8e9bb4] mt-1">{game.description}</p>
+                    <h3 className="font-bold text-lg text-zinc-900">{game.title}</h3>
+                    <p className="text-xs text-zinc-500 mt-1">{game.description}</p>
                   </div>
 
                   <span
-                    className={`font-mono text-[10px] px-2.5 py-1 rounded-full border shrink-0 ${
+                    className={`text-[10px] px-2.5 py-1 rounded-full font-bold border shrink-0 ${
                       game.isAccepted
-                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                        : "bg-purple-500/20 text-purple-300 border-purple-500/30 animate-pulse"
+                        ? "bg-red-50 text-red-700 border-red-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
                     }`}
                   >
-                    {game.isAccepted ? "Đã duyệt" : "Chờ Audit"}
+                    {game.isAccepted ? "Đã duyệt" : "Chờ Duyệt"}
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-[#151b2c] border border-slate-800 text-xs font-mono space-y-1.5 text-slate-300">
-                  <div>Tác giả: <strong className="text-white">{game.authorName || "Giáo viên"}</strong></div>
-                  <div>Cần Data Course: <strong className={game.needExtraData ? "text-cyan-300" : "text-slate-400"}>{game.needExtraData ? "Có (Inject data qua postMessage)" : "Không"}</strong></div>
-                  <div>Hỗ trợ Course: <strong className="text-amber-300">{Array.isArray(game.coursesAllowed) ? game.coursesAllowed.join(", ") : "Tất cả (all)"}</strong></div>
-                  <div>URL thực thi: <span className="text-slate-400">{game.gameUrl}</span></div>
+                <div className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 text-xs space-y-1 text-zinc-600">
+                  <div>Tác giả: <strong className="text-zinc-900">{game.authorName || "Giáo viên"}</strong></div>
+                  <div>Cần Data: <strong>{game.needExtraData ? "Có (Dynamic Data)" : "Không"}</strong></div>
+                  <div>URL thực thi: <span className="font-mono text-zinc-500">{game.gameUrl}</span></div>
                 </div>
 
                 {/* Audit & Download Action */}
-                <div className="pt-3 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="pt-3 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <button
                     onClick={() => handlePromptDownloadSource(game)}
-                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-bold flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-all cursor-pointer"
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold flex items-center justify-center gap-2 border border-zinc-200 transition-colors cursor-pointer"
                   >
-                    <Download className="w-4 h-4" /> 📥 Tải Source Code (.zip)
+                    <Download className="w-4 h-4 text-red-600" /> Tải Source Code (.zip)
                   </button>
 
                   <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -533,13 +500,13 @@ export default function AdminApprovalsPage() {
                       <>
                         <button
                           onClick={() => handlePromptApproveGame(game, true)}
-                          className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                          className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
                         >
                           <ShieldCheck className="w-4 h-4" /> Duyệt Game
                         </button>
                         <button
                           onClick={() => handlePromptApproveGame(game, false)}
-                          className="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 font-mono text-xs cursor-pointer transition-all"
+                          className="px-3 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold border border-zinc-200 cursor-pointer transition-colors"
                         >
                           Từ Chối
                         </button>
@@ -547,19 +514,18 @@ export default function AdminApprovalsPage() {
                     ) : (
                       <button
                         onClick={() => handlePromptApproveGame(game, false)}
-                        className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-mono text-xs cursor-pointer transition-all"
+                        className="px-3 py-2 rounded-xl bg-zinc-100 hover:bg-red-50 text-zinc-700 hover:text-red-700 border border-zinc-200 text-xs font-bold cursor-pointer transition-colors"
                       >
                         Hủy duyệt
                       </button>
                     )}
 
-                    {/* Admin Delete Game Button */}
                     <button
                       onClick={() => handlePromptDeleteGame(game)}
-                      className="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 border border-rose-500/40 font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
-                      title="Xóa vĩnh viễn Game Engine này khỏi toàn bộ hệ thống"
+                      className="px-3 py-2 rounded-xl bg-zinc-100 hover:bg-red-50 text-zinc-700 hover:text-red-700 border border-zinc-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                      title="Xóa vĩnh viễn Game Engine này"
                     >
-                      <Trash2 className="w-4 h-4" /> Xóa Game
+                      <Trash2 className="w-4 h-4 text-red-600" /> Xóa
                     </button>
                   </div>
                 </div>
@@ -569,33 +535,27 @@ export default function AdminApprovalsPage() {
         </div>
       )}
 
-      {/* ── CONFIRMATION PROMPT MODAL ── */}
+      {/* CONFIRMATION PROMPT MODAL */}
       {confirmPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in font-sans">
-          <div className="bg-[#0f1524] border border-[#7bd1fa]/30 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-5 text-center relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 font-sans">
+          <div className="bg-white border-2 border-red-600 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-4 text-center relative">
             <button
               type="button"
               onClick={() => setConfirmPrompt(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 cursor-pointer"
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-900 p-1 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto text-xl ${
-              confirmPrompt.variant === "emerald"
-                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                : confirmPrompt.variant === "purple"
-                ? "bg-purple-500/20 text-purple-400 border border-purple-500/40"
-                : "bg-rose-500/20 text-rose-400 border border-rose-500/40"
-            }`}>
+            <div className="w-14 h-14 rounded-full bg-red-50 text-red-600 border border-red-200 flex items-center justify-center mx-auto text-xl font-bold">
               <HelpCircle className="w-7 h-7" />
             </div>
 
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-white tracking-tight">
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-zinc-900">
                 {confirmPrompt.title}
               </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
+              <p className="text-xs text-zinc-500">
                 {confirmPrompt.description}
               </p>
             </div>
@@ -604,20 +564,14 @@ export default function AdminApprovalsPage() {
               <button
                 type="button"
                 onClick={() => setConfirmPrompt(null)}
-                className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-bold transition-all cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition-colors cursor-pointer"
               >
                 Hủy Bỏ
               </button>
               <button
                 type="button"
                 onClick={confirmPrompt.onConfirm}
-                className={`flex-1 py-3 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  confirmPrompt.variant === "emerald"
-                    ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-                    : confirmPrompt.variant === "purple"
-                    ? "bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-                    : "bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)]"
-                }`}
+                className="flex-1 py-2.5 rounded-xl font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white shadow-sm"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 {confirmPrompt.confirmText || "Xác Nhận"}

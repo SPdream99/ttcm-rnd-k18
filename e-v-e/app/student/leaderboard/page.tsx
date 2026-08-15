@@ -112,7 +112,7 @@ export default function StudentLeaderboardPage() {
           .sort((a, b) => b.score - a.score || b.coins - a.coins)
           .map((item, idx) => {
             const rank = idx + 1;
-            let badge = "Học Viên Tiềm Năng ⭐";
+            let badge = "Học Viên Tiềm Năng ";
             let title = "Thành Viên Năng Động";
 
             if (rank === 1) {
@@ -185,7 +185,7 @@ export default function StudentLeaderboardPage() {
               </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight">
-              Bảng Xếp Hạng Toàn Trường 🏆
+              Bảng Xếp Hạng Toàn Trường 
             </h1>
             <p className="text-xs md:text-sm text-zinc-600 leading-relaxed">
               Vinh danh những học viên và giảng viên có thành tích học tập và đóng góp xuất sắc nhất.
@@ -237,15 +237,15 @@ export default function StudentLeaderboardPage() {
               <span className="text-xs font-mono font-bold text-zinc-700">{students[1].score} EXP • {students[1].coins} Coins</span>
             </div>
             <div className="pt-3 border-t border-zinc-100 text-xs text-zinc-500 flex justify-center gap-4 font-medium">
-              <span>🔥 {students[1].streakDays} Ngày</span>
-              <span>🎮 {students[1].gamesWon} Game Thắng</span>
+              <span> {students[1].streakDays} Ngày</span>
+              <span> {students[1].gamesWon} Game Thắng</span>
             </div>
           </div>
 
           {/* #1 Thủ Khoa (Solid Red Focus) */}
           <div className="order-1 md:order-2 rounded-2xl border-2 border-red-600 bg-red-50/40 p-7 text-center shadow-md space-y-4 md:-translate-y-2">
             <div className="w-9 h-9 mx-auto -mt-11 rounded-full bg-red-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
-              👑 1
+               1
             </div>
             <div className="w-24 h-24 mx-auto rounded-full bg-white border-4 border-red-600 p-1 flex items-center justify-center shadow-sm">
               <div className="w-full h-full rounded-full bg-red-600 flex items-center justify-center text-3xl font-extrabold text-white font-mono">
@@ -258,8 +258,8 @@ export default function StudentLeaderboardPage() {
               <span className="text-sm font-mono font-bold text-red-700">{students[0].score} EXP • {students[0].coins} Coins</span>
             </div>
             <div className="pt-3 border-t border-red-200 text-xs text-zinc-700 flex justify-center gap-5 font-bold">
-              <span className="text-red-600">🔥 {students[0].streakDays} Ngày Streak</span>
-              <span>🎮 {students[0].gamesWon} Game Thắng</span>
+              <span className="text-red-600"> {students[0].streakDays} Ngày Streak</span>
+              <span> {students[0].gamesWon} Game Thắng</span>
             </div>
           </div>
 
@@ -279,8 +279,8 @@ export default function StudentLeaderboardPage() {
               <span className="text-xs font-mono font-bold text-zinc-700">{students[2].score} EXP • {students[2].coins} Coins</span>
             </div>
             <div className="pt-3 border-t border-zinc-100 text-xs text-zinc-500 flex justify-center gap-4 font-medium">
-              <span>🔥 {students[2].streakDays} Ngày</span>
-              <span>🎮 {students[2].gamesWon} Game Thắng</span>
+              <span> {students[2].streakDays} Ngày</span>
+              <span> {students[2].gamesWon} Game Thắng</span>
             </div>
           </div>
         </div>
@@ -326,8 +326,8 @@ export default function StudentLeaderboardPage() {
                       </span>
                     </div>
                     <span className="text-xs text-zinc-500 flex items-center gap-4 mt-0.5">
-                      <span>🔥 {st.streakDays} Ngày Streak</span>
-                      <span>🎮 {st.gamesWon} Game Thắng</span>
+                      <span> {st.streakDays} Ngày Streak</span>
+                      <span> {st.gamesWon} Game Thắng</span>
                     </span>
                   </div>
                 </div>
@@ -362,7 +362,7 @@ export default function StudentLeaderboardPage() {
                     </div>
                     <div>
                       <span className="text-zinc-500 text-[10px] block">Chuỗi Streak:</span>
-                      <strong className="text-red-600">🔥 {st.streakDays} Ngày</strong>
+                      <strong className="text-red-600"> {st.streakDays} Ngày</strong>
                     </div>
                     <div>
                       <span className="text-zinc-500 text-[10px] block">Tổng Điểm:</span>
