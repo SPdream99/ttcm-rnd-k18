@@ -56,7 +56,7 @@ export default function StudentClassPage() {
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "paused">("all");
+  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "paused">("active");
   const [modalAction, setModalAction] = useState<{ cls: ClassItem; targetStatus: "active" | "paused" } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 

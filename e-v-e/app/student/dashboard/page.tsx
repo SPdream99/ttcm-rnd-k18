@@ -85,22 +85,6 @@ export default function StudentDashboardPage() {
                 });
               }
             }
-            if (classesData.length === 0 && enrollSnap.empty) {
-              // Fallback fetch all active learning paths ONLY if student has zero enrollments
-              const allPathsSnap = await getDocs(collection(db, "learning_path"));
-              allPathsSnap.docs.forEach((d) => {
-                const pData = d.data();
-                classesData.push({
-                  id: d.id,
-                  title: pData.title || "Lộ trình học",
-                  description: pData.description || "",
-                  progress: 60,
-                  coursesCount: pData.courses?.length || 3,
-                  category: pData.category || "Công nghệ & Lập trình",
-                  teacherName: "ThS. Nguyễn Thành Đạt",
-                });
-              });
-            }
             setEnrolledClasses(classesData);
           } catch (e) {
             console.error("Lỗi khi tải thông tin lớp học:", e);

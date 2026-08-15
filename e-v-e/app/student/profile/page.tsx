@@ -90,6 +90,9 @@ export default function StudentProfilePage() {
 
           for (const d of enrollSnap.docs) {
             const eData = d.data();
+            if (eData.status === "paused") {
+              continue;
+            }
             const pDoc = await getDoc(doc(db, "learning_path", eData.learning_path_id));
             if (pDoc.exists()) {
               const pData = pDoc.data();
