@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { useToast } from "@/components/Toast";
 import {
   saveEncryptedAIKey,
   removeAIKey,
@@ -27,12 +28,12 @@ import {
 } from "@/lib/secureKeyStorage";
 
 export default function TeacherProfilePage() {
+  const { toast } = useToast();
   const { currentUser, profile } = useAuthAdapter();
   const displayName = currentUser?.name || profile?.fullName || "Thầy/Cô Giáo Viên";
   const displayEmail = currentUser?.email || "teacher@eve.edu.vn";
   const userUid = currentUser?.uid || profile?.uid || "usr_teacher";
 
-  const [savedMsg, setSavedMsg] = useState("");
   const [keyInput, setKeyInput] = useState("");
   const [showRawKey, setShowRawKey] = useState(false);
   const [isKeyConfigured, setIsKeyConfigured] = useState(false);
@@ -98,8 +99,7 @@ export default function TeacherProfilePage() {
     setIsKeyConfigured(true);
     setMaskedKeyDisplay(getMaskedAIKey());
     setKeyInput("");
-    setSavedMsg("Đã lưu và kích hoạt Google Gemini API Key an toàn trên thiết bị của Thầy/Cô!");
-    setTimeout(() => setSavedMsg(""), 4000);
+    toast.success("Đã lưu và kích hoạt Google Gemini API Key an toàn trên thiết bị của Thầy/Cô!", "API Key");
   };
 
   const handleRemoveAIKey = () => {
@@ -107,8 +107,7 @@ export default function TeacherProfilePage() {
     removeAIKey();
     setIsKeyConfigured(false);
     setMaskedKeyDisplay("");
-    setSavedMsg("Đã xóa khóa API.");
-    setTimeout(() => setSavedMsg(""), 3000);
+    toast.info("Đã xóa khóa API.", "API Key");
   };
 
   const handleInitiate2FAToggle = async () => {
@@ -128,11 +127,10 @@ export default function TeacherProfilePage() {
         const data = await res.json();
         if (data.success) {
           setIs2FAEnabled(false);
-          setSavedMsg("Đã tắt tính năng 2FA thành công.");
-          setTimeout(() => setSavedMsg(""), 4000);
+          toast.info("Đã tắt tính năng 2FA thành công.", "Bảo Mật");
         }
       } catch {
-        alert("Lỗi khi tắt 2FA.");
+        toast.error("Lỗi khi tắt 2FA.", "Bảo Mật");
       } finally {
         setIsVerifying2FA(false);
       }
@@ -158,10 +156,10 @@ export default function TeacherProfilePage() {
         }
         setShow2FAModal(true);
       } else {
-        alert("Không thể gửi mã xác thực. Vui lòng thử lại sau.");
+        toast.error("Không thể gửi mã xác thực. Vui lòng thử lại sau.", "Bảo Mật");
       }
     } catch {
-      alert("Lỗi kết nối khi gửi mã OTP.");
+      toast.error("Lỗi kết nối khi gửi mã OTP.", "Bảo Mật");
     } finally {
       setIsSending2FA(false);
     }
@@ -191,8 +189,7 @@ export default function TeacherProfilePage() {
       if (data.success) {
         setIs2FAEnabled(true);
         setShow2FAModal(false);
-        setSavedMsg("Đã kích hoạt Bảo Mật 2 Lớp (2FA qua Email) thành công!");
-        setTimeout(() => setSavedMsg(""), 4000);
+        toast.success("Đã kích hoạt Bảo Mật 2 Lớp (2FA qua Email) thành công!", "Bảo Mật");
       } else {
         setModalMsg(data.error || "Mã OTP không chính xác.");
       }
@@ -220,12 +217,6 @@ export default function TeacherProfilePage() {
           <GraduationCap className="w-4 h-4 text-red-600" /> Giáo Viên Chính Thức
         </div>
       </div>
-
-      {savedMsg && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center justify-between">
-          <span>{savedMsg}</span>
-        </div>
-      )}
 
       {/* Profile Overview Card */}
       <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center gap-6">

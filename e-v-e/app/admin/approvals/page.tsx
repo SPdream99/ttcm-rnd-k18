@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useToast } from "@/components/Toast";
 import { Course, CourseContentPair } from "@/core/entities/Course";
 import { Game } from "@/core/entities/Game";
 
@@ -30,11 +31,11 @@ interface ConfirmModalData {
 }
 
 export default function AdminApprovalsPage() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"courses" | "games">("courses");
   const [courses, setCourses] = useState<Course[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [confirmPrompt, setConfirmPrompt] = useState<ConfirmModalData | null>(null);
 
   useEffect(() => {
@@ -125,10 +126,9 @@ export default function AdminApprovalsPage() {
       setCourses((prev) =>
         prev.map((c) => (c.id === courseId ? { ...c, isAccepted } : c))
       );
-      setActionMsg(`Đã ${isAccepted ? "DUYỆT" : "HỦY DUYỆT"} khóa học thành công!`);
-      setTimeout(() => setActionMsg(null), 3500);
+      toast.success(`Đã ${isAccepted ? "DUYỆT" : "HỦY DUYỆT"} khóa học thành công!`, "Kiểm Duyệt Khóa Học");
     } catch {
-      alert("Lỗi khi cập nhật trạng thái khóa học.");
+      toast.error("Lỗi khi cập nhật trạng thái khóa học.", "Kiểm Duyệt");
     }
   };
 
@@ -153,10 +153,9 @@ export default function AdminApprovalsPage() {
       }
       setCourses((prev) => prev.filter((c) => c.id !== courseId));
       if (selectedCourse?.id === courseId) setSelectedCourse(null);
-      setActionMsg("Đã xóa vĩnh viễn khóa học khỏi hệ thống thành công!");
-      setTimeout(() => setActionMsg(null), 3500);
+      toast.success("Đã xóa vĩnh viễn khóa học khỏi hệ thống thành công!", "Kiểm Duyệt");
     } catch {
-      alert("Lỗi khi xóa khóa học.");
+      toast.error("Lỗi khi xóa khóa học.", "Kiểm Duyệt");
     }
   };
 
@@ -194,8 +193,7 @@ export default function AdminApprovalsPage() {
     setGames((prev) =>
       prev.map((g) => (g.id === gameId || g.gameId === gameId ? { ...g, isAccepted } : g))
     );
-    setActionMsg(`Đã ${isAccepted ? "DUYỆT" : "HỦY DUYỆT"} Game Engine thành công!`);
-    setTimeout(() => setActionMsg(null), 3500);
+    toast.success(`Đã ${isAccepted ? "DUYỆT" : "HỦY DUYỆT"} Game Engine thành công!`, "Kiểm Duyệt Game");
   };
 
   const handlePromptDeleteGame = (game: Game) => {
@@ -224,8 +222,7 @@ export default function AdminApprovalsPage() {
     } catch {}
 
     setGames((prev) => prev.filter((g) => g.id !== gameId && g.gameId !== gameId));
-    setActionMsg("Đã xóa vĩnh viễn Game Engine khỏi hệ thống thành công!");
-    setTimeout(() => setActionMsg(null), 3500);
+    toast.success("Đã xóa vĩnh viễn Game Engine khỏi hệ thống thành công!", "Kiểm Duyệt Game");
   };
 
   const handlePromptDownloadSource = (game: any) => {
@@ -248,8 +245,7 @@ export default function AdminApprovalsPage() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setActionMsg(`Đang tải source code của "${game.title}" (.zip)...`);
-    setTimeout(() => setActionMsg(null), 4000);
+    toast.info(`Đang tải source code của "${game.title}" (.zip)...`, "Tải Xuống");
   };
 
   return (
@@ -265,13 +261,6 @@ export default function AdminApprovalsPage() {
           </p>
         </div>
       </div>
-
-      {actionMsg && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center justify-between">
-          <span>{actionMsg}</span>
-          <button onClick={() => setActionMsg(null)} className="text-zinc-400 hover:text-zinc-900 cursor-pointer"></button>
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">

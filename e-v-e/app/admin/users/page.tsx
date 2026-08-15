@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useToast } from "@/components/Toast";
 
 interface AdminUserItem {
   id: string;
@@ -40,10 +41,10 @@ interface ConfirmModalData {
 }
 
 export default function AdminUsersPage() {
+  const { toast } = useToast();
   const [users, setUsers] = useState<AdminUserItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<"all" | "pending" | "teacher" | "student">("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirmPrompt, setConfirmPrompt] = useState<ConfirmModalData | null>(null);
 
@@ -188,10 +189,9 @@ export default function AdminUsersPage() {
         prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u))
       );
 
-      setActionMsg(`Đã cập nhật trạng thái của [${user.name}] thành ${newStatus.toUpperCase()}`);
-      setTimeout(() => setActionMsg(null), 3000);
+      toast.success(`Đã cập nhật trạng thái của [${user.name}] thành ${newStatus.toUpperCase()}`, "Quản Lý Người Dùng");
     } catch {
-      alert("Lỗi khi cập nhật trạng thái người dùng.");
+      toast.error("Lỗi khi cập nhật trạng thái người dùng.", "Quản Lý Người Dùng");
     }
   };
 
@@ -233,13 +233,6 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
-
-      {actionMsg && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center justify-between">
-          <span>{actionMsg}</span>
-          <button onClick={() => setActionMsg(null)} className="text-zinc-400 hover:text-zinc-900"></button>
-        </div>
-      )}
 
       {/* Filter Tabs & Search */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">

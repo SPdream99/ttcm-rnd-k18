@@ -18,17 +18,18 @@ import {
   Download,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { useToast } from "@/components/Toast";
 import { collection, addDoc, getDocs, doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CourseContentPair } from "@/core/entities/Course";
 
 export default function TeacherUploadCenterPage() {
+  const { toast } = useToast();
   const { currentUser, profile } = useAuthAdapter();
   const teacherUid = currentUser?.uid || profile?.uid || "usr_teacher";
   const teacherName = currentUser?.name || profile?.fullName || "Giảng viên";
 
   const [activeTab, setActiveTab] = useState<"course" | "path" | "game">("course");
-  const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   // 1. Create Course State
   const [courseTitle, setCourseTitle] = useState("");
@@ -229,12 +230,11 @@ export default function TeacherUploadCenterPage() {
       await addDoc(collection(db, "courses"), payload);
     } catch {}
 
-    setActionMsg(`Đã lưu Bài Học "${courseTitle}" với ${pairs.length} câu hỏi!`);
+    toast.success(`Đã lưu Bài Học "${courseTitle}" với ${pairs.length} câu hỏi!`, "Soạn Bài");
     setCourseTitle("");
     setCourseDesc("");
     setPairs([{ id: "pair_1", title: "", description: "", explanation: "", distractions: [""], image_url: "" }]);
     setResources([]);
-    setTimeout(() => setActionMsg(null), 4500);
   };
 
   const handleSubmitPath = async (e: React.FormEvent) => {
@@ -259,10 +259,9 @@ export default function TeacherUploadCenterPage() {
       await addDoc(collection(db, "learning_paths"), payload);
     } catch {}
 
-    setActionMsg(`Đã gửi Lộ Trình "${pathTitle}" gồm ${selectedCourses.length} bài học lên Admin để duyệt!`);
+    toast.success(`Đã gửi Lộ Trình "${pathTitle}" gồm ${selectedCourses.length} bài học lên hệ thống!`, "Lộ Trình");
     setPathTitle("");
     setPathDesc("");
-    setTimeout(() => setActionMsg(null), 4500);
   };
 
   const handleSubmitGame = async (e: React.FormEvent) => {
@@ -354,13 +353,12 @@ export default function TeacherUploadCenterPage() {
 
     await new Promise((r) => setTimeout(r, 400));
     setIsUploading(false);
-    setActionMsg(`Đã tải lên Game "${gameTitle}" (.zip) thành công!`);
+    toast.success(`Đã tải lên Game "${gameTitle}" (.zip) thành công!`, "Tải Lên Game");
     setGameTitle("");
     setGameDesc("");
     setGameZipFile(null);
     setUploadProgress(0);
     setUploadStepText("");
-    setTimeout(() => setActionMsg(null), 6000);
   };
 
   return (
@@ -376,13 +374,6 @@ export default function TeacherUploadCenterPage() {
           </p>
         </div>
       </div>
-
-      {actionMsg && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center justify-between">
-          <span>{actionMsg}</span>
-          <button onClick={() => setActionMsg(null)} className="text-zinc-400 hover:text-zinc-900"></button>
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-zinc-200 pb-3">

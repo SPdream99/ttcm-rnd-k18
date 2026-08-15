@@ -45,7 +45,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       const id = Math.random().toString(36).slice(2);
       setToasts((prev) => [...prev, { ...toast, id }]);
 
-      const duration = toast.duration ?? 3500;
+      const duration = toast.duration ?? 4000;
       setTimeout(() => removeToast(id), duration);
     },
     [removeToast]
@@ -66,7 +66,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) {
-    // Fallback if rendered outside provider
     return {
       toast: {
         success: (message: string, title?: string) => console.log("[Toast Success]", title, message),
@@ -101,37 +100,37 @@ const TOAST_CONFIG: Record<
     icon: React.FC<{ className?: string }>;
     border: string;
     iconColor: string;
-    glow: string;
-    bg: string;
+    bgIcon: string;
+    badgeTitle: string;
   }
 > = {
   success: {
     icon: CheckCircle2,
-    border: "border-emerald-500/40",
-    iconColor: "text-emerald-400",
-    glow: "shadow-[0_0_20px_rgba(16,185,129,0.15)]",
-    bg: "bg-emerald-500/10",
+    border: "border-emerald-200 shadow-emerald-500/10",
+    iconColor: "text-emerald-600",
+    bgIcon: "bg-emerald-50 border-emerald-200",
+    badgeTitle: "Thành công",
   },
   error: {
     icon: XCircle,
-    border: "border-red-500/40",
-    iconColor: "text-red-400",
-    glow: "shadow-[0_0_20px_rgba(239,68,68,0.15)]",
-    bg: "bg-red-500/10",
+    border: "border-red-200 shadow-red-500/10",
+    iconColor: "text-red-600",
+    bgIcon: "bg-red-50 border-red-200",
+    badgeTitle: "Lỗi xử lý",
   },
   info: {
     icon: Info,
-    border: "border-cyan-500/40",
-    iconColor: "text-cyan-400",
-    glow: "shadow-[0_0_20px_rgba(34,211,238,0.15)]",
-    bg: "bg-cyan-500/10",
+    border: "border-blue-200 shadow-blue-500/10",
+    iconColor: "text-blue-600",
+    bgIcon: "bg-blue-50 border-blue-200",
+    badgeTitle: "Thông tin",
   },
   warning: {
     icon: AlertTriangle,
-    border: "border-amber-500/40",
-    iconColor: "text-amber-400",
-    glow: "shadow-[0_0_20px_rgba(245,158,11,0.15)]",
-    bg: "bg-amber-500/10",
+    border: "border-amber-200 shadow-amber-500/10",
+    iconColor: "text-amber-600",
+    bgIcon: "bg-amber-50 border-amber-200",
+    badgeTitle: "Lưu ý",
   },
 };
 
@@ -157,25 +156,25 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
   return (
     <div
       className={`
-        flex items-start gap-3 w-80 rounded-2xl border backdrop-blur-xl p-4
-        bg-[#0f1524]/90 transition-all duration-300
-        ${cfg.border} ${cfg.glow}
-        ${visible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8"}
+        flex items-start gap-3.5 w-84 md:w-96 rounded-2xl border p-4
+        bg-white shadow-xl transition-all duration-300 pointer-events-auto
+        ${cfg.border}
+        ${visible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95"}
       `}
     >
       {/* Icon */}
-      <div className={`mt-0.5 shrink-0 rounded-lg p-1.5 ${cfg.bg}`}>
+      <div className={`mt-0.5 shrink-0 rounded-xl p-2 border ${cfg.bgIcon}`}>
         <Icon className={`h-4 w-4 ${cfg.iconColor}`} />
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        {toast.title && (
-          <p className="text-sm font-semibold text-white leading-tight">
-            {toast.title}
-          </p>
-        )}
-        <p className={`text-xs leading-5 ${toast.title ? "text-[#8e9bb4] mt-0.5" : "text-[#c8d0e0]"}`}>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-bold ${cfg.iconColor}`}>
+            {toast.title || cfg.badgeTitle}
+          </span>
+        </div>
+        <p className="text-xs text-zinc-700 font-medium leading-relaxed mt-0.5">
           {toast.message}
         </p>
       </div>
@@ -183,7 +182,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
       {/* Close */}
       <button
         onClick={handleClose}
-        className="shrink-0 text-[#8e9bb4] hover:text-white transition-colors mt-0.5 cursor-pointer"
+        className="shrink-0 text-zinc-400 hover:text-zinc-700 transition-colors mt-0.5 p-1 rounded-lg hover:bg-zinc-100 cursor-pointer"
       >
         <X className="h-3.5 w-3.5" />
       </button>
@@ -200,11 +199,9 @@ function ToastContainer() {
   if (!ctx) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none">
+    <div className="fixed bottom-6 right-6 z-[99999] flex flex-col gap-3 pointer-events-none">
       {ctx.toasts.map((t) => (
-        <div key={t.id} className="pointer-events-auto">
-          <ToastItem toast={t} onRemove={() => ctx.removeToast(t.id)} />
-        </div>
+        <ToastItem key={t.id} toast={t} onRemove={() => ctx.removeToast(t.id)} />
       ))}
     </div>
   );

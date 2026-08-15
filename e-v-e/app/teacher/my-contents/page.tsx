@@ -15,16 +15,17 @@ import {
   Inbox,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { useToast } from "@/components/Toast";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function TeacherMyContentsPage() {
+  const { toast } = useToast();
   const { currentUser, profile } = useAuthAdapter();
   const teacherUid = currentUser?.uid || currentUser?.id || profile?.uid || profile?.id || "";
   const teacherEmail = currentUser?.email || profile?.email || "";
 
   const [activeTab, setActiveTab] = useState<"courses" | "paths" | "games">("courses");
-  const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [courses, setCourses] = useState<any[]>([]);
@@ -314,8 +315,7 @@ export default function TeacherMyContentsPage() {
     if (type === "path") setPaths((prev) => prev.filter((p) => p.id !== id));
     if (type === "game") setGames((prev) => prev.filter((g) => g.id !== id));
 
-    setActionNotice("Đã xóa nội dung thành công!");
-    setTimeout(() => setActionNotice(null), 3000);
+    toast.success("Đã xóa nội dung thành công!", "Quản Lý Học Liệu");
   };
 
   return (
@@ -337,12 +337,6 @@ export default function TeacherMyContentsPage() {
           </button>
         </Link>
       </div>
-
-      {actionNotice && (
-        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
-          {actionNotice}
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-zinc-200 pb-3 overflow-x-auto">
