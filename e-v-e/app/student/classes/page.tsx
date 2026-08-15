@@ -23,10 +23,12 @@ import {
   where,
   doc,
   updateDoc,
+  setDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { cacheService } from "@/lib/cacheService";
+import { useToast } from "@/components/Toast";
 
 interface StudentLearningPath {
   id: string;
@@ -49,6 +51,7 @@ interface ClassItem {
 }
 
 export default function StudentClassPage() {
+  const { toast } = useToast();
   const [classes, setClasses] = useState<ClassItem[]>(() => {
     return cacheService.get<ClassItem[]>("student_classes_page")?.data || [];
   });
@@ -109,7 +112,7 @@ export default function StudentClassPage() {
 
         classList.push({
           id: pathDoc.id,
-          enrollmentDocId: enrollment.id,
+          enrollmentDocId: enrollment.id || `${userUid}_${pathDoc.id}`,
           title: pathData.title || "Lớp Học",
           description: pathData.description || "",
           instructor: teacherName,
@@ -147,21 +150,42 @@ export default function StudentClassPage() {
     if (!modalAction) return;
     setActionLoading(true);
     try {
-      const docRef = doc(db, "student_learning_path", modalAction.cls.enrollmentDocId);
-      await updateDoc(docRef, {
-        status: modalAction.targetStatus,
-        updatedAt: new Date().toISOString(),
-      });
+      const userUid = auth.currentUser?.uid || "usr_student";
+      const targetDocId =
+        modalAction.cls.enrollmentDocId || `${userUid}_${modalAction.cls.id}`;
+
+      const docRef = doc(db, "student_learning_path", targetDocId);
+      await setDoc(
+        docRef,
+        {
+          status: modalAction.targetStatus,
+          student_id: userUid,
+          learning_path_id: modalAction.cls.id,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
 
       setClasses((prev) =>
         prev.map((c) =>
-          c.id === modalAction.cls.id ? { ...c, status: modalAction.targetStatus } : c
+          c.id === modalAction.cls.id
+            ? { ...c, status: modalAction.targetStatus, enrollmentDocId: targetDocId }
+            : c
         )
       );
       cacheService.invalidate("student_classes_page");
+
+      toast.success(
+        modalAction.targetStatus === "paused"
+          ? `Đã tạm dừng lớp "${modalAction.cls.title}". Tiến độ học của bạn đã được bảo lưu an toàn!`
+          : `Đã tiếp tục học lớp "${modalAction.cls.title}". Chúc bạn học tốt!`,
+        "Quản Lý Lớp Học"
+      );
+
       setModalAction(null);
     } catch (err) {
       console.error("Lỗi cập nhật trạng thái lớp:", err);
+      toast.error("Không thể cập nhật trạng thái lớp. Vui lòng thử lại sau!", "Lỗi");
     } finally {
       setActionLoading(false);
     }

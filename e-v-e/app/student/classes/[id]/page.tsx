@@ -28,11 +28,13 @@ import {
   where,
   doc,
   updateDoc,
+  setDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import LearningPathMap from "@/components/LearningPathMap";
 import { cacheService } from "@/lib/cacheService";
+import { useToast } from "@/components/Toast";
 
 interface LearningPath {
   id: string;
@@ -64,6 +66,7 @@ export default function StudentClassDetailPage({
 }: {
   params: Promise<{ id: string }> | { id: string };
 }) {
+  const { toast } = useToast();
   const router = useRouter();
   const nextParams = useParams();
   const rawId = (nextParams?.id as string) || "";
@@ -207,25 +210,43 @@ export default function StudentClassDetailPage({
   }, [rawId, router]);
 
   const handleToggleStatus = async () => {
-    if (!enrollment?.docId) {
-      setIsModalOpen(false);
-      return;
-    }
+    const userUid = auth.currentUser?.uid || "usr_student";
+    const nextStatus = enrollment?.status === "active" ? "paused" : "active";
+    const targetDocId =
+      enrollment?.docId || `${userUid}_${path?.id || rawId}`;
 
-    const nextStatus = enrollment.status === "active" ? "paused" : "active";
     setActionLoading(true);
     try {
-      const docRef = doc(db, "student_learning_path", enrollment.docId);
-      await updateDoc(docRef, {
-        status: nextStatus,
-        updatedAt: new Date().toISOString(),
-      });
+      const docRef = doc(db, "student_learning_path", targetDocId);
+      await setDoc(
+        docRef,
+        {
+          status: nextStatus,
+          student_id: userUid,
+          learning_path_id: path?.id || rawId,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
 
-      setEnrollment((prev) => (prev ? { ...prev, status: nextStatus } : null));
+      setEnrollment((prev) =>
+        prev
+          ? { ...prev, status: nextStatus, docId: targetDocId }
+          : { docId: targetDocId, progress: 60, status: nextStatus }
+      );
       cacheService.invalidate("student_classes_page");
+
+      toast.success(
+        nextStatus === "paused"
+          ? `Đã tạm dừng lớp học. Toàn bộ tiến độ của bạn đã được bảo lưu an toàn!`
+          : `Đã tiếp tục học lớp này. Chúc bạn hoàn thành xuất sắc các bài học!`,
+        "Quản Lý Lớp Học"
+      );
+
       setIsModalOpen(false);
     } catch (err) {
       console.error("Lỗi khi cập nhật trạng thái học:", err);
+      toast.error("Không thể cập nhật trạng thái lớp. Vui lòng thử lại sau!", "Lỗi");
     } finally {
       setActionLoading(false);
     }
