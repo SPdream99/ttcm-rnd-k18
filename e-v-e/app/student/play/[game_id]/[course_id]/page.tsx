@@ -711,168 +711,166 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         </div>
       </div>
 
-      {/* PRELOADER SCREEN CHO EXTRA DATA VỚI LOADING BAR TIẾN ĐỘ THỜI GIAN THỰC */}
-      {dataStatus === "loading" && (
-        <div className="p-8 md:p-14 rounded-3xl bg-zinc-950 border-2 border-zinc-800 text-center space-y-7 shadow-2xl text-white relative overflow-hidden">
-          <div className="absolute -top-32 -right-32 w-80 h-80 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-red-800/10 rounded-full blur-3xl pointer-events-none" />
+      {/* 2. Navigation Tabs (LUÔN HIỂN THỊ) */}
+      <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
+        <button
+          onClick={() => setActiveTab("game")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
+            activeTab === "game"
+              ? "bg-red-600 text-white border-red-600 shadow-sm"
+              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+          }`}
+        >
+          <Play className="w-3.5 h-3.5" /> Màn Chơi Tương Tác
+        </button>
 
-          {/* Top Engine Badge */}
-          <div className="flex items-center justify-center gap-2">
-            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-950/80 border border-red-700 text-red-400 text-xs font-mono font-bold uppercase tracking-widest shadow-inner">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-              Đang Preload Dữ Liệu Bài Học • Tiến Độ {loadProgress}%
-            </span>
-          </div>
+        <button
+          onClick={() => setActiveTab("leaderboard")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
+            activeTab === "leaderboard"
+              ? "bg-red-600 text-white border-red-600 shadow-sm"
+              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+          }`}
+        >
+          <Trophy className="w-3.5 h-3.5" /> Bảng Xếp Hạng ({rankingList.length})
+        </button>
 
-          {/* Center Graphic */}
-          <div className="relative inline-block mx-auto">
-            <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-red-600 to-red-500 border-2 border-red-400 flex items-center justify-center text-white shadow-2xl shadow-red-600/30">
-              <Gamepad2 className="w-12 h-12 animate-pulse" />
-            </div>
-            <div className="absolute -bottom-2 -right-2 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-700 text-[10px] font-mono font-bold text-zinc-300">
-              v2.4
-            </div>
-          </div>
+        <button
+          onClick={() => setActiveTab("guide")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
+            activeTab === "guide"
+              ? "bg-red-600 text-white border-red-600 shadow-sm"
+              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+          }`}
+        >
+          <Info className="w-3.5 h-3.5" /> Hướng Dẫn Cách Chơi
+        </button>
+      </div>
 
-          {/* Title & Info */}
-          <div className="space-y-2 max-w-lg mx-auto">
-            <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white">
-              Đang Chuẩn Bị Màn Chơi...
-            </h2>
-            <p className="text-xs md:text-sm text-zinc-400 font-mono">
-              Khóa học: <span className="text-red-400 font-bold">{courseTitle || "Đang truy xuất..."}</span>
-            </p>
-          </div>
+      {/* 3. Main Content Viewport */}
+      {activeTab === "game" && (
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
+          {/* Game Viewport Container */}
+          <div
+            ref={gameViewportRef}
+            className={`xl:col-span-3 rounded-2xl bg-white border border-zinc-200 shadow-sm relative overflow-hidden transition-all flex flex-col justify-between ${
+              isFullscreen ? "p-6 md:p-10 min-h-screen" : "p-5 md:p-8 min-h-[580px]"
+            }`}
+          >
+            {/* PRELOADER SCREEN BÊN TRONG CONTAINER CỦA GAME */}
+            {dataStatus === "loading" && (
+              <div className="my-auto py-10 text-center space-y-7 relative z-10">
+                {/* Top Engine Badge */}
+                <div className="flex items-center justify-center gap-2">
+                  <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-bold uppercase tracking-widest">
+                    <span className="w-2 h-2 rounded-full bg-red-600 animate-ping" />
+                    Đang Preload Dữ Liệu Bài Học • {loadProgress}%
+                  </span>
+                </div>
 
-          {/* Interactive Loading Bar */}
-          <div className="max-w-xl mx-auto space-y-4 bg-zinc-900/90 border border-zinc-800 p-5 rounded-2xl shadow-inner">
-            <div className="flex items-center justify-between text-xs font-mono">
-              <span className="flex items-center gap-2 text-zinc-300 font-bold">
-                <Sparkles className="w-4 h-4 text-red-500 animate-spin" /> {loadStepMessage}
-              </span>
-              <span className="text-sm font-black font-mono text-red-400 px-2 py-0.5 rounded bg-red-950 border border-red-800">
-                {loadProgress}%
-              </span>
-            </div>
+                {/* Center Graphic */}
+                <div className="relative inline-block mx-auto">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-red-600 to-red-500 border-2 border-red-400 flex items-center justify-center text-white shadow-xl shadow-red-600/20">
+                    <Gamepad2 className="w-10 h-10 animate-pulse" />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded bg-zinc-900 text-[10px] font-mono font-bold text-white">
+                    v2.4
+                  </div>
+                </div>
 
-            {/* Progress Bar Container */}
-            <div className="w-full h-4 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden p-0.5 shadow-inner">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-400 transition-all duration-300 relative shadow-lg shadow-red-600/50"
-                style={{ width: `${Math.max(5, loadProgress)}%` }}
-              >
-                <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                {/* Title & Info */}
+                <div className="space-y-1.5 max-w-md mx-auto">
+                  <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-900">
+                    Đang Chuẩn Bị Màn Chơi...
+                  </h2>
+                  <p className="text-xs text-zinc-500 font-mono">
+                    Bài học: <span className="text-red-600 font-bold">{courseTitle || "Đang nạp dữ liệu..."}</span>
+                  </p>
+                </div>
+
+                {/* Interactive Loading Bar */}
+                <div className="max-w-lg mx-auto space-y-3.5 bg-zinc-50 border border-zinc-200 p-5 rounded-2xl shadow-sm">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="flex items-center gap-2 text-zinc-700 font-bold">
+                      <Sparkles className="w-4 h-4 text-red-600 animate-spin" /> {loadStepMessage}
+                    </span>
+                    <span className="text-xs font-black font-mono text-red-600 px-2 py-0.5 rounded bg-red-50 border border-red-200">
+                      {loadProgress}%
+                    </span>
+                  </div>
+
+                  {/* Progress Bar Container */}
+                  <div className="w-full h-3.5 rounded-full bg-zinc-200 overflow-hidden p-0.5">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-400 transition-all duration-300 relative shadow-sm"
+                      style={{ width: `${Math.max(5, loadProgress)}%` }}
+                    >
+                      <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                    </div>
+                  </div>
+
+                  {/* Visual Milestones */}
+                  <div className="grid grid-cols-3 gap-2 pt-1 text-[10px] md:text-[11px] font-mono text-left">
+                    <div className={`p-2 rounded-xl border flex items-center gap-1.5 transition-colors ${loadProgress >= 30 ? "bg-red-50 border-red-200 text-red-700 font-bold" : "bg-white border-zinc-200 text-zinc-400"}`}>
+                      <Check className={`w-3.5 h-3.5 flex-shrink-0 ${loadProgress >= 30 ? "text-red-600" : "text-zinc-300"}`} />
+                      <span className="truncate">1. Token Session</span>
+                    </div>
+                    <div className={`p-2 rounded-xl border flex items-center gap-1.5 transition-colors ${loadProgress >= 70 ? "bg-red-50 border-red-200 text-red-700 font-bold" : "bg-white border-zinc-200 text-zinc-400"}`}>
+                      <Check className={`w-3.5 h-3.5 flex-shrink-0 ${loadProgress >= 70 ? "text-red-600" : "text-zinc-300"}`} />
+                      <span className="truncate">2. Extra Data</span>
+                    </div>
+                    <div className={`p-2 rounded-xl border flex items-center gap-1.5 transition-colors ${loadProgress >= 100 ? "bg-red-50 border-red-200 text-red-700 font-bold" : "bg-white border-zinc-200 text-zinc-400"}`}>
+                      <Check className={`w-3.5 h-3.5 flex-shrink-0 ${loadProgress >= 100 ? "text-red-600" : "text-zinc-300"}`} />
+                      <span className="truncate">3. Khởi Chạy</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Visual Milestones */}
-            <div className="grid grid-cols-3 gap-2 pt-2 text-[11px] font-mono text-left">
-              <div className={`p-2 rounded-xl border flex items-center gap-2 transition-colors ${loadProgress >= 30 ? "bg-red-950/40 border-red-800 text-red-300" : "bg-zinc-950 border-zinc-800 text-zinc-600"}`}>
-                <Check className={`w-3.5 h-3.5 flex-shrink-0 ${loadProgress >= 30 ? "text-red-400" : "text-zinc-700"}`} />
-                <span className="truncate">1. Xác thực Token</span>
+            {/* ERROR RECOVERY SCREEN BÊN TRONG CONTAINER CỦA GAME */}
+            {dataStatus === "error" && (
+              <div className="my-auto py-10 text-center space-y-6 relative z-10 max-w-md mx-auto">
+                <div className="w-16 h-16 rounded-2xl bg-red-100 border-2 border-red-300 flex items-center justify-center mx-auto text-red-600 shadow-sm">
+                  <XCircle className="w-8 h-8 text-red-600" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-mono font-bold text-red-600 uppercase tracking-widest px-3 py-1 rounded-full bg-red-50 border border-red-200">
+                    Cảnh Báo Lỗi Tải Dữ Liệu
+                  </span>
+                  <h2 className="text-xl font-black uppercase tracking-tight text-zinc-900 mt-2">
+                    Không Thể Nạp Extra Data Của Bài Học
+                  </h2>
+                  <p className="text-xs text-zinc-500 leading-relaxed font-mono">
+                    {loadErrorDetails || "Đã xảy ra lỗi kết nối khi lấy bộ câu hỏi bài học từ máy chủ. Vui lòng bấm Tải Lại Trang bên dưới để thử lại."}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
+                  >
+                    <RotateCcw className="w-4 h-4" /> Tải Lại Trang (Refresh)
+                  </button>
+
+                  <Link href="/student/games">
+                    <button
+                      type="button"
+                      className="px-5 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-300 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" /> Kho Trò Chơi
+                    </button>
+                  </Link>
+                </div>
               </div>
-              <div className={`p-2 rounded-xl border flex items-center gap-2 transition-colors ${loadProgress >= 70 ? "bg-red-950/40 border-red-800 text-red-300" : "bg-zinc-950 border-zinc-800 text-zinc-600"}`}>
-                <Check className={`w-3.5 h-3.5 flex-shrink-0 ${loadProgress >= 70 ? "text-red-400" : "text-zinc-700"}`} />
-                <span className="truncate">2. Nạp Extra Data</span>
-              </div>
-              <div className={`p-2 rounded-xl border flex items-center gap-2 transition-colors ${loadProgress >= 100 ? "bg-red-950/40 border-red-800 text-red-300" : "bg-zinc-950 border-zinc-800 text-zinc-600"}`}>
-                <Check className={`w-3.5 h-3.5 flex-shrink-0 ${loadProgress >= 100 ? "text-red-400" : "text-zinc-700"}`} />
-                <span className="truncate">3. Khởi chạy Game</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+            )}
 
-      {/* ERROR RECOVERY SCREEN KHI KHÔNG TẢI ĐƯỢC EXTRA DATA */}
-      {dataStatus === "error" && (
-        <div className="p-10 md:p-14 rounded-3xl bg-zinc-950 border-2 border-red-600 text-center space-y-6 shadow-2xl text-white relative overflow-hidden">
-          <div className="w-20 h-20 rounded-2xl bg-red-600/20 border-2 border-red-600 flex items-center justify-center mx-auto text-red-500 shadow-lg">
-            <XCircle className="w-10 h-10 text-red-500" />
-          </div>
-
-          <div className="space-y-2 max-w-lg mx-auto">
-            <span className="text-[11px] font-mono font-bold text-red-400 uppercase tracking-widest px-3 py-1 rounded-full bg-red-950/80 border border-red-800">
-              Cảnh Báo Lỗi Tải Dữ Liệu
-            </span>
-            <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-white mt-3">
-              Không Thể Tải Dữ Liệu Extra Data Của Bài Học
-            </h2>
-            <p className="text-xs text-zinc-400 leading-relaxed font-mono">
-              {loadErrorDetails || "Đã xảy ra lỗi kết nối khi lấy bộ câu hỏi bài học từ máy chủ. Vui lòng nhấn nút Tải Lại Trang bên dưới để thử lại."}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2 shadow-lg"
-            >
-              <RotateCcw className="w-4 h-4" /> Tải Lại Trang (Refresh)
-            </button>
-
-            <Link href="/student/games">
-              <button
-                type="button"
-                className="px-6 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" /> Quay Lại Kho Trò Chơi
-              </button>
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* 2. Navigation Tabs (CHỈ HIỆN KHI DỮ LIỆU ĐÃ SẴN SÀNG) */}
-      {dataStatus === "ready" && (
-        <>
-          <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
-            <button
-              onClick={() => setActiveTab("game")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
-                activeTab === "game"
-                  ? "bg-red-600 text-white border-red-600 shadow-sm"
-                  : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
-              }`}
-            >
-              <Play className="w-3.5 h-3.5" /> Màn Chơi Tương Tác
-            </button>
-
-            <button
-              onClick={() => setActiveTab("leaderboard")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
-                activeTab === "leaderboard"
-                  ? "bg-red-600 text-white border-red-600 shadow-sm"
-                  : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
-              }`}
-            >
-              <Trophy className="w-3.5 h-3.5" /> Bảng Xếp Hạng ({rankingList.length})
-            </button>
-
-            <button
-              onClick={() => setActiveTab("guide")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
-                activeTab === "guide"
-                  ? "bg-red-600 text-white border-red-600 shadow-sm"
-                  : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
-              }`}
-            >
-              <Info className="w-3.5 h-3.5" /> Hướng Dẫn Cách Chơi
-            </button>
-          </div>
-
-          {/* 3. Main Content Viewport */}
-          {activeTab === "game" && (
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
-              {/* Game Viewport Container */}
-              <div
-                ref={gameViewportRef}
-                className={`xl:col-span-3 rounded-2xl bg-white border border-zinc-200 shadow-sm relative overflow-hidden transition-all flex flex-col justify-between ${
-                  isFullscreen ? "p-6 md:p-10 min-h-screen" : "p-5 md:p-8 min-h-[580px]"
-                }`}
-              >
+            {/* MÀN CHƠI GAME & HUD KHI DỮ LIỆU ĐÃ SẴN SÀNG */}
+            {dataStatus === "ready" && (
+              <>
             {/* Top HUD Bar */}
             <div className="flex items-center justify-between gap-3 pb-4 border-b border-zinc-100 relative z-10">
               <div className="space-y-0.5">
@@ -1246,6 +1244,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                 <RotateCcw className="w-3.5 h-3.5" /> Về Menu
               </button>
             </div>
+              </>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -1420,8 +1420,6 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
             </div>
           </div>
         </div>
-      )}
-        </>
       )}
     </div>
   );
