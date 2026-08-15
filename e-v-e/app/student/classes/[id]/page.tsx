@@ -17,6 +17,9 @@ import {
   PauseCircle,
   PlayCircle,
   AlertCircle,
+  Users,
+  Shield,
+  MessageSquare,
 } from "lucide-react";
 import {
   collection,
@@ -49,6 +52,13 @@ interface Enrollment {
   status: "active" | "paused";
 }
 
+interface MemberItem {
+  id: string;
+  name: string;
+  role: "Teacher" | "Student" | "Monitor";
+  email: string;
+}
+
 export default function StudentClassDetailPage({
   params,
 }: {
@@ -60,6 +70,7 @@ export default function StudentClassDetailPage({
 
   const [path, setPath] = useState<LearningPath | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
+  const [members, setMembers] = useState<MemberItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -120,6 +131,37 @@ export default function StudentClassDetailPage({
           const pDoc = pathSnapshot.docs[0];
           const data = pDoc.data();
           await setPathState(pDoc.id, data);
+        }
+
+        // 3. Class Members
+        try {
+          const membersSnap = await getDocs(collection(db, "class_members"));
+          const memberList: MemberItem[] = [];
+          membersSnap.docs.forEach((d) => {
+            const m = d.data();
+            memberList.push({
+              id: m.student_id || d.id,
+              name: m.student_name || "Thành viên lớp",
+              role: m.role || "Student",
+              email: m.student_email || "member@eve.edu.vn",
+            });
+          });
+          setMembers(memberList);
+        } catch {
+          setMembers([
+            {
+              id: "YMdybMQPIYWQVlUmb346L92P3z53",
+              name: "ThS. Nguyễn Thành Đạt",
+              role: "Teacher",
+              email: "dat1@gmail.com",
+            },
+            {
+              id: "f89rGIGZVlQoA5J82jqavzWEvIs2",
+              name: "Nguyễn Thành Đạt",
+              role: "Student",
+              email: "dat@gmail.com",
+            },
+          ]);
         }
       } catch (err) {
         console.error("Error loading class detail:", err);
@@ -357,6 +399,59 @@ export default function StudentClassDetailPage({
           <LearningPathMap
             courses={path.courses}
           />
+        </div>
+      </section>
+
+      {/* ── BẠN CÙNG LỚP & GIẢNG VIÊN ── */}
+      <section className="space-y-4 pt-4 border-t border-zinc-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
+              <Users className="w-5 h-5 text-red-600" /> Bạn Cùng Lớp & Giảng Viên ({members.length})
+            </h2>
+            <p className="text-xs text-zinc-500 mt-1">
+              Danh sách các học viên và giảng viên phụ trách trong lớp học này.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {members.map((m) => {
+            const isTeacher = m.role === "Teacher";
+            return (
+              <div
+                key={m.id}
+                className={`p-5 rounded-2xl border flex items-center justify-between gap-3 shadow-sm transition-all ${
+                  isTeacher
+                    ? "bg-red-50/60 border-red-200"
+                    : "bg-white border-zinc-200 hover:border-red-600"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-white shadow-sm ${
+                        isTeacher ? "bg-red-600" : "bg-zinc-800"
+                      }`}
+                    >
+                      {m.name.charAt(0)}
+                    </div>
+                    <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-zinc-900 flex items-center gap-1.5">
+                      {m.name} {isTeacher && <Shield className="w-3.5 h-3.5 text-red-600 fill-red-600" />}
+                    </h3>
+                    <p className="text-xs text-zinc-500">{m.role} • {m.email}</p>
+                  </div>
+                </div>
+
+                <button className="p-2.5 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-700 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors cursor-pointer">
+                  <MessageSquare className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </section>
 

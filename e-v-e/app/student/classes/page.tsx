@@ -10,8 +10,6 @@ import {
   Loader2,
   User,
   CheckCircle2,
-  FileText,
-  Users,
   Search,
   Plus,
   PauseCircle,
@@ -201,28 +199,16 @@ export default function StudentClassPage() {
             Quản Lý Lớp Học & Tiến Độ
           </h1>
           <p className="text-xs md:text-sm text-zinc-600 mt-1">
-            Theo dõi tiến độ, nộp bài tập và bảo lưu hoặc tiếp tục các lớp học đã đăng ký.
+            Theo dõi tiến độ, bảo lưu hoặc tiếp tục các lớp học đã đăng ký.
           </p>
         </div>
 
         <div className="flex items-center gap-3 self-start md:self-auto">
           <Link
-            href="/student/classes/assignments"
-            className="px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200 font-bold text-xs md:text-sm transition-colors flex items-center gap-2"
-          >
-            <FileText className="w-4 h-4 text-red-600" /> Bài Tập
-          </Link>
-          <Link
-            href="/student/classes/members"
-            className="px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200 font-bold text-xs md:text-sm transition-colors flex items-center gap-2"
-          >
-            <Users className="w-4 h-4 text-red-600" /> Bạn Cùng Lớp
-          </Link>
-          <Link
             href="/student/learning-paths"
-            className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs md:text-sm shadow-md transition-colors flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs md:text-sm shadow-md transition-colors flex items-center gap-2 cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Đăng Ký Thêm
+            <Plus className="w-4 h-4" /> Đăng Ký Thêm Lớp
           </Link>
         </div>
       </header>
