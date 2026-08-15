@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { MockTeacherRepo } from "@/infrastructure/repositories/MockTeacherRepo";
+import { FirestoreTeacherRepo } from "@/infrastructure/repositories/FirestoreTeacherRepo";
 import {
   GetTeacherDashboardUseCase,
   ManageTeacherClassDetailsUseCase,
@@ -20,7 +20,7 @@ export function useTeacherAdapter(classId?: string) {
   const [students, setStudents] = useState<TeacherClassStudentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const teacherRepo = useMemo(() => new MockTeacherRepo(), []);
+  const teacherRepo = useMemo(() => new FirestoreTeacherRepo(), []);
   const getDashboardUseCase = useMemo(() => new GetTeacherDashboardUseCase(teacherRepo), [teacherRepo]);
   const getClassDetailsUseCase = useMemo(() => new ManageTeacherClassDetailsUseCase(teacherRepo), [teacherRepo]);
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { MockStudentRepo } from "@/infrastructure/repositories/MockStudentRepo";
+import { FirestoreStudentRepo } from "@/infrastructure/repositories/FirestoreStudentRepo";
 import {
   GetStudentDashboardUseCase,
   GetStudentClassDetailsUseCase,
@@ -20,7 +20,7 @@ export function useStudentAdapter(statusFilter?: string, query?: string, classId
   const [members, setMembers] = useState<ClassMember[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const studentRepo = useMemo(() => new MockStudentRepo(), []);
+  const studentRepo = useMemo(() => new FirestoreStudentRepo(), []);
   const getDashboardUseCase = useMemo(() => new GetStudentDashboardUseCase(studentRepo), [studentRepo]);
   const getClassDetailsUseCase = useMemo(() => new GetStudentClassDetailsUseCase(studentRepo), [studentRepo]);
 
