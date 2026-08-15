@@ -264,6 +264,12 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
 
+  // ── Extra Data Preloader States ──
+  const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [loadProgress, setLoadProgress] = useState(20);
+  const [loadStepMessage, setLoadStepMessage] = useState("1/3: Đang kết nối máy chủ và xác thực Game Session...");
+  const [loadErrorDetails, setLoadErrorDetails] = useState<string | null>(null);
+
   // Background audio
   useEffect(() => {
     const audio = new Audio("/sounds/BGM_MemoryMatchingGame.mp3");
@@ -279,48 +285,102 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
   useEffect(() => {
     if (!audioRef.current) return;
-    if (isSoundMuted || gameState === "menu") {
+    if (isSoundMuted || gameState === "menu" || dataStatus !== "ready") {
       audioRef.current.pause();
     } else {
       audioRef.current.play().catch(() => {});
     }
-  }, [isSoundMuted, gameState]);
+  }, [isSoundMuted, gameState, dataStatus]);
 
-  // Load Course data
+  // Load Course Extra Data
   useEffect(() => {
-    async function loadCourse() {
-      try {
-        const res = await fetch("/api/games/init", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ gameId, courseId, userId: uid }),
-        });
-        const data = await res.json();
-        if (data.success && Array.isArray(data.pairs) && data.pairs.length > 0) {
-          setCourseTitle(data.courseTitle || "Khóa Học E-V-E");
-          setPairs(data.pairs);
-          return;
-        }
-      } catch {}
+    let isCancelled = false;
+
+    async function loadCourseExtraData() {
+      setDataStatus("loading");
+      setLoadProgress(20);
+      setLoadStepMessage("1/3: Đang kết nối máy chủ và xác thực Game Session...");
 
       try {
-        const cSnap = await getDoc(doc(db, "course", courseId));
-        if (cSnap.exists()) {
-          const data = cSnap.data();
-          setCourseTitle(data.title || "Khóa Học E-V-E");
-          const loadedPairs = Array.isArray(data.pairs) ? data.pairs : [];
-          if (loadedPairs.length > 0) {
-            setPairs(loadedPairs);
-            return;
+        await new Promise((r) => setTimeout(r, 250));
+        if (isCancelled) return;
+
+        setLoadProgress(50);
+        setLoadStepMessage("2/3: Đang nạp bộ câu hỏi tương tác & Extra Data bài học...");
+
+        let loadedPairs: CourseContentPair[] = [];
+        let loadedTitle = "Khóa Học E-V-E";
+
+        try {
+          const res = await fetch("/api/games/init", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ gameId, courseId, userId: uid }),
+          });
+          const data = await res.json();
+          if (data.success && Array.isArray(data.pairs) && data.pairs.length > 0) {
+            loadedTitle = data.courseTitle || loadedTitle;
+            loadedPairs = data.pairs;
+          }
+        } catch (apiErr) {
+          console.warn("API init fetch warning:", apiErr);
+        }
+
+        if (loadedPairs.length === 0) {
+          try {
+            const cSnap = await getDoc(doc(db, "courses", courseId));
+            if (cSnap.exists()) {
+              const data = cSnap.data();
+              loadedTitle = data.title || loadedTitle;
+              const cp = Array.isArray(data.contentData)
+                ? data.contentData
+                : data.contentData?.pairs || data.content_data?.pairs || data.pairs || [];
+              if (cp.length > 0) {
+                loadedPairs = cp;
+              }
+            }
+          } catch (dbErr) {
+            console.warn("Firestore fetch warning:", dbErr);
           }
         }
-      } catch {}
 
-      const fallback = FALLBACK_COURSE_DATA[courseId] || FALLBACK_COURSE_DATA["crs_coding_basics"];
-      setCourseTitle(fallback.title);
-      setPairs(fallback.pairs);
+        if (loadedPairs.length === 0) {
+          const fallback = FALLBACK_COURSE_DATA[courseId] || FALLBACK_COURSE_DATA["crs_coding_basics"];
+          if (fallback && Array.isArray(fallback.pairs) && fallback.pairs.length > 0) {
+            loadedTitle = fallback.title;
+            loadedPairs = fallback.pairs;
+          }
+        }
+
+        if (loadedPairs.length === 0) {
+          throw new Error("Không tìm thấy bộ câu hỏi Extra Data cho bài học này.");
+        }
+
+        if (isCancelled) return;
+
+        setCourseTitle(loadedTitle);
+        setPairs(loadedPairs);
+        setLoadProgress(85);
+        setLoadStepMessage(`3/3: Đã nạp thành công ${loadedPairs.length} câu hỏi Extra Data! Chuẩn bị khởi chạy game...`);
+
+        await new Promise((r) => setTimeout(r, 350));
+        if (isCancelled) return;
+
+        setLoadProgress(100);
+        setDataStatus("ready");
+      } catch (err: any) {
+        console.error("Lỗi tải Extra Data:", err);
+        if (isCancelled) return;
+        setDataStatus("error");
+        setLoadErrorDetails(err?.message || "Không thể tải dữ liệu câu hỏi Extra Data của bài học.");
+      }
     }
-    loadCourse();
+
+    loadCourseExtraData();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [gameId, courseId, uid]);
 
   const loadLeaderboard = async () => {
@@ -651,52 +711,133 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         </div>
       </div>
 
-      {/* 2. Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
-        <button
-          onClick={() => setActiveTab("game")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
-            activeTab === "game"
-              ? "bg-red-600 text-white border-red-600 shadow-sm"
-              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
-          }`}
-        >
-          <Play className="w-3.5 h-3.5" /> Màn Chơi Tương Tác
-        </button>
+      {/* PRELOADER SCREEN CHO EXTRA DATA */}
+      {dataStatus === "loading" && (
+        <div className="p-12 md:p-16 rounded-3xl bg-zinc-950 border-2 border-zinc-800 text-center space-y-6 shadow-2xl text-white relative overflow-hidden">
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
 
-        <button
-          onClick={() => setActiveTab("leaderboard")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
-            activeTab === "leaderboard"
-              ? "bg-red-600 text-white border-red-600 shadow-sm"
-              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
-          }`}
-        >
-          <Trophy className="w-3.5 h-3.5" /> Bảng Xếp Hạng ({rankingList.length})
-        </button>
+          <div className="w-20 h-20 rounded-2xl bg-red-600/20 border-2 border-red-600 flex items-center justify-center mx-auto text-red-500 shadow-lg animate-pulse">
+            <Gamepad2 className="w-10 h-10 animate-bounce" />
+          </div>
 
-        <button
-          onClick={() => setActiveTab("guide")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
-            activeTab === "guide"
-              ? "bg-red-600 text-white border-red-600 shadow-sm"
-              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
-          }`}
-        >
-          <Info className="w-3.5 h-3.5" /> Hướng Dẫn Cách Chơi
-        </button>
-      </div>
+          <div className="space-y-2 max-w-md mx-auto">
+            <span className="text-[11px] font-mono font-bold text-red-500 uppercase tracking-widest px-3 py-1 rounded-full bg-red-950/60 border border-red-800">
+              E-V-E Engine • Extra Data Preloader
+            </span>
+            <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-white mt-3">
+              Đang Nạp Dữ Liệu Bài Học...
+            </h2>
+            <p className="text-xs text-zinc-400 font-mono">
+              Bài học: <strong className="text-zinc-200">{courseTitle || courseId}</strong>
+            </p>
+          </div>
 
-      {/* 3. Main Content Viewport */}
-      {activeTab === "game" && (
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
-          {/* Game Viewport Container */}
-          <div
-            ref={gameViewportRef}
-            className={`xl:col-span-3 rounded-2xl bg-white border border-zinc-200 shadow-sm relative overflow-hidden transition-all flex flex-col justify-between ${
-              isFullscreen ? "p-6 md:p-10 min-h-screen" : "p-5 md:p-8 min-h-[580px]"
-            }`}
-          >
+          <div className="max-w-md mx-auto space-y-3">
+            <div className="w-full h-3 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden p-0.5">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-300 shadow-sm"
+                style={{ width: `${loadProgress}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
+              <span className="flex items-center gap-1.5 text-zinc-300">
+                <Sparkles className="w-3.5 h-3.5 text-red-500 animate-spin" /> {loadStepMessage}
+              </span>
+              <span className="font-bold text-red-400">{loadProgress}%</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ERROR RECOVERY SCREEN KHI KHÔNG TẢI ĐƯỢC EXTRA DATA */}
+      {dataStatus === "error" && (
+        <div className="p-10 md:p-14 rounded-3xl bg-zinc-950 border-2 border-red-600 text-center space-y-6 shadow-2xl text-white relative overflow-hidden">
+          <div className="w-20 h-20 rounded-2xl bg-red-600/20 border-2 border-red-600 flex items-center justify-center mx-auto text-red-500 shadow-lg">
+            <XCircle className="w-10 h-10 text-red-500" />
+          </div>
+
+          <div className="space-y-2 max-w-lg mx-auto">
+            <span className="text-[11px] font-mono font-bold text-red-400 uppercase tracking-widest px-3 py-1 rounded-full bg-red-950/80 border border-red-800">
+              Cảnh Báo Lỗi Tải Dữ Liệu
+            </span>
+            <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-white mt-3">
+              Không Thể Tải Dữ Liệu Extra Data Của Bài Học
+            </h2>
+            <p className="text-xs text-zinc-400 leading-relaxed font-mono">
+              {loadErrorDetails || "Đã xảy ra lỗi kết nối khi lấy bộ câu hỏi bài học từ máy chủ. Vui lòng nhấn nút Tải Lại Trang bên dưới để thử lại."}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2 shadow-lg"
+            >
+              <RotateCcw className="w-4 h-4" /> Tải Lại Trang (Refresh)
+            </button>
+
+            <Link href="/student/games">
+              <button
+                type="button"
+                className="px-6 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" /> Quay Lại Kho Trò Chơi
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Navigation Tabs (CHỈ HIỆN KHI DỮ LIỆU ĐÃ SẴN SÀNG) */}
+      {dataStatus === "ready" && (
+        <>
+          <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
+            <button
+              onClick={() => setActiveTab("game")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
+                activeTab === "game"
+                  ? "bg-red-600 text-white border-red-600 shadow-sm"
+                  : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+              }`}
+            >
+              <Play className="w-3.5 h-3.5" /> Màn Chơi Tương Tác
+            </button>
+
+            <button
+              onClick={() => setActiveTab("leaderboard")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
+                activeTab === "leaderboard"
+                  ? "bg-red-600 text-white border-red-600 shadow-sm"
+                  : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5" /> Bảng Xếp Hạng ({rankingList.length})
+            </button>
+
+            <button
+              onClick={() => setActiveTab("guide")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
+                activeTab === "guide"
+                  ? "bg-red-600 text-white border-red-600 shadow-sm"
+                  : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+              }`}
+            >
+              <Info className="w-3.5 h-3.5" /> Hướng Dẫn Cách Chơi
+            </button>
+          </div>
+
+          {/* 3. Main Content Viewport */}
+          {activeTab === "game" && (
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
+              {/* Game Viewport Container */}
+              <div
+                ref={gameViewportRef}
+                className={`xl:col-span-3 rounded-2xl bg-white border border-zinc-200 shadow-sm relative overflow-hidden transition-all flex flex-col justify-between ${
+                  isFullscreen ? "p-6 md:p-10 min-h-screen" : "p-5 md:p-8 min-h-[580px]"
+                }`}
+              >
             {/* Top HUD Bar */}
             <div className="flex items-center justify-between gap-3 pb-4 border-b border-zinc-100 relative z-10">
               <div className="space-y-0.5">
@@ -1244,6 +1385,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
