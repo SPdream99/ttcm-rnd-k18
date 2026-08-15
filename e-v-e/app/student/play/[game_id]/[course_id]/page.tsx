@@ -286,9 +286,52 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           if (data.success && Array.isArray(data.pairs) && data.pairs.length > 0) {
             loadedTitle = data.courseTitle || loadedTitle;
             loadedPairs = data.pairs;
+          } else if (!data.success && (data.error === "not_enrolled" || data.error === "paused")) {
+            setDataStatus("error");
+            setLoadErrorDetails(data.message || "Bạn chưa tham gia hoặc đang tạm dừng lớp học chứa khóa học này.");
+            return;
           }
         } catch (apiErr) {
           console.warn("API init fetch warning:", apiErr);
+        }
+
+        // Kiểm tra quyền trên client Firestore: Chỉ học sinh đang/đã học lộ trình có chứa bài này mới được chơi
+        if (uid && userRole !== "admin" && userRole !== "teacher") {
+          try {
+            const enSnap = await getDocs(
+              query(collection(db, "student_learning_path"), where("student_id", "==", uid))
+            );
+            let hasEnrolled = false;
+            let isPaused = false;
+            for (const d of enSnap.docs) {
+              const dData = d.data();
+              const lpSnap = await getDoc(doc(db, "learning_path", dData.learning_path_id));
+              if (lpSnap.exists()) {
+                const lpCourses = lpSnap.data()?.courses || [];
+                if (lpCourses.includes(courseId)) {
+                  hasEnrolled = true;
+                  if (dData.status === "paused") {
+                    isPaused = true;
+                  }
+                  break;
+                }
+              }
+            }
+
+            if (isPaused) {
+              setDataStatus("error");
+              setLoadErrorDetails("Lớp học chứa bài học này đang ở trạng thái TẠM DỪNG (BẢO LƯU). Bạn cần kích hoạt lại lớp học để tiếp tục chơi.");
+              return;
+            }
+
+            if (enSnap.docs.length > 0 && !hasEnrolled) {
+              setDataStatus("error");
+              setLoadErrorDetails("Bạn chưa đăng ký hoặc chưa từng học lộ trình chứa bài học này. Vui lòng tham gia lớp học để mở khóa và chơi trò chơi với dữ liệu này!");
+              return;
+            }
+          } catch (enErr) {
+            console.warn("Client enrollment check warning:", enErr);
+          }
         }
 
         if (loadedPairs.length === 0) {
@@ -783,12 +826,21 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  <Link href="/student/classes">
+                    <button
+                      type="button"
+                      className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
+                    >
+                      <BookOpen className="w-4 h-4" /> Lớp Học Của Tôi
+                    </button>
+                  </Link>
+
                   <button
                     type="button"
                     onClick={() => window.location.reload()}
-                    className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
+                    className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-900 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
                   >
-                    <RotateCcw className="w-4 h-4" /> Tải Lại Trang (Refresh)
+                    <RotateCcw className="w-4 h-4" /> Tải Lại (Refresh)
                   </button>
 
                   <Link href="/student/games">
