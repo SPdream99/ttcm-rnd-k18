@@ -48,15 +48,20 @@ export default function TeacherUploadCenterPage() {
     },
   ]);
 
+  // 1. Create Course State
+  const [courseVisibility, setCourseVisibility] = useState<"private" | "public" | "free_to_share" | "free_to_use">("public");
+
   // 2. Create Learning Path State
   const [pathTitle, setPathTitle] = useState("");
   const [pathDesc, setPathDesc] = useState("");
+  const [pathVisibility, setPathVisibility] = useState<"private" | "public" | "free_to_share" | "free_to_use">("public");
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [availableCourses, setAvailableCourses] = useState<{ id: string; title: string }[]>([]);
 
   // 3. Upload Game State
   const [gameTitle, setGameTitle] = useState("");
   const [gameDesc, setGameDesc] = useState("");
+  const [gameVisibility, setGameVisibility] = useState<"private" | "public" | "free_to_share" | "free_to_use">("public");
   const [gameZipFile, setGameZipFile] = useState<File | null>(null);
   const [needExtraData, setNeedExtraData] = useState(true);
   const DAILY_GAME_LIMIT = 2;
@@ -79,8 +84,15 @@ export default function TeacherUploadCenterPage() {
       cSnap.forEach((d) => {
         const data = d.data();
         const docAuthor = data.authorId || data.author_id || data.instructorId || data.instructor_id;
-        if (docAuthor === teacherUid) {
-          myCourses.push({ id: d.id, title: data.title || "Khóa học" });
+        const isOwn = docAuthor === teacherUid;
+        const isShareable = data.visibility === "free_to_share" || data.visibility === "free_to_use";
+        if (isOwn || isShareable) {
+          myCourses.push({
+            id: d.id,
+            title: isOwn
+              ? `${data.title || "Khóa học"} (Của bạn)`
+              : `${data.title || "Khóa học"} (Chia sẻ từ ${data.authorName || "GV khác"})`,
+          });
         }
       });
 
@@ -89,7 +101,7 @@ export default function TeacherUploadCenterPage() {
         localCourses.forEach((lc: any) => {
           const lcAuthor = lc.authorId || lc.author_id || lc.instructorId || lc.instructor_id;
           if ((!lcAuthor || lcAuthor === teacherUid) && !myCourses.some((c) => c.id === lc.id)) {
-            myCourses.push({ id: lc.id, title: lc.title || "Khóa học mới" });
+            myCourses.push({ id: lc.id, title: `${lc.title || "Khóa học mới"} (Cục bộ)` });
           }
         });
       }
@@ -220,6 +232,7 @@ export default function TeacherUploadCenterPage() {
       authorId: teacherUid,
       authorName: teacherName,
       resources: resources.filter((r) => r.title.trim() && r.url.trim()),
+      visibility: courseVisibility,
       isAccepted: false,
       is_accepted: false,
       contentData: { pairs },
@@ -250,6 +263,7 @@ export default function TeacherUploadCenterPage() {
       authorId: teacherUid,
       authorName: teacherName,
       courses: selectedCourses,
+      visibility: pathVisibility,
       isAccepted: false,
       is_accepted: false,
       createdAt: new Date().toISOString(),
@@ -312,6 +326,7 @@ export default function TeacherUploadCenterPage() {
       uploader_id: teacherUid,
       authorName: teacherName,
       authors: [teacherName],
+      visibility: gameVisibility,
       needExtraData,
       need_extra_data: needExtraData,
       coursesAllowed: whitelistMode === "all" ? "all" : allowedCourses,
@@ -670,6 +685,49 @@ export default function TeacherUploadCenterPage() {
             </div>
           </div>
 
+          {/* Visibility / Licensing Selector */}
+          <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                Quyền Cấp Phép & Mức Độ Hiển Thị Bài Học
+              </label>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Thiết lập quyền sở hữu và cách thức người dùng khác tiếp cận bài học này.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+              {[
+                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "🔒" },
+                { id: "public", title: "Public (Công khai)", desc: "Học sinh & mọi người xem, học và làm bài", icon: "🌐" },
+                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được đưa vào lộ trình học", icon: "🔄" },
+                { id: "free_to_use", title: "Free to Use", desc: "Cho phép tải tài liệu & câu hỏi về máy", icon: "📥" },
+              ].map((lvl) => (
+                <button
+                  key={lvl.id}
+                  type="button"
+                  onClick={() => setCourseVisibility(lvl.id as any)}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    courseVisibility === lvl.id
+                      ? "border-red-600 bg-red-50/50 ring-2 ring-red-200"
+                      : "border-zinc-200 bg-zinc-50 hover:bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-lg">{lvl.icon}</span>
+                    {courseVisibility === lvl.id && (
+                      <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                        Đang chọn
+                      </span>
+                    )}
+                  </div>
+                  <strong className="text-xs text-zinc-900 font-bold block">{lvl.title}</strong>
+                  <span className="text-[11px] text-zinc-500 line-clamp-2 mt-1">{lvl.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
             type="submit"
             className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
@@ -751,6 +809,49 @@ export default function TeacherUploadCenterPage() {
                   </label>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Visibility / Licensing Selector */}
+          <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                Quyền Cấp Phép & Mức Độ Hiển Thị Lộ Trình
+              </label>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Thiết lập quyền sở hữu và cách thức người dùng khác tiếp cận lộ trình học này.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+              {[
+                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "🔒" },
+                { id: "public", title: "Public (Công khai)", desc: "Học sinh tham gia học theo chặng bản đồ", icon: "🌐" },
+                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được áp dụng vào lớp học", icon: "🔄" },
+                { id: "free_to_use", title: "Free to Use", desc: "Cho phép xuất và tải tài nguyên về máy", icon: "📥" },
+              ].map((lvl) => (
+                <button
+                  key={lvl.id}
+                  type="button"
+                  onClick={() => setPathVisibility(lvl.id as any)}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    pathVisibility === lvl.id
+                      ? "border-red-600 bg-red-50/50 ring-2 ring-red-200"
+                      : "border-zinc-200 bg-zinc-50 hover:bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-lg">{lvl.icon}</span>
+                    {pathVisibility === lvl.id && (
+                      <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                        Đang chọn
+                      </span>
+                    )}
+                  </div>
+                  <strong className="text-xs text-zinc-900 font-bold block">{lvl.title}</strong>
+                  <span className="text-[11px] text-zinc-500 line-clamp-2 mt-1">{lvl.desc}</span>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -895,6 +996,49 @@ export default function TeacherUploadCenterPage() {
               <div className="text-[11px] text-zinc-500">{uploadStepText}</div>
             </div>
           )}
+
+          {/* Visibility / Licensing Selector */}
+          <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                Quyền Cấp Phép & Mức Độ Hiển Thị Trò Chơi
+              </label>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Thiết lập quyền sở hữu và cách thức chia sẻ game trong hệ sinh thái E-V-E.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+              {[
+                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "🔒" },
+                { id: "public", title: "Public (Công khai)", desc: "Học sinh chơi và tính điểm xếp hạng", icon: "🌐" },
+                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được nạp câu hỏi bài họ vào", icon: "🔄" },
+                { id: "free_to_use", title: "Free to Use", desc: "Cho phép tải gói mã nguồn .zip về máy", icon: "📥" },
+              ].map((lvl) => (
+                <button
+                  key={lvl.id}
+                  type="button"
+                  onClick={() => setGameVisibility(lvl.id as any)}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    gameVisibility === lvl.id
+                      ? "border-red-600 bg-red-50/50 ring-2 ring-red-200"
+                      : "border-zinc-200 bg-zinc-50 hover:bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-lg">{lvl.icon}</span>
+                    {gameVisibility === lvl.id && (
+                      <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                        Đang chọn
+                      </span>
+                    )}
+                  </div>
+                  <strong className="text-xs text-zinc-900 font-bold block">{lvl.title}</strong>
+                  <span className="text-[11px] text-zinc-500 line-clamp-2 mt-1">{lvl.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           <button
             type="submit"

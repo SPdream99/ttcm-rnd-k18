@@ -59,6 +59,20 @@ export default function TeacherAITutorPage() {
 
     try {
       const savedKey = getDecryptedAIKey();
+      if (!savedKey) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ai_nokey_${Date.now()}`,
+            sender: "ai",
+            text: "⚠️ Thầy/Cô chưa cài đặt Google Gemini API Key. Xin vui lòng **mở cài đặt key ở góc phải lên** hoặc **cài đặt key trong profile** để tiếp tục sử dụng Trợ Lý Sư Phạm AI nhé!",
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+        setIsTyping(false);
+        return;
+      }
+
       const res = await fetch("/api/tutor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

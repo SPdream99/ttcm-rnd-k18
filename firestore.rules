@@ -20,6 +20,7 @@ service cloud.firestore {
         : {};
     }
 
+    // Admin có toàn quyền với mọi thứ trong hệ thống (duyệt, xem, chỉnh sửa, xóa)
     function isAdmin() {
       return isSignedIn() && (
         getUserData().role == 'admin' || 
@@ -34,11 +35,27 @@ service cloud.firestore {
       );
     }
 
-    function isStudent() {
+    function isAuthor(docData) {
       return isSignedIn() && (
-        getUserData().role == 'student' || 
-        !('role' in getUserData())
+        request.auth.uid == docData.authorId || 
+        request.auth.uid == docData.author_id || 
+        request.auth.uid == docData.instructorId || 
+        request.auth.uid == docData.instructor_id
       );
+    }
+
+    // Kiểm tra quyền truy cập (Access/Visibility Levels):
+    // 1. private: Không ai thấy trừ bản thân tác giả và Admin
+    // 2. public: Công khai xem và học/chơi
+    // 3. free_to_share: Công khai, cho phép lồng ghép vào lộ trình của người khác
+    // 4. free_to_use: Công khai, cho phép tải về máy
+    function canReadContent(docData) {
+      return isAdmin() || 
+        isAuthor(docData) || 
+        !('visibility' in docData) || 
+        docData.visibility == 'public' || 
+        docData.visibility == 'free_to_share' || 
+        docData.visibility == 'free_to_use';
     }
 
     // =========================================================================
@@ -52,20 +69,21 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 2. COURSES & LEARNING PATHS (KHÓA HỌC & LỘ TRÌNH)
+    // 2. COURSES (BÀI HỌC)
     // =========================================================================
     match /courses/{courseId} {
-      allow read: if true;
+      allow read: if canReadContent(resource.data);
       allow create: if isTeacher() || isAdmin() || isSignedIn();
-      allow update: if isTeacher() || isAdmin() || isOwner(resource.data.author_id);
-      allow delete: if isAdmin() || (isTeacher() && isOwner(resource.data.author_id));
+      allow update, delete: if isAdmin() || isAuthor(resource.data);
     }
 
+    // =========================================================================
+    // 3. LEARNING PATH (LỘ TRÌNH HỌC)
+    // =========================================================================
     match /learning_path/{lpathId} {
-      allow read: if true;
+      allow read: if canReadContent(resource.data);
       allow create: if isTeacher() || isAdmin() || isSignedIn();
-      allow update: if isTeacher() || isAdmin() || isOwner(resource.data.author_id);
-      allow delete: if isAdmin() || (isTeacher() && isOwner(resource.data.author_id));
+      allow update, delete: if isAdmin() || isAuthor(resource.data);
     }
 
     // Tiến độ học tập cá nhân của học sinh trong từng lộ trình
@@ -76,50 +94,12 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 3. CLASSES & CLASS MEMBERS (LỚP HỌC & THÀNH VIÊN)
-    // =========================================================================
-    match /classes/{classId} {
-      allow read: if true;
-      allow create, update: if isTeacher() || isAdmin() || isSignedIn();
-      allow delete: if isAdmin() || (isTeacher() && isOwner(resource.data.author_id));
-    }
-
-    match /class_members/{memberDocId} {
-      allow read: if true;
-      allow create, update: if isSignedIn();
-      allow delete: if isAdmin() || isSignedIn();
-    }
-
-    // =========================================================================
-    // 4. ASSIGNMENTS, SUBMISSIONS & LECTURES (BÀI TẬP, BÀI NỘP, BÀI GIẢNG)
-    // =========================================================================
-    match /assignments/{assignmentId} {
-      allow read: if true;
-      allow create, update: if isTeacher() || isAdmin() || isSignedIn();
-      allow delete: if isAdmin() || isTeacher();
-    }
-
-    match /submissions/{submissionId} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isAdmin();
-    }
-
-    match /lectures/{lectureId} {
-      allow read: if true;
-      allow create, update: if isTeacher() || isAdmin() || isSignedIn();
-      allow delete: if isAdmin() || isTeacher();
-    }
-
-    // =========================================================================
-    // 5. GAME ENGINE & GAME RESULTS (KHO MINIGAME & LỊCH SỬ CHƠI)
+    // 4. GAME INFO (MINIGAME GIÁO DỤC)
     // =========================================================================
     match /game_info/{gameId} {
-      allow read: if true;
+      allow read: if canReadContent(resource.data);
       allow create: if isTeacher() || isAdmin() || isSignedIn();
-      allow update: if isAdmin() || isTeacher();
-      allow delete: if isAdmin() || isTeacher();
+      allow update, delete: if isAdmin() || isAuthor(resource.data);
     }
 
     match /game_results/{resultId} {
@@ -129,7 +109,43 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 6. SHOP ITEMS, ANNOUNCEMENTS & RESOURCES (CỬA HÀNG, THÔNG BÁO, TÀI NGUYÊN)
+    // 5. CLASSES & CLASS MEMBERS (LỚP HỌC & THÀNH VIÊN)
+    // =========================================================================
+    match /classes/{classId} {
+      allow read: if true;
+      allow create, update: if isTeacher() || isAdmin() || isSignedIn();
+      allow delete: if isAdmin() || isAuthor(resource.data);
+    }
+
+    match /class_members/{memberDocId} {
+      allow read: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin() || isSignedIn();
+    }
+
+    // =========================================================================
+    // 6. ASSIGNMENTS, SUBMISSIONS & LECTURES (BÀI TẬP, BÀI NỘP, BÀI GIẢNG)
+    // =========================================================================
+    match /assignments/{assignmentId} {
+      allow read: if true;
+      allow create, update: if isTeacher() || isAdmin() || isSignedIn();
+      allow delete: if isAdmin() || isAuthor(resource.data);
+    }
+
+    match /submissions/{submissionId} {
+      allow read: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    match /lectures/{lectureId} {
+      allow read: if canReadContent(resource.data);
+      allow create, update: if isTeacher() || isAdmin() || isSignedIn();
+      allow delete: if isAdmin() || isAuthor(resource.data);
+    }
+
+    // =========================================================================
+    // 7. SHOP ITEMS, ANNOUNCEMENTS & RESOURCES
     // =========================================================================
     match /shop_items/{itemId} {
       allow read: if true;
@@ -142,11 +158,12 @@ service cloud.firestore {
     }
 
     match /resources/{resourceId} {
-      allow read: if true;
-      allow create, update, delete: if isTeacher() || isAdmin() || isSignedIn();
+      allow read: if canReadContent(resource.data);
+      allow create: if isTeacher() || isAdmin() || isSignedIn();
+      allow update, delete: if isAdmin() || isAuthor(resource.data);
     }
 
-    // Fallback mặc định cho các collection mở rộng khác
+    // Fallback mặc định
     match /{document=**} {
       allow read: if true;
       allow write: if isSignedIn() || isAdmin();

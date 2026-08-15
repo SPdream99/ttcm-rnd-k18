@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { useToast } from "@/components/Toast";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, updateDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function TeacherMyContentsPage() {
@@ -78,6 +78,7 @@ export default function TeacherMyContentsPage() {
                 pairsCount: pairs.length,
                 resourcesCount: data.resources?.length || 0,
                 authorId: docAuthor,
+                visibility: data.visibility || "public",
                 isAccepted: Boolean(data.isAccepted ?? data.is_accepted),
                 createdAt: data.createdAt
                   ? new Date(data.createdAt).toLocaleDateString("vi-VN")
@@ -158,6 +159,7 @@ export default function TeacherMyContentsPage() {
                 description: data.description || "",
                 coursesCount: courseIds.length,
                 authorId: docAuthor,
+                visibility: data.visibility || "public",
                 isAccepted: Boolean(data.isAccepted ?? data.is_accepted),
                 createdAt: data.createdAt
                   ? new Date(data.createdAt).toLocaleDateString("vi-VN")
@@ -198,6 +200,7 @@ export default function TeacherMyContentsPage() {
                 needExtraData: Boolean(data.needExtraData ?? data.need_extra_data),
                 playsCount: Number(data.playsCount ?? data.plays_count ?? data.playCount ?? data.plays ?? 0),
                 authorId: docAuthor,
+                visibility: data.visibility || "public",
                 authorName:
                   data.authorName ||
                   (Array.isArray(data.authors) ? data.authors.join(", ") : "Tôi"),
@@ -325,6 +328,43 @@ export default function TeacherMyContentsPage() {
     setDeleteConfirmItem(null);
   };
 
+  const handleUpdateVisibility = async (
+    type: "course" | "path" | "game",
+    id: string,
+    newVisibility: "private" | "public" | "free_to_share" | "free_to_use"
+  ) => {
+    const collectionName =
+      type === "course"
+        ? "courses"
+        : type === "path"
+        ? "learning_path"
+        : "game_info";
+    try {
+      await updateDoc(doc(db, collectionName, id), { visibility: newVisibility });
+    } catch {}
+
+    if (type === "course")
+      setCourses((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, visibility: newVisibility } : c))
+      );
+    if (type === "path")
+      setPaths((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, visibility: newVisibility } : p))
+      );
+    if (type === "game")
+      setGames((prev) =>
+        prev.map((g) => (g.id === id ? { ...g, visibility: newVisibility } : g))
+      );
+
+    const labels: Record<string, string> = {
+      private: "Private (Riêng tư - Chỉ bản thân & Admin)",
+      public: "Public (Công khai - Học sinh xem & học/chơi)",
+      free_to_share: "Free to Share (Cho phép giáo viên khác tích hợp)",
+      free_to_use: "Free to Use (Tự do tải xuống)",
+    };
+    toast.success(`Đã cập nhật mức cấp phép: ${labels[newVisibility]}`, "Cấp Phép Học Liệu");
+  };
+
   return (
     <div className="space-y-6 font-sans pb-12">
       {/* Header */}
@@ -435,10 +475,30 @@ export default function TeacherMyContentsPage() {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-600 font-medium">
-                    <span className="text-red-600 font-bold">
-                      {course.pairsCount} Cặp Câu Hỏi
-                    </span>
+                  <div className="pt-3 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-zinc-600 font-medium">
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-600 font-bold">
+                        {course.pairsCount} Cặp Câu Hỏi
+                      </span>
+                      <span className="text-zinc-300">•</span>
+                      <select
+                        value={course.visibility || "public"}
+                        onChange={(e) =>
+                          handleUpdateVisibility(
+                            "course",
+                            course.id,
+                            e.target.value as any
+                          )
+                        }
+                        className="px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] font-bold focus:outline-none focus:border-red-600 cursor-pointer"
+                        title="Thay đổi quyền cấp phép & hiển thị"
+                      >
+                        <option value="private">🔒 Private</option>
+                        <option value="public">🌐 Public</option>
+                        <option value="free_to_share">🔄 Free to Share</option>
+                        <option value="free_to_use">📥 Free to Use</option>
+                      </select>
+                    </div>
 
                     <button
                       onClick={() =>
@@ -449,7 +509,7 @@ export default function TeacherMyContentsPage() {
                           authorId: course.authorId,
                         })
                       }
-                      className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold"
+                      className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold self-end sm:self-auto"
                     >
                       <Trash2 className="w-4 h-4" /> Xóa
                     </button>
@@ -515,10 +575,30 @@ export default function TeacherMyContentsPage() {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-600 font-medium">
-                    <span className="text-red-600 font-bold">
-                      {path.coursesCount} Khóa Học Trong Lộ Trình
-                    </span>
+                  <div className="pt-3 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-zinc-600 font-medium">
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-600 font-bold">
+                        {path.coursesCount} Khóa Học
+                      </span>
+                      <span className="text-zinc-300">•</span>
+                      <select
+                        value={path.visibility || "public"}
+                        onChange={(e) =>
+                          handleUpdateVisibility(
+                            "path",
+                            path.id,
+                            e.target.value as any
+                          )
+                        }
+                        className="px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] font-bold focus:outline-none focus:border-red-600 cursor-pointer"
+                        title="Thay đổi quyền cấp phép & hiển thị"
+                      >
+                        <option value="private">🔒 Private</option>
+                        <option value="public">🌐 Public</option>
+                        <option value="free_to_share">🔄 Free to Share</option>
+                        <option value="free_to_use">📥 Free to Use</option>
+                      </select>
+                    </div>
 
                     <button
                       onClick={() =>
@@ -529,7 +609,7 @@ export default function TeacherMyContentsPage() {
                           authorId: path.authorId,
                         })
                       }
-                      className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold"
+                      className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold self-end sm:self-auto"
                     >
                       <Trash2 className="w-4 h-4" /> Xóa
                     </button>
@@ -595,12 +675,32 @@ export default function TeacherMyContentsPage() {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-600">
-                    <span className="text-red-600 font-bold">
-                      {game.playsCount} Lượt Học Sinh Chơi
-                    </span>
-
+                  <div className="pt-3 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-zinc-600">
                     <div className="flex items-center gap-2">
+                      <span className="text-red-600 font-bold">
+                        {game.playsCount} Lượt Chơi
+                      </span>
+                      <span className="text-zinc-300">•</span>
+                      <select
+                        value={game.visibility || "public"}
+                        onChange={(e) =>
+                          handleUpdateVisibility(
+                            "game",
+                            game.id,
+                            e.target.value as any
+                          )
+                        }
+                        className="px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] font-bold focus:outline-none focus:border-red-600 cursor-pointer"
+                        title="Thay đổi quyền cấp phép & hiển thị"
+                      >
+                        <option value="private">🔒 Private</option>
+                        <option value="public">🌐 Public</option>
+                        <option value="free_to_share">🔄 Free to Share</option>
+                        <option value="free_to_use">📥 Free to Use</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
                       <Link
                         href={`/student/play/${game.id}/${courses[0]?.id || "crs_coding_basics"}`}
                       >
