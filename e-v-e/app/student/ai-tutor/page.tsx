@@ -133,6 +133,28 @@ export default function StudentAITutorPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const renderFormattedText = (rawText: string) => {
+    const parts = rawText.split(/(\*\*.*?\*\*|`.*?`)/g);
+
+    return parts.map((part, pIdx) => {
+      if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+        return (
+          <strong key={pIdx} className="font-extrabold text-inherit">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
+        return (
+          <code key={pIdx} className="px-1.5 py-0.5 rounded bg-zinc-100 text-red-600 font-mono text-[11px] border border-zinc-200">
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      return part;
+    });
+  };
+
   const renderMessageContent = (text: string) => {
     const blocks = text.split(/(```[\s\S]*?```)/g);
 
@@ -159,9 +181,9 @@ export default function StudentAITutorPage() {
       }
 
       return (
-        <p key={bIdx} className="whitespace-pre-wrap leading-relaxed">
-          {block}
-        </p>
+        <div key={bIdx} className="whitespace-pre-wrap leading-relaxed">
+          {renderFormattedText(block)}
+        </div>
       );
     });
   };
