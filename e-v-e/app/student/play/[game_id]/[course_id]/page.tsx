@@ -711,40 +711,75 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         </div>
       </div>
 
-      {/* PRELOADER SCREEN CHO EXTRA DATA */}
+      {/* PRELOADER SCREEN CHO EXTRA DATA VỚI LOADING BAR TIẾN ĐỘ THỜI GIAN THỰC */}
       {dataStatus === "loading" && (
-        <div className="p-12 md:p-16 rounded-3xl bg-zinc-950 border-2 border-zinc-800 text-center space-y-6 shadow-2xl text-white relative overflow-hidden">
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="p-8 md:p-14 rounded-3xl bg-zinc-950 border-2 border-zinc-800 text-center space-y-7 shadow-2xl text-white relative overflow-hidden">
+          <div className="absolute -top-32 -right-32 w-80 h-80 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-red-800/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="w-20 h-20 rounded-2xl bg-red-600/20 border-2 border-red-600 flex items-center justify-center mx-auto text-red-500 shadow-lg animate-pulse">
-            <Gamepad2 className="w-10 h-10 animate-bounce" />
+          {/* Top Engine Badge */}
+          <div className="flex items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-950/80 border border-red-700 text-red-400 text-xs font-mono font-bold uppercase tracking-widest shadow-inner">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+              Đang Preload Dữ Liệu Bài Học • Tiến Độ {loadProgress}%
+            </span>
           </div>
 
-          <div className="space-y-2 max-w-md mx-auto">
-            <span className="text-[11px] font-mono font-bold text-red-500 uppercase tracking-widest px-3 py-1 rounded-full bg-red-950/60 border border-red-800">
-              E-V-E Engine • Extra Data Preloader
-            </span>
-            <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-white mt-3">
-              Đang Nạp Dữ Liệu Bài Học...
+          {/* Center Graphic */}
+          <div className="relative inline-block mx-auto">
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-red-600 to-red-500 border-2 border-red-400 flex items-center justify-center text-white shadow-2xl shadow-red-600/30">
+              <Gamepad2 className="w-12 h-12 animate-pulse" />
+            </div>
+            <div className="absolute -bottom-2 -right-2 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-700 text-[10px] font-mono font-bold text-zinc-300">
+              v2.4
+            </div>
+          </div>
+
+          {/* Title & Info */}
+          <div className="space-y-2 max-w-lg mx-auto">
+            <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white">
+              Đang Chuẩn Bị Màn Chơi...
             </h2>
-            <p className="text-xs text-zinc-400 font-mono">
-              Bài học: <strong className="text-zinc-200">{courseTitle || courseId}</strong>
+            <p className="text-xs md:text-sm text-zinc-400 font-mono">
+              Khóa học: <span className="text-red-400 font-bold">{courseTitle || "Đang truy xuất..."}</span>
             </p>
           </div>
 
-          <div className="max-w-md mx-auto space-y-3">
-            <div className="w-full h-3 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden p-0.5">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-300 shadow-sm"
-                style={{ width: `${loadProgress}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
-              <span className="flex items-center gap-1.5 text-zinc-300">
-                <Sparkles className="w-3.5 h-3.5 text-red-500 animate-spin" /> {loadStepMessage}
+          {/* Interactive Loading Bar */}
+          <div className="max-w-xl mx-auto space-y-4 bg-zinc-900/90 border border-zinc-800 p-5 rounded-2xl shadow-inner">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="flex items-center gap-2 text-zinc-300 font-bold">
+                <Sparkles className="w-4 h-4 text-red-500 animate-spin" /> {loadStepMessage}
               </span>
-              <span className="font-bold text-red-400">{loadProgress}%</span>
+              <span className="text-sm font-black font-mono text-red-400 px-2 py-0.5 rounded bg-red-950 border border-red-800">
+                {loadProgress}%
+              </span>
+            </div>
+
+            {/* Progress Bar Container */}
+            <div className="w-full h-4 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden p-0.5 shadow-inner">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-400 transition-all duration-300 relative shadow-lg shadow-red-600/50"
+                style={{ width: `${Math.max(5, loadProgress)}%` }}
+              >
+                <div className="absolute inset-0 bg-white/20 animate-pulse" />
+              </div>
+            </div>
+
+            {/* Visual Milestones */}
+            <div className="grid grid-cols-3 gap-2 pt-2 text-[11px] font-mono text-left">
+              <div className={`p-2 rounded-xl border flex items-center gap-2 transition-colors ${loadProgress >= 30 ? "bg-red-950/40 border-red-800 text-red-300" : "bg-zinc-950 border-zinc-800 text-zinc-600"}`}>
+                <Check className={`w-3.5 h-3.5 flex-shrink-0 ${loadProgress >= 30 ? "text-red-400" : "text-zinc-700"}`} />
+                <span className="truncate">1. Xác thực Token</span>
+              </div>
+              <div className={`p-2 rounded-xl border flex items-center gap-2 transition-colors ${loadProgress >= 70 ? "bg-red-950/40 border-red-800 text-red-300" : "bg-zinc-950 border-zinc-800 text-zinc-600"}`}>
+                <Check className={`w-3.5 h-3.5 flex-shrink-0 ${loadProgress >= 70 ? "text-red-400" : "text-zinc-700"}`} />
+                <span className="truncate">2. Nạp Extra Data</span>
+              </div>
+              <div className={`p-2 rounded-xl border flex items-center gap-2 transition-colors ${loadProgress >= 100 ? "bg-red-950/40 border-red-800 text-red-300" : "bg-zinc-950 border-zinc-800 text-zinc-600"}`}>
+                <Check className={`w-3.5 h-3.5 flex-shrink-0 ${loadProgress >= 100 ? "text-red-400" : "text-zinc-700"}`} />
+                <span className="truncate">3. Khởi chạy Game</span>
+              </div>
             </div>
           </div>
         </div>
