@@ -12,9 +12,41 @@ type CacheEntry<T> = {
 class CacheService {
   private memoryCache = new Map<string, CacheEntry<any>>();
   private subscribers = new Map<string, Set<(data: any) => void>>();
+  private cleanupInterval: any = null;
+
+  constructor() {
+    if (this.isBrowser()) {
+      // Tự động dọn dẹp cache hết hạn mỗi 2 phút
+      this.cleanupInterval = setInterval(() => {
+        this.purgeExpired();
+      }, 120000);
+
+      // Dọn dẹp khi người dùng quay lại tab trình duyệt
+      window.addEventListener("focus", () => {
+        this.purgeExpired();
+      });
+    }
+  }
 
   private isBrowser(): boolean {
     return typeof window !== "undefined";
+  }
+
+  /**
+   * Quét và dọn sạch các mục cache đã hết hạn (TTL)
+   */
+  purgeExpired(): void {
+    const now = Date.now();
+    for (const [key, entry] of Array.from(this.memoryCache.entries())) {
+      if (now - entry.timestamp > entry.ttlMs) {
+        this.memoryCache.delete(key);
+        if (this.isBrowser()) {
+          try {
+            sessionStorage.removeItem(`eve_cache_${key}`);
+          } catch {}
+        }
+      }
+    }
   }
 
   /**
