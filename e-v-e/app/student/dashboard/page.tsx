@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Rocket,
   BookOpen,
@@ -15,6 +16,9 @@ import {
   GraduationCap,
   PlusCircle,
   Crown,
+  Search,
+  X,
+  Layers,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
@@ -22,14 +26,21 @@ import { auth, db } from "@/lib/firebase";
 import { cacheService } from "@/lib/cacheService";
 
 export default function StudentDashboardPage() {
+  const router = useRouter();
   const { currentUser, profile } = useAuthAdapter();
   const displayName = currentUser?.name || currentUser?.displayName || profile?.fullName || "Học Viên E-V-E";
   const displayCoins = currentUser?.coins ?? profile?.coins ?? 450;
 
   const [enrolledClasses, setEnrolledClasses] = useState<any[]>([]);
   const [availableGames, setAvailableGames] = useState<any[]>([]);
+  const [coursesList, setCoursesList] = useState<any[]>([]);
   const [topRankings, setTopRankings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal State for Extra Data Selection
+  const [selectedGameForPlay, setSelectedGameForPlay] = useState<any | null>(null);
+  const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
+  const [courseSearch, setCourseSearch] = useState("");
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -86,12 +97,50 @@ export default function StudentDashboardPage() {
           }
         }
 
-        // 2. Fetch Games List from Firestore
+        // 2. Fetch Courses List for extra data injection
+        const coursesSnap = await getDocs(collection(db, "courses"));
+        const cl: any[] = [];
+        coursesSnap.docs.forEach((d) => {
+          const cd = d.data();
+          cl.push({
+            id: d.id,
+            title: cd.title || d.id,
+            description: cd.description || "",
+            pairsCount: Array.isArray(cd.pairs) ? cd.pairs.length : 10,
+            authorName: cd.authorName || "Giảng viên",
+            tags: Array.isArray(cd.tags) ? cd.tags : ["Lập trình"],
+          });
+        });
+
+        if (cl.length === 0) {
+          cl.push(
+            {
+              id: "crs_python_foundation",
+              title: "Lập Trình Python Cơ Bản",
+              description: "Biến, kiểu dữ liệu, vòng lặp và câu lệnh rẽ nhánh trong Python.",
+              pairsCount: 12,
+              authorName: "ThS. Nguyễn Nhật Anh",
+              tags: ["Python", "Cơ bản"],
+            },
+            {
+              id: "crs_data_structures",
+              title: "Cấu Trúc Dữ Liệu & Giải Thuật",
+              description: "Mảng, danh sách liên kết, cây nhị phân và đồ thị.",
+              pairsCount: 15,
+              authorName: "ThS. Nguyễn Thành Đạt",
+              tags: ["Thuật toán", "DSA"],
+            }
+          );
+        }
+        setCoursesList(cl);
+
+        // 3. Fetch Games List from Firestore
         const gamesSnap = await getDocs(collection(db, "game_info"));
         let gamesList: any[] = [];
 
         gamesSnap.docs.forEach((d) => {
           const data = d.data();
+          const needExtraData = data.needExtraData !== false;
           gamesList.push({
             id: d.id,
             title: data.title || data.name || "Minigame Giáo Dục",
@@ -99,7 +148,7 @@ export default function StudentDashboardPage() {
             genre: data.genre || "Minigame",
             reward: `+${data.rewardCoins || 50} Coins`,
             badge: data.badge || "HOT",
-            href: `/student/play/${d.id}/crs_coding_basics`,
+            needExtraData,
           });
         });
 
@@ -112,7 +161,7 @@ export default function StudentDashboardPage() {
               genre: "Game Trí Nhớ 3D",
               reward: "+50 Coins",
               badge: "NỔI BẬT",
-              href: "/student/play/game_card_match_vr/crs_coding_basics",
+              needExtraData: true,
             },
             {
               id: "boss_battle_quiz",
@@ -121,14 +170,14 @@ export default function StudentDashboardPage() {
               genre: "Trắc Nghiệm Phản Xạ",
               reward: "+60 Coins",
               badge: "THỬ THÁCH",
-              href: "/student/play/boss_battle_quiz/crs_python_foundation",
+              needExtraData: true,
             },
           ];
         }
 
         setAvailableGames(gamesList.slice(0, 3));
 
-        // 3. Fetch Real Top Rankings from Users
+        // 4. Fetch Real Top Rankings from Users
         const userSnap = await getDocs(collection(db, "users"));
         const students = userSnap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
@@ -152,6 +201,28 @@ export default function StudentDashboardPage() {
 
     loadDashboardData();
   }, []);
+
+  const handleLaunchGame = (game: any) => {
+    if (game.needExtraData) {
+      setSelectedGameForPlay(game);
+      setCourseSearch("");
+      setIsCourseModalOpen(true);
+    } else {
+      router.push(`/student/play/${game.id}/default`);
+    }
+  };
+
+  const handleSelectCourseToPlay = (courseId: string) => {
+    if (!selectedGameForPlay) return;
+    setIsCourseModalOpen(false);
+    router.push(`/student/play/${selectedGameForPlay.id}/${courseId}`);
+  };
+
+  const filteredCourses = coursesList.filter((c) => {
+    if (!courseSearch.trim()) return true;
+    const q = courseSearch.toLowerCase();
+    return c.title.toLowerCase().includes(q) || c.description.toLowerCase().includes(q);
+  });
 
   return (
     <div className="space-y-8 pb-12 font-sans">
@@ -309,12 +380,13 @@ export default function StudentDashboardPage() {
 
               <div className="pt-3 border-t border-zinc-100 flex items-center justify-between">
                 <span className="text-xs text-zinc-500">{game.genre}</span>
-                <Link
-                  href={game.href}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm"
+                <button
+                  onClick={() => handleLaunchGame(game)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm cursor-pointer"
                 >
-                  <Play className="w-3 h-3" /> Chơi Ngay
-                </Link>
+                  <Play className="w-3 h-3 fill-white" />
+                  <span>{game.needExtraData ? "Chọn Khóa Học & Chơi" : "Chơi Ngay"}</span>
+                </button>
               </div>
             </div>
           ))}
@@ -370,6 +442,80 @@ export default function StudentDashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* ================= MODAL CHỌN KHÓA HỌC CHO MINIGAME ================= */}
+      {isCourseModalOpen && selectedGameForPlay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <div className="w-full max-w-xl rounded-2xl bg-white border-2 border-red-600 p-6 shadow-2xl space-y-5 max-h-[85vh] flex flex-col justify-between animate-in fade-in zoom-in duration-150">
+            <div className="flex items-start justify-between gap-4 pb-3 border-b border-zinc-200">
+              <div>
+                <span className="text-[10px] text-red-600 font-bold uppercase tracking-wider block">
+                  Nạp câu hỏi & học liệu bài giảng
+                </span>
+                <h3 className="text-lg font-bold text-zinc-900 mt-0.5">
+                  Chọn Khóa Học Cho &ldquo;{selectedGameForPlay.title}&rdquo;
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsCourseModalOpen(false)}
+                className="p-1.5 rounded-lg bg-zinc-100 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-600 leading-relaxed">
+              Trò chơi này yêu cầu nạp bộ câu hỏi / thuật ngữ từ bài học để tính điểm và tạo màn chơi tương tác. Hãy chọn một khóa học bên dưới:
+            </p>
+
+            <div className="relative">
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={courseSearch}
+                onChange={(e) => setCourseSearch(e.target.value)}
+                placeholder="Tìm tên khóa học hoặc chủ đề..."
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-zinc-50 border border-zinc-300 focus:border-red-600 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none"
+              />
+            </div>
+
+            <div className="space-y-2.5 overflow-y-auto max-h-[280px] pr-1">
+              {filteredCourses.length === 0 ? (
+                <div className="py-8 text-center text-xs text-zinc-500">
+                  Không tìm thấy khóa học phù hợp với từ khóa.
+                </div>
+              ) : (
+                filteredCourses.map((course) => (
+                  <div
+                    key={course.id}
+                    onClick={() => handleSelectCourseToPlay(course.id)}
+                    className="p-3.5 rounded-xl bg-zinc-50 hover:bg-red-50 border border-zinc-200 hover:border-red-400 transition-all flex items-center justify-between gap-3 cursor-pointer group"
+                  >
+                    <div>
+                      <h4 className="text-xs font-bold text-zinc-900 group-hover:text-red-600 transition-colors">
+                        {course.title}
+                      </h4>
+                      <p className="text-[11px] text-zinc-500 line-clamp-1 mt-0.5">{course.description}</p>
+                    </div>
+                    <button className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-[11px] font-bold shrink-0 hover:bg-red-700 transition">
+                      Nạp & Chơi
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-zinc-200 text-right">
+              <button
+                onClick={() => setIsCourseModalOpen(false)}
+                className="px-4 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
