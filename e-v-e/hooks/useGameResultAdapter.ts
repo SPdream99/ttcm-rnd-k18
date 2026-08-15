@@ -1,73 +1,65 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { GameResult, StudentLeaderboardItem } from "@/core/entities/GameResult";
+import { useMemo, useState, useEffect } from "react";
 import { FirestoreGameResultRepo } from "@/infrastructure/repositories/FirestoreGameResultRepo";
-import { MockGameResultRepo } from "@/infrastructure/repositories/MockGameResultRepo";
 import {
   SubmitGameResultUseCase,
   GetStudentGameResultsUseCase,
   GetTopMonthlyStudentsUseCase,
 } from "@/core/use-cases/GameResultUseCases";
+import { GameResult } from "@/core/entities/GameResult";
 import { SubmitGameResultInput } from "@/core/ports/GameResultPort";
 
-export function useGameResultAdapter(uid?: string) {
-  const [results, setResults] = useState<GameResult[]>([]);
-  const [topStudents, setTopStudents] = useState<StudentLeaderboardItem[]>([]);
+export function useGameResultAdapter(userId?: string) {
+  const [userResults, setUserResults] = useState<GameResult[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const repo = useMemo(() => {
-    return process.env.NEXT_PUBLIC_USE_MOCK === "true"
-      ? new MockGameResultRepo()
-      : new FirestoreGameResultRepo();
-  }, []);
+  const gameResultRepo = useMemo(() => new FirestoreGameResultRepo(), []);
 
-  const submitUseCase = useMemo(() => new SubmitGameResultUseCase(repo), [repo]);
-  const getResultsUseCase = useMemo(() => new GetStudentGameResultsUseCase(repo), [repo]);
-  const getTopUseCase = useMemo(() => new GetTopMonthlyStudentsUseCase(repo), [repo]);
+  const submitResultUseCase = useMemo(
+    () => new SubmitGameResultUseCase(gameResultRepo),
+    [gameResultRepo]
+  );
+  const getResultsByUserUseCase = useMemo(
+    () => new GetStudentGameResultsUseCase(gameResultRepo),
+    [gameResultRepo]
+  );
+  const getTopMonthlyUseCase = useMemo(
+    () => new GetTopMonthlyStudentsUseCase(gameResultRepo),
+    [gameResultRepo]
+  );
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      if (uid) {
-        const userResults = await getResultsUseCase.execute(uid);
-        setResults(userResults);
-      }
-      const leaderboard = await getTopUseCase.execute(10);
-      setTopStudents(leaderboard);
-    } catch (err: any) {
-      setError(err.message || "Lỗi tải kết quả chơi game.");
-    } finally {
+  const loadData = async () => {
+    if (!userId) {
       setLoading(false);
+      return;
     }
-  }, [uid, getResultsUseCase, getTopUseCase]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const submitResult = async (input: SubmitGameResultInput) => {
     setLoading(true);
     try {
-      const res = await submitUseCase.execute(input);
-      setResults((prev) => [res, ...prev]);
-      // Refresh top leaderboard after submission
-      const updatedTop = await getTopUseCase.execute(10);
-      setTopStudents(updatedTop);
-      return { success: true, result: res };
-    } catch (err: any) {
-      return { success: false, error: err.message };
+      const data = await getResultsByUserUseCase.execute(userId);
+      setUserResults(data);
+    } catch (err) {
+      console.error("Error loading game results:", err);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadData();
+  }, [userId]);
+
+  const submitGameResult = async (input: SubmitGameResultInput) => {
+    return submitResultUseCase.execute(input);
+  };
+
+  const getTopMonthlyStudents = async (limitCount?: number) => {
+    return getTopMonthlyUseCase.execute(limitCount);
+  };
+
   return {
-    results,
-    topStudents,
+    userResults,
     loading,
-    error,
-    refresh: fetchData,
-    submitResult,
+    submitGameResult,
+    getTopMonthlyStudents,
+    reload: loadData,
   };
 }

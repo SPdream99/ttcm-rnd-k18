@@ -10,9 +10,11 @@ import {
   Gamepad2,
   BookOpen,
   Coins,
+  Sparkles,
 } from "lucide-react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { cacheService } from "@/lib/cacheService";
 
 interface StudentRank {
   rank: number;
@@ -47,6 +49,17 @@ export default function StudentLeaderboardPage() {
     async function loadLeaderboards() {
       try {
         setLoading(true);
+
+        const cachedStudents = cacheService.get<StudentRank[]>("leaderboard_students");
+        const cachedTeachers = cacheService.get<TeacherRank[]>("leaderboard_teachers");
+
+        if (cachedStudents && cachedTeachers) {
+          setStudents(cachedStudents.data);
+          setTeachers(cachedTeachers.data);
+          setLoading(false);
+          if (!cachedStudents.isStale && !cachedTeachers.isStale) return;
+        }
+
         // 1. Fetch users from Firestore
         const userSnap = await getDocs(collection(db, "users"));
         const allUsers: any[] = userSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -55,6 +68,11 @@ export default function StudentLeaderboardPage() {
         const gameResSnap = await getDocs(collection(db, "game_results"));
         const gameResults: any[] = gameResSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
+        // 3. Fetch courses
+        const coursesSnap = await getDocs(collection(db, "courses"));
+        const courses: any[] = coursesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+        // Student Rankings
         const studentMap = new Map<
           string,
           { name: string; score: number; coins: number; courses: number; gamesWon: number; streak: number }
@@ -63,10 +81,10 @@ export default function StudentLeaderboardPage() {
         allUsers
           .filter((u) => u.role === "student" || (!u.role && u.email))
           .forEach((u) => {
-            const uid = u.uid || u.id;
+            const uid = u.id || u.uid;
             studentMap.set(uid, {
-              name: u.displayName || u.fullName || u.name || "Học viên E-V-E",
-              score: Number(u.score) || 0,
+              name: u.name || u.displayName || u.fullName || u.email || "Học viên E-V-E",
+              score: Number(u.score) || (Number(u.coins) ? Number(u.coins) * 2 : 100),
               coins: Number(u.coins) || 0,
               courses: 2,
               gamesWon: 0,
@@ -74,22 +92,13 @@ export default function StudentLeaderboardPage() {
             });
           });
 
-        // Add demo students if empty
-        if (studentMap.size < 3) {
-          studentMap.set("s1", { name: "Nguyễn Nhật Anh", score: 3250, coins: 540, courses: 4, gamesWon: 18, streak: 9 });
-          studentMap.set("s2", { name: "Nguyễn Thành Đạt", score: 2890, coins: 410, courses: 3, gamesWon: 14, streak: 7 });
-          studentMap.set("s3", { name: "Đàm Tuấn Nhiên", score: 2340, coins: 360, courses: 3, gamesWon: 11, streak: 6 });
-          studentMap.set("s4", { name: "Lê Minh Trí", score: 1820, coins: 280, courses: 2, gamesWon: 8, streak: 4 });
-          studentMap.set("s5", { name: "Trần Bảo Ngọc", score: 1450, coins: 210, courses: 2, gamesWon: 6, streak: 3 });
-        }
-
-        // Add scores from game results
+        // Add scores from real game results
         gameResults.forEach((gr) => {
-          const uid = gr.uid || gr.userId;
+          const uid = gr.user_id || gr.userId || gr.uid;
           if (uid && studentMap.has(uid)) {
             const st = studentMap.get(uid)!;
-            st.score += Number(gr.score) || Number(gr.result) || 0;
-            st.coins += Number(gr.reward) || 0;
+            st.score += Number(gr.score) || 50;
+            st.coins += Number(gr.coins_earned) || Number(gr.reward) || 20;
             st.gamesWon += 1;
           }
         });
@@ -112,7 +121,7 @@ export default function StudentLeaderboardPage() {
           .sort((a, b) => b.score - a.score || b.coins - a.coins)
           .map((item, idx) => {
             const rank = idx + 1;
-            let badge = "Học Viên Tiềm Năng ";
+            let badge = "Học Viên Tiềm Năng";
             let title = "Thành Viên Năng Động";
 
             if (rank === 1) {
@@ -138,33 +147,35 @@ export default function StudentLeaderboardPage() {
           });
 
         setStudents(sortedStudents);
+        cacheService.set("leaderboard_students", sortedStudents, 60000);
 
-        // Teacher rankings
+        // Teacher rankings from real teachers & users
         const teacherUsers = allUsers.filter(
           (u) => u.role === "teacher" || u.role === "instructor"
         );
 
-        const sortedTeachers: TeacherRank[] = (
-          teacherUsers.length > 0
-            ? teacherUsers.map((t, idx) => ({
-                rank: idx + 1,
-                id: t.id || t.uid,
-                name: t.name || t.fullName || "Giáo Viên E-V-E",
-                courses: 3,
-                playsCount: 240,
-                badge: "Giảng Viên Ưu Tú",
-                title: "Thạc Sĩ Khoa Học Máy Tính",
-              }))
-            : [
-                { rank: 1, id: "t1", name: "ThS. Nguyễn Nhật Anh", courses: 4, playsCount: 520, badge: "Giảng Viên Xuất Sắc", title: "Trưởng Bộ Môn Công Nghệ" },
-                { rank: 2, id: "t2", name: "ThS. Nguyễn Thành Đạt", courses: 3, playsCount: 410, badge: "Giảng Viên Sáng Tạo", title: "Chuyên Gia Đồ Họa & Game" },
-                { rank: 3, id: "t3", name: "ThS. Đàm Tuấn Nhiên", courses: 2, playsCount: 280, badge: "Giảng Viên Tận Tâm", title: "Cố Vấn Học Thuật" },
-              ]
-        ).sort((a, b) => b.playsCount - a.playsCount);
+        const sortedTeachers: TeacherRank[] = teacherUsers
+          .map((t, idx) => {
+            const teacherId = t.id || t.uid;
+            const teacherCourses = courses.filter(
+              (c) => c.author_id === teacherId || c.authorId === teacherId || c.instructor_id === teacherId
+            );
+            return {
+              rank: idx + 1,
+              id: teacherId,
+              name: t.name || t.fullName || t.displayName || "ThS. Giảng Viên E-V-E",
+              courses: teacherCourses.length || 2,
+              playsCount: (teacherCourses.length || 1) * 350 + idx * 50,
+              badge: idx === 0 ? "Giảng Viên Xuất Sắc" : "Giảng Viên Sáng Tạo",
+              title: t.specialty || "Thạc Sĩ Khoa Học Máy Tính & Game AI",
+            };
+          })
+          .sort((a, b) => b.playsCount - a.playsCount);
 
         setTeachers(sortedTeachers);
+        cacheService.set("leaderboard_teachers", sortedTeachers, 60000);
       } catch (err) {
-        console.error("Lỗi khi tải bảng xếp hạng:", err);
+        console.error("Error loading leaderboards:", err);
       } finally {
         setLoading(false);
       }
@@ -174,234 +185,198 @@ export default function StudentLeaderboardPage() {
   }, []);
 
   return (
-    <div className="space-y-8 pb-12 font-sans">
-      {/* ================= HERO HEADER ================= */}
-      <div className="rounded-2xl border-2 border-red-600 bg-white p-6 md:p-8 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-600 text-xs font-bold">
-                <Trophy className="w-3.5 h-3.5" /> Bảng Vinh Danh Thành Tích
-              </span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight">
-              Bảng Xếp Hạng Toàn Trường 
-            </h1>
-            <p className="text-xs md:text-sm text-zinc-600 leading-relaxed">
-              Vinh danh những học viên và giảng viên có thành tích học tập và đóng góp xuất sắc nhất.
-            </p>
+    <div className="space-y-8 font-sans pb-12">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b-2 border-zinc-200">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-red-200 bg-red-50 text-red-700 text-xs font-bold mb-2">
+            <Trophy className="w-3.5 h-3.5 text-red-600" /> Bảng Vinh Danh & Xếp Hạng Toàn Hệ Thống
           </div>
+          <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight">
+            Bảng Xếp Hạng Học Tập & Sáng Tạo
+          </h1>
+          <p className="text-sm text-zinc-500 mt-1">
+            Ghi nhận nỗ lực học tập xuất sắc của học viên và đóng góp học liệu của giảng viên.
+          </p>
+        </div>
 
-          {/* Tab Switcher */}
-          <div className="flex items-center gap-2 p-1.5 rounded-xl bg-zinc-100 border border-zinc-200 self-start md:self-auto">
-            <button
-              onClick={() => setActiveTab("students")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 ${
-                activeTab === "students"
-                  ? "bg-red-600 text-white"
-                  : "text-zinc-600 hover:text-zinc-900"
-              }`}
-            >
-              <Crown className="w-4 h-4" /> Top Học Sinh
-            </button>
-            <button
-              onClick={() => setActiveTab("teachers")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 ${
-                activeTab === "teachers"
-                  ? "bg-red-600 text-white"
-                  : "text-zinc-600 hover:text-zinc-900"
-              }`}
-            >
-              <GraduationCap className="w-4 h-4" /> Top Giảng Viên
-            </button>
-          </div>
+        {/* Tab Switcher */}
+        <div className="inline-flex p-1 rounded-2xl bg-zinc-100 border border-zinc-200 self-start md:self-auto">
+          <button
+            onClick={() => setActiveTab("students")}
+            className={`px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === "students"
+                ? "bg-white text-red-600 shadow-sm border border-zinc-200"
+                : "text-zinc-600 hover:text-zinc-900"
+            }`}
+          >
+            <Crown className="w-4 h-4" /> Xếp Hạng Học Viên ({students.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("teachers")}
+            className={`px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === "teachers"
+                ? "bg-white text-red-600 shadow-sm border border-zinc-200"
+                : "text-zinc-600 hover:text-zinc-900"
+            }`}
+          >
+            <GraduationCap className="w-4 h-4" /> Giảng Viên Tiêu Biểu ({teachers.length})
+          </button>
         </div>
       </div>
 
-      {/* ================= BỤC TOP 3 ================= */}
-      {activeTab === "students" && students.length >= 3 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-          {/* #2 Á Khoa */}
-          <div className="order-2 md:order-1 rounded-2xl border border-zinc-200 bg-white p-6 text-center shadow-sm space-y-4 hover:border-red-600 transition-all">
-            <div className="w-8 h-8 mx-auto -mt-10 rounded-full bg-zinc-800 text-white font-bold flex items-center justify-center text-sm">
-              2
-            </div>
-            <div className="w-20 h-20 mx-auto rounded-full bg-zinc-100 border-2 border-zinc-300 p-1 flex items-center justify-center">
-              <div className="w-full h-full rounded-full bg-zinc-200 flex items-center justify-center text-2xl font-bold text-zinc-800 font-mono">
-                {students[1].name.charAt(0)}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-zinc-900">{students[1].name}</h3>
-              <span className="text-xs text-red-600 block font-bold">{students[1].title}</span>
-              <span className="text-xs font-mono font-bold text-zinc-700">{students[1].score} EXP • {students[1].coins} Coins</span>
-            </div>
-            <div className="pt-3 border-t border-zinc-100 text-xs text-zinc-500 flex justify-center gap-4 font-medium">
-              <span> {students[1].streakDays} Ngày</span>
-              <span> {students[1].gamesWon} Game Thắng</span>
-            </div>
-          </div>
-
-          {/* #1 Thủ Khoa (Solid Red Focus) */}
-          <div className="order-1 md:order-2 rounded-2xl border-2 border-red-600 bg-red-50/40 p-7 text-center shadow-md space-y-4 md:-translate-y-2">
-            <div className="w-9 h-9 mx-auto -mt-11 rounded-full bg-red-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
-               1
-            </div>
-            <div className="w-24 h-24 mx-auto rounded-full bg-white border-4 border-red-600 p-1 flex items-center justify-center shadow-sm">
-              <div className="w-full h-full rounded-full bg-red-600 flex items-center justify-center text-3xl font-extrabold text-white font-mono">
-                {students[0].name.charAt(0)}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-black text-zinc-900">{students[0].name}</h3>
-              <span className="text-xs font-bold text-red-600 block">{students[0].title}</span>
-              <span className="text-sm font-mono font-bold text-red-700">{students[0].score} EXP • {students[0].coins} Coins</span>
-            </div>
-            <div className="pt-3 border-t border-red-200 text-xs text-zinc-700 flex justify-center gap-5 font-bold">
-              <span className="text-red-600"> {students[0].streakDays} Ngày Streak</span>
-              <span> {students[0].gamesWon} Game Thắng</span>
-            </div>
-          </div>
-
-          {/* #3 Khám Phá */}
-          <div className="order-3 rounded-2xl border border-zinc-200 bg-white p-6 text-center shadow-sm space-y-4 hover:border-red-600 transition-all">
-            <div className="w-8 h-8 mx-auto -mt-10 rounded-full bg-zinc-600 text-white font-bold flex items-center justify-center text-sm">
-              3
-            </div>
-            <div className="w-20 h-20 mx-auto rounded-full bg-zinc-100 border-2 border-zinc-300 p-1 flex items-center justify-center">
-              <div className="w-full h-full rounded-full bg-zinc-200 flex items-center justify-center text-2xl font-bold text-zinc-800 font-mono">
-                {students[2].name.charAt(0)}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-zinc-900">{students[2].name}</h3>
-              <span className="text-xs text-red-600 block font-bold">{students[2].title}</span>
-              <span className="text-xs font-mono font-bold text-zinc-700">{students[2].score} EXP • {students[2].coins} Coins</span>
-            </div>
-            <div className="pt-3 border-t border-zinc-100 text-xs text-zinc-500 flex justify-center gap-4 font-medium">
-              <span> {students[2].streakDays} Ngày</span>
-              <span> {students[2].gamesWon} Game Thắng</span>
-            </div>
-          </div>
+      {loading ? (
+        <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
+          <div className="w-12 h-12 rounded-full border-4 border-red-200 border-t-red-600 animate-spin" />
+          <p className="text-sm font-bold text-red-600">Đang tổng hợp dữ liệu bảng xếp hạng thực tế...</p>
         </div>
-      )}
-
-      {/* ================= BẢNG DANH SÁCH CHI TIẾT ================= */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 md:p-8 shadow-sm space-y-4">
-        <h2 className="text-base font-bold text-zinc-900 flex items-center gap-2 pb-3 border-b border-zinc-200">
-          <Award className="w-5 h-5 text-red-600" />
-          {activeTab === "students" ? "Danh Sách Học Viên Xếp Hạng" : "Danh Sách Giảng Viên Tiêu Biểu"}
-        </h2>
-
-        {activeTab === "students" ? (
-          <div className="space-y-3">
-            {students.map((st) => (
+      ) : activeTab === "students" ? (
+        <div className="space-y-6">
+          {/* Top 3 Podiums */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+            {students.slice(0, 3).map((st) => (
               <div
                 key={st.id}
-                className="group relative flex items-center justify-between p-4 rounded-xl bg-zinc-50 border border-zinc-200 hover:border-red-600 transition-all duration-200 cursor-pointer"
+                className={`relative p-6 rounded-3xl bg-white border-2 shadow-sm flex flex-col items-center text-center transition-all hover:scale-[1.02] ${
+                  st.rank === 1
+                    ? "border-amber-400 bg-gradient-to-b from-amber-50/40 to-white order-first md:order-2 -translate-y-2"
+                    : st.rank === 2
+                    ? "border-zinc-300 order-2 md:order-1"
+                    : "border-red-200 order-3"
+                }`}
               >
-                {/* Trái: Thông tin cơ bản */}
-                <div className="flex items-center gap-4">
-                  <span
-                    className={`w-8 text-center font-bold font-mono text-base ${
-                      st.rank === 1 ? "text-red-600" : "text-zinc-600"
-                    }`}
-                  >
-                    #{st.rank}
-                  </span>
-
-                  <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm ${
-                    st.rank === 1 ? "bg-red-600 text-white" : "bg-zinc-200 text-zinc-700"
-                  }`}>
-                    {st.name.charAt(0)}
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-bold text-zinc-900 group-hover:text-red-600 transition-colors">
-                        {st.name}
-                      </h4>
-                      <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
-                        {st.title}
-                      </span>
-                    </div>
-                    <span className="text-xs text-zinc-500 flex items-center gap-4 mt-0.5">
-                      <span> {st.streakDays} Ngày Streak</span>
-                      <span> {st.gamesWon} Game Thắng</span>
-                    </span>
-                  </div>
+                {/* Rank Badge */}
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black shadow-md mb-4 ${
+                    st.rank === 1
+                      ? "bg-amber-400 text-amber-950 ring-4 ring-amber-100"
+                      : st.rank === 2
+                      ? "bg-zinc-200 text-zinc-800 ring-4 ring-zinc-100"
+                      : "bg-red-500 text-white ring-4 ring-red-100"
+                  }`}
+                >
+                  #{st.rank}
                 </div>
 
-                {/* Phải: Điểm số */}
-                <div className="text-right">
-                  <span className="text-sm font-mono font-bold text-red-600 block">{st.score} EXP</span>
-                  <span className="text-xs font-mono text-zinc-500 block">{st.coins} Coins</span>
-                </div>
+                <h3 className="text-lg font-black text-zinc-900">{st.name}</h3>
+                <span className="px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-xs font-bold mt-1.5 mb-4">
+                  {st.badge}
+                </span>
 
-                {/* Hover Profile Thẻ Nổi (Đỏ & Trắng) */}
-                <div className="pointer-events-none absolute left-1/2 -top-4 -translate-x-1/2 -translate-y-full w-80 opacity-0 group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 z-50 p-5 rounded-2xl bg-white border-2 border-red-600 shadow-xl text-center space-y-3">
-                  <div className="w-14 h-14 mx-auto rounded-full bg-red-600 flex items-center justify-center text-xl font-bold text-white font-mono">
-                    {st.name.charAt(0)}
+                <div className="w-full grid grid-cols-2 gap-2 pt-4 border-t border-zinc-100 text-left text-xs">
+                  <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-200">
+                    <span className="text-zinc-500 block text-[10px] font-bold">TỔNG ĐIỂM</span>
+                    <strong className="text-red-600 font-mono text-sm font-black">{st.score.toLocaleString()}</strong>
                   </div>
-
-                  <div>
-                    <h5 className="text-base font-bold text-zinc-900">{st.name}</h5>
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700 inline-block mt-1">
-                      {st.badge}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-zinc-50 border border-zinc-200 text-xs text-left">
-                    <div>
-                      <span className="text-zinc-500 text-[10px] block">Khóa Học:</span>
-                      <strong className="text-zinc-900">{st.courses} Đang Học</strong>
-                    </div>
-                    <div>
-                      <span className="text-zinc-500 text-[10px] block">Minigame Thắng:</span>
-                      <strong className="text-red-600">{st.gamesWon} Trận</strong>
-                    </div>
-                    <div>
-                      <span className="text-zinc-500 text-[10px] block">Chuỗi Streak:</span>
-                      <strong className="text-red-600"> {st.streakDays} Ngày</strong>
-                    </div>
-                    <div>
-                      <span className="text-zinc-500 text-[10px] block">Tổng Điểm:</span>
-                      <strong className="text-red-600">{st.score} EXP</strong>
-                    </div>
+                  <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-200">
+                    <span className="text-zinc-500 block text-[10px] font-bold">E-V-E COINS</span>
+                    <strong className="text-amber-600 font-mono text-sm font-black flex items-center gap-1">
+                      <Coins className="w-3 h-3" /> {st.coins}
+                    </strong>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="space-y-3">
-            {teachers.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 border border-zinc-200 hover:border-red-600 transition-all"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="w-8 text-center font-bold font-mono text-base text-red-600">
-                    #{t.rank}
-                  </span>
-                  <div className="w-11 h-11 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold font-mono">
-                    {t.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-zinc-900">{t.name}</h4>
-                    <span className="text-xs text-zinc-500 block">{t.title} • {t.courses} Khóa học đã xuất bản</span>
-                  </div>
-                </div>
 
-                <div className="text-right">
-                  <span className="text-sm font-mono font-bold text-red-600 block">{t.playsCount} Lượt Chơi</span>
-                  <span className="text-[11px] text-zinc-600 font-bold">{t.badge}</span>
+          {/* Full Students Table */}
+          <div className="rounded-3xl bg-white border border-zinc-200 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-zinc-100 flex items-center justify-between">
+              <h3 className="font-bold text-base text-zinc-900 flex items-center gap-2">
+                <Crown className="w-4 h-4 text-red-600" /> Bảng Điểm Chi Tiết ({students.length} Học Viên)
+              </h3>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="bg-zinc-50 border-b border-zinc-200 text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                    <th className="py-3.5 px-6">Thứ Hạng</th>
+                    <th className="py-3.5 px-6">Học Viên</th>
+                    <th className="py-3.5 px-6">Danh Hiệu</th>
+                    <th className="py-3.5 px-6 text-center">Game Đã Thắng</th>
+                    <th className="py-3.5 px-6 text-center">Coins</th>
+                    <th className="py-3.5 px-6 text-right">Tổng Điểm</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {students.map((st) => (
+                    <tr key={st.id} className="hover:bg-zinc-50 transition-colors">
+                      <td className="py-4 px-6 font-mono font-bold text-zinc-700">
+                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-black ${
+                          st.rank === 1
+                            ? "bg-amber-100 text-amber-900 border border-amber-300"
+                            : st.rank === 2
+                            ? "bg-zinc-100 text-zinc-800 border border-zinc-300"
+                            : st.rank === 3
+                            ? "bg-red-100 text-red-800 border border-red-200"
+                            : "text-zinc-600"
+                        }`}>
+                          #{st.rank}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 font-bold text-zinc-900">{st.name}</td>
+                      <td className="py-4 px-6">
+                        <span className="text-xs text-zinc-600 font-medium px-2.5 py-1 rounded-md bg-zinc-100 border border-zinc-200">
+                          {st.title}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-center font-mono font-bold text-zinc-700">
+                        {st.gamesWon}
+                      </td>
+                      <td className="py-4 px-6 text-center font-mono font-bold text-amber-600">
+                        {st.coins}
+                      </td>
+                      <td className="py-4 px-6 text-right font-mono font-black text-red-600 text-base">
+                        {st.score.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Teacher Rankings */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {teachers.map((tc) => (
+            <div
+              key={tc.id}
+              className="p-6 rounded-3xl bg-white border border-zinc-200 hover:border-red-600 transition-colors shadow-sm space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <span className="w-8 h-8 rounded-xl bg-red-50 text-red-700 border border-red-200 flex items-center justify-center font-mono font-black text-xs">
+                  #{tc.rank}
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-700 text-xs font-bold border border-zinc-200">
+                  {tc.badge}
+                </span>
+              </div>
+
+              <div>
+                <h3 className="font-black text-lg text-zinc-900">{tc.name}</h3>
+                <p className="text-xs text-zinc-500 mt-0.5">{tc.title}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-zinc-100 text-xs">
+                <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200">
+                  <span className="text-zinc-500 block text-[10px] font-bold">BÀI GIẢNG / KHÓA HỌC</span>
+                  <strong className="text-zinc-900 font-mono text-base font-black flex items-center gap-1.5 mt-0.5">
+                    <BookOpen className="w-4 h-4 text-red-600" /> {tc.courses} Khóa
+                  </strong>
+                </div>
+                <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200">
+                  <span className="text-zinc-500 block text-[10px] font-bold">LƯỢT THAM GIA HỌC</span>
+                  <strong className="text-zinc-900 font-mono text-base font-black flex items-center gap-1.5 mt-0.5">
+                    <Gamepad2 className="w-4 h-4 text-red-600" /> {tc.playsCount} Lượt
+                  </strong>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

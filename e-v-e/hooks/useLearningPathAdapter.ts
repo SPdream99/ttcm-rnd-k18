@@ -1,101 +1,59 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { LearningPath } from "@/core/entities/LearningPath";
+import { useMemo, useState, useEffect } from "react";
 import { FirestoreLearningPathRepo } from "@/infrastructure/repositories/FirestoreLearningPathRepo";
-import { MockLearningPathRepo } from "@/infrastructure/repositories/MockLearningPathRepo";
 import {
+  GetLearningPathDetailsUseCase,
   GetAcceptedLearningPathsUseCase,
   GetLearningPathsByAuthorUseCase,
   CreateLearningPathUseCase,
   ApproveLearningPathUseCase,
   DeleteLearningPathUseCase,
 } from "@/core/use-cases/LearningPathUseCases";
+import { LearningPath } from "@/core/entities/LearningPath";
 import { CreateLearningPathInput } from "@/core/ports/LearningPathPort";
 
 export function useLearningPathAdapter(authorId?: string) {
   const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const repo = useMemo(() => {
-    return process.env.NEXT_PUBLIC_USE_MOCK === "true"
-      ? new MockLearningPathRepo()
-      : new FirestoreLearningPathRepo();
-  }, []);
+  const learningPathRepo = useMemo(() => new FirestoreLearningPathRepo(), []);
 
-  const getAcceptedUseCase = useMemo(() => new GetAcceptedLearningPathsUseCase(repo), [repo]);
-  const getByAuthorUseCase = useMemo(() => new GetLearningPathsByAuthorUseCase(repo), [repo]);
-  const createUseCase = useMemo(() => new CreateLearningPathUseCase(repo), [repo]);
-  const approveUseCase = useMemo(() => new ApproveLearningPathUseCase(repo), [repo]);
-  const deleteUseCase = useMemo(() => new DeleteLearningPathUseCase(repo), [repo]);
+  const getDetailsUseCase = useMemo(() => new GetLearningPathDetailsUseCase(learningPathRepo), [learningPathRepo]);
+  const getAcceptedUseCase = useMemo(() => new GetAcceptedLearningPathsUseCase(learningPathRepo), [learningPathRepo]);
+  const getByAuthorUseCase = useMemo(() => new GetLearningPathsByAuthorUseCase(learningPathRepo), [learningPathRepo]);
+  const createUseCase = useMemo(() => new CreateLearningPathUseCase(learningPathRepo), [learningPathRepo]);
+  const approveUseCase = useMemo(() => new ApproveLearningPathUseCase(learningPathRepo), [learningPathRepo]);
+  const deleteUseCase = useMemo(() => new DeleteLearningPathUseCase(learningPathRepo), [learningPathRepo]);
 
-  const fetchPaths = useCallback(async () => {
+  const loadData = async () => {
     setLoading(true);
-    setError(null);
     try {
-      let data: LearningPath[];
       if (authorId) {
-        data = await getByAuthorUseCase.execute(authorId);
+        const data = await getByAuthorUseCase.execute(authorId);
+        setLearningPaths(data);
       } else {
-        data = await getAcceptedUseCase.execute();
+        const data = await getAcceptedUseCase.execute();
+        setLearningPaths(data);
       }
-      setLearningPaths(data);
-    } catch (err: any) {
-      setError(err.message || "Lỗi tải danh sách lộ trình học tập.");
+    } catch (err) {
+      console.error("Error loading learning paths:", err);
     } finally {
       setLoading(false);
     }
-  }, [authorId, getAcceptedUseCase, getByAuthorUseCase]);
+  };
 
   useEffect(() => {
-    fetchPaths();
-  }, [fetchPaths]);
-
-  const createLearningPath = async (input: CreateLearningPathInput) => {
-    setLoading(true);
-    try {
-      const created = await createUseCase.execute(input);
-      setLearningPaths((prev) => [created, ...prev]);
-      return { success: true, learningPath: created };
-    } catch (err: any) {
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const approveLearningPath = async (lpathId: string) => {
-    try {
-      const ok = await approveUseCase.execute(lpathId);
-      if (ok) {
-        setLearningPaths((prev) =>
-          prev.map((p) => (p.lpathId === lpathId ? { ...p, isAccepted: true } : p))
-        );
-      }
-      return ok;
-    } catch (err) {
-      return false;
-    }
-  };
-
-  const deleteLearningPath = async (lpathId: string) => {
-    try {
-      const ok = await deleteUseCase.execute(lpathId);
-      if (ok) {
-        setLearningPaths((prev) => prev.filter((p) => p.lpathId !== lpathId));
-      }
-      return ok;
-    } catch (err) {
-      return false;
-    }
-  };
+    loadData();
+  }, [authorId]);
 
   return {
     learningPaths,
     loading,
-    error,
-    refresh: fetchPaths,
-    createLearningPath,
-    approveLearningPath,
-    deleteLearningPath,
+    getLearningPathById: (id: string) => getDetailsUseCase.execute(id),
+    getAllLearningPaths: () => learningPathRepo.getAllLearningPaths(),
+    createLearningPath: (input: CreateLearningPathInput) => createUseCase.execute(input),
+    updateLearningPath: (id: string, data: Partial<LearningPath>) => learningPathRepo.updateLearningPath(id, data),
+    approveLearningPath: (id: string) => approveUseCase.execute(id),
+    deleteLearningPath: (id: string) => deleteUseCase.execute(id),
+    reload: loadData,
   };
 }
