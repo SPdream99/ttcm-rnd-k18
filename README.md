@@ -151,3 +151,14 @@ e-v-e/
 
 Dự án được nghiên cứu và phát triển bởi **Nhóm 1 — Lớp TTCM - RnD - K18 (MindX)**.  
 Dành cho mục đích học tập, nghiên cứu khoa học và báo cáo đồ án.
+
+---
+
+## 🤖 Đóng Góp & Hỗ Trợ Phát Triển Bởi Trí Tuệ Nhân Tạo (AI-Assisted Development)
+
+> [!NOTE]
+> **Dự án được phát triển với sự hỗ trợ và đóng góp của Trí Tuệ Nhân Tạo (AI)**:
+> - **Trợ lý lập trình & Tối ưu kiến trúc (AI Pair Programming)**: Thiết kế kiến trúc Clean Architecture, chuẩn hóa TypeScript, phát triển Next.js 16 Route Handlers, hệ thống phân quyền 3 lớp và cơ chế bảo mật xác thực OTP 2FA.
+> - **Tích hợp Google Gemini AI**: Tích hợp các mô hình ngôn ngữ lớn (LLM) để xây dựng hệ thống Gia sư sư phạm ảo (AI Tutor) 24/7 và Trợ lý soạn giáo án cho giáo viên.
+> - **Tối ưu trải nghiệm tương tác & Gamification**: Xây dựng bản đồ cây kỹ năng tuần tự, giao thức E-V-E Game SDK Preload Extra Data và kiểm duyệt gian lận tự động.
+
