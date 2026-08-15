@@ -81,7 +81,7 @@ export default function StudentLearningPathPage() {
         );
         const pathSnapshot = await getDocs(pathQuery);
 
-        // 2. Already enrolled
+        // 2. Lấy tất cả các lộ trình học sinh đã tham gia (cả đang học lẫn bảo lưu)
         let enrolledPathIds = new Set<string>();
         try {
           const enrollmentQuery = query(
@@ -92,22 +92,19 @@ export default function StudentLearningPathPage() {
 
           enrolledPathIds = new Set(
             enrollmentSnapshot.docs
-              .map((d) => {
-                const data = d.data();
-                return data.status === "active" ? data.learning_path_id : null;
-              })
+              .map((d) => d.data().learning_path_id)
               .filter(Boolean)
           );
         } catch {
           // ignore
         }
 
-        // 3. Filter unenrolled or all
+        // 3. Chỉ hiển thị các lộ trình MỚI mà học sinh CHƯA TỪNG tham gia
         const availablePaths = pathSnapshot.docs.filter(
           (d) => !enrolledPathIds.has(d.id)
         );
 
-        await loadTeachersAndSet(availablePaths.length > 0 ? availablePaths : pathSnapshot.docs);
+        await loadTeachersAndSet(availablePaths);
       } catch (err) {
         console.error("Error loading learning paths:", err);
         toast.error("Không thể tải danh sách Learning Path.", "Lỗi");

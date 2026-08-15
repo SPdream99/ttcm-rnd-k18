@@ -24,6 +24,7 @@ import {
   doc,
   updateDoc,
   setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
@@ -159,8 +160,20 @@ export default function StudentClassPage() {
     setActionLoading(true);
     try {
       const userUid = auth.currentUser?.uid || "usr_student";
-      const targetDocId =
-        modalAction.cls.enrollmentDocId || `${userUid}_${modalAction.cls.id}`;
+      const targetDocId = `${userUid}_${modalAction.cls.id}`;
+
+      // Xóa các document trùng lặp nếu có
+      const checkQ = query(
+        collection(db, "student_learning_path"),
+        where("student_id", "==", userUid),
+        where("learning_path_id", "==", modalAction.cls.id)
+      );
+      const existingSnap = await getDocs(checkQ);
+      for (const d of existingSnap.docs) {
+        if (d.id !== targetDocId) {
+          await deleteDoc(d.ref).catch(() => {});
+        }
+      }
 
       const docRef = doc(db, "student_learning_path", targetDocId);
       await setDoc(
