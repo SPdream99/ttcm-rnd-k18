@@ -49,16 +49,18 @@ export default function StudentLearningPathPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [learningPaths, setLearningPaths] = useState<LearningPath[]>(() => {
-    return cacheService.get<LearningPath[]>("student_learning_paths_page")?.data || [];
-  });
+  const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
   const [search, setSearch] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
-  const [loading, setLoading] = useState<boolean>(() => {
-    return !cacheService.get<LearningPath[]>("student_learning_paths_page");
-  });
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    // Đọc cache sau khi mount trên client để tránh lỗi hydration mismatch
+    const cached = cacheService.get<LearningPath[]>("student_learning_paths_page");
+    if (cached?.data && cached.data.length > 0) {
+      setLearningPaths(cached.data);
+      setLoading(false);
+    }
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (!user) {

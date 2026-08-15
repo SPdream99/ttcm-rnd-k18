@@ -52,12 +52,8 @@ interface ClassItem {
 
 export default function StudentClassPage() {
   const { toast } = useToast();
-  const [classes, setClasses] = useState<ClassItem[]>(() => {
-    return cacheService.get<ClassItem[]>("student_classes_page")?.data || [];
-  });
-  const [loading, setLoading] = useState<boolean>(() => {
-    return !cacheService.get<ClassItem[]>("student_classes_page");
-  });
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | "active" | "paused">("all");
   const [modalAction, setModalAction] = useState<{ cls: ClassItem; targetStatus: "active" | "paused" } | null>(null);
@@ -140,6 +136,12 @@ export default function StudentClassPage() {
   };
 
   useEffect(() => {
+    const cached = cacheService.get<ClassItem[]>("student_classes_page");
+    if (cached?.data && cached.data.length > 0) {
+      setClasses(cached.data);
+      setLoading(false);
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setClasses([]);
