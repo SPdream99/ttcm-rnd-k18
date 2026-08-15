@@ -22,7 +22,7 @@ const games = [
   {
     title: "Card Match",
     description: "Match the cards",
-    icon: "🃏",
+    icon: "",
     href: "/game/card-match",
   },
 ];

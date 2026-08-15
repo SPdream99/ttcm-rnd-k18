@@ -1,10 +1,10 @@
-# 🎮 E-V-E Game Engine Starter Kit (v2.0.0)
+#  E-V-E Game Engine Starter Kit (v2.0.0)
 
 Bộ mã nguồn mẫu chuẩn giúp Thầy/Cô và các Lập trình viên xây dựng minigame giáo dục tương thích 100% với nền tảng **E-V-E LMS Platform**.
 
 ---
 
-## 📁 Cấu trúc thư mục
+##  Cấu trúc thư mục
 
 ```
 starter_kit/
@@ -17,7 +17,7 @@ starter_kit/
 
 ---
 
-## 🚀 3 Bước Chạy & Nộp Game Cho Giáo Viên
+##  3 Bước Chạy & Nộp Game Cho Giáo Viên
 
 ### Bước 1: Kiểm thử trực tiếp trên máy (Offline Testing)
 * Nhấp đúp chuột vào file `index.html` (hoặc mở bằng VS Code Live Server).

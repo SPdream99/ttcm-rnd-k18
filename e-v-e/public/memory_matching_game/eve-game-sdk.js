@@ -101,7 +101,7 @@
 
         // Xử lý nạp dữ liệu từ LMS Host Container
         if (event.data.type === "EVE_INIT_GAME_DATA") {
-          console.log("[E-V-E SDK] ⚡ Nhận dữ liệu bài học Realtime từ Host qua postMessage:", event.data.payload);
+          console.log("[E-V-E SDK]  Nhận dữ liệu bài học Realtime từ Host qua postMessage:", event.data.payload);
           this.gameData = event.data.payload;
           this.isRealtimeConnected = true;
           if (event.data.payload?.sessionToken) {
@@ -159,7 +159,7 @@
 
       // Nếu chạy file:// cục bộ, nạp thẳng Offline Mock Simulator (tránh CORS fetch đỏ trên console)
       if (!isHttp) {
-        console.log("[E-V-E SDK] 🧪 Phát hiện môi trường Offline Local (file://). Kích hoạt Mock Simulator thành công với 5 câu hỏi mẫu.");
+        console.log("[E-V-E SDK]  Phát hiện môi trường Offline Local (file://). Kích hoạt Mock Simulator thành công với 5 câu hỏi mẫu.");
         this.gameData = OFFLINE_MOCK_DATA;
         this.sessionToken = OFFLINE_MOCK_DATA.sessionToken;
         this.isRealtimeConnected = false;
@@ -187,7 +187,7 @@
           this.gameData = result;
           this.sessionToken = result.sessionToken || null;
           this.isRealtimeConnected = true;
-          console.log("[E-V-E SDK] ✅ Đã kết nối Realtime với máy chủ E-V-E. Số câu hỏi:", result.pairs.length);
+          console.log("[E-V-E SDK]  Đã kết nối Realtime với máy chủ E-V-E. Số câu hỏi:", result.pairs.length);
 
           if (typeof this.onDataReadyCallback === "function") {
             this.onDataReadyCallback(result);
@@ -197,7 +197,7 @@
         throw new Error(result.error || "Không thể lấy dữ liệu khóa học");
       } catch (err) {
         // Kích hoạt Offline Simulator Mode dự phòng
-        console.warn("[E-V-E SDK] ⚠️ Chạy trong môi trường Offline / Simulator. Tự động nạp bộ câu hỏi mẫu:", err.message);
+        console.warn("[E-V-E SDK]  Chạy trong môi trường Offline / Simulator. Tự động nạp bộ câu hỏi mẫu:", err.message);
         this.gameData = OFFLINE_MOCK_DATA;
         this.sessionToken = OFFLINE_MOCK_DATA.sessionToken;
         this.isRealtimeConnected = false;

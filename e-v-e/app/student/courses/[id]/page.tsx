@@ -316,7 +316,7 @@ export default function CourseDetailPage() {
                 Bài học này thuộc lớp học đang ở trạng thái <strong>tạm dừng/bảo lưu</strong>. Bạn không thể chơi game hay tương tác làm bài tập cho đến khi kích hoạt lại lớp học.
               </p>
               <p className="text-xs text-amber-700 font-bold bg-amber-50 p-2.5 rounded-xl border border-amber-200">
-                💡 Vui lòng quay lại trang <strong>"Lớp Học Của Tôi"</strong> và bấm nút kích hoạt lại lớp!
+                 Vui lòng quay lại trang <strong>"Lớp Học Của Tôi"</strong> và bấm nút kích hoạt lại lớp!
               </p>
             </div>
 

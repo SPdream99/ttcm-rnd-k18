@@ -703,10 +703,10 @@ export default function TeacherUploadCenterPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
               {[
-                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "🔒" },
-                { id: "public", title: "Public (Công khai)", desc: "Học sinh & mọi người xem, học và làm bài", icon: "🌐" },
-                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được đưa vào lộ trình học", icon: "🔄" },
-                { id: "free_to_use", title: "Free to Use", desc: "Cho phép tải tài liệu & câu hỏi về máy", icon: "📥" },
+                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "" },
+                { id: "public", title: "Public (Công khai)", desc: "Học sinh & mọi người xem, học và làm bài", icon: "" },
+                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được đưa vào lộ trình học", icon: "" },
+                { id: "free_to_use", title: "Free to Use", desc: "Cho phép tải tài liệu & câu hỏi về máy", icon: "" },
               ].map((lvl) => (
                 <button
                   key={lvl.id}
@@ -830,10 +830,10 @@ export default function TeacherUploadCenterPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
               {[
-                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "🔒" },
-                { id: "public", title: "Public (Công khai)", desc: "Học sinh tham gia học theo chặng bản đồ", icon: "🌐" },
-                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được áp dụng vào lớp học", icon: "🔄" },
-                { id: "free_to_use", title: "Free to Use", desc: "Cho phép xuất và tải tài nguyên về máy", icon: "📥" },
+                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "" },
+                { id: "public", title: "Public (Công khai)", desc: "Học sinh tham gia học theo chặng bản đồ", icon: "" },
+                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được áp dụng vào lớp học", icon: "" },
+                { id: "free_to_use", title: "Free to Use", desc: "Cho phép xuất và tải tài nguyên về máy", icon: "" },
               ].map((lvl) => (
                 <button
                   key={lvl.id}
@@ -1015,10 +1015,10 @@ export default function TeacherUploadCenterPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
               {[
-                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "🔒" },
-                { id: "public", title: "Public (Công khai)", desc: "Học sinh chơi và tính điểm xếp hạng", icon: "🌐" },
-                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được nạp câu hỏi bài họ vào", icon: "🔄" },
-                { id: "free_to_use", title: "Free to Use", desc: "Cho phép tải gói mã nguồn .zip về máy", icon: "📥" },
+                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "" },
+                { id: "public", title: "Public (Công khai)", desc: "Học sinh chơi và tính điểm xếp hạng", icon: "" },
+                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được nạp câu hỏi bài họ vào", icon: "" },
+                { id: "free_to_use", title: "Free to Use", desc: "Cho phép tải gói mã nguồn .zip về máy", icon: "" },
               ].map((lvl) => (
                 <button
                   key={lvl.id}

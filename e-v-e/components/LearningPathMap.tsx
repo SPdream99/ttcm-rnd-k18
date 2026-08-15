@@ -131,7 +131,7 @@ export default function LearningPathMap({
                 Bạn đang ở trạng thái <strong>tạm dừng/bảo lưu</strong> khóa học này, do đó tất cả các chặng bài học và minigame thực hành đều bị khóa.
               </p>
               <p className="text-xs text-amber-700 font-bold bg-amber-50 p-2.5 rounded-xl border border-amber-200">
-                💡 Vui lòng bấm nút <strong>"Kích Hoạt Lại Lớp"</strong> ở đầu trang để tiếp tục học tập và mở khóa các chặng!
+                 Vui lòng bấm nút <strong>"Kích Hoạt Lại Lớp"</strong> ở đầu trang để tiếp tục học tập và mở khóa các chặng!
               </p>
             </div>
 
@@ -332,7 +332,7 @@ export default function LearningPathMap({
                       </span>
                       {isCompleted && (
                         <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                          ✓ Đã Hoàn Thành ({plays}/{requiredPlaysPerStage} lượt)
+                           Đã Hoàn Thành ({plays}/{requiredPlaysPerStage} lượt)
                         </span>
                       )}
                       {isCurrent && (

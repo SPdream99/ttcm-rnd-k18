@@ -16,7 +16,7 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 const serviceAccountKey = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY;
 
 if (!serviceAccountKey) {
-  console.error('❌ THẤT BẠI: Chưa có FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY trong .env.local');
+  console.error(' THẤT BẠI: Chưa có FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY trong .env.local');
   process.exit(1);
 }
 
@@ -29,7 +29,7 @@ const db = getFirestore(app, 'default');
 db.settings({ ignoreUndefinedProperties: true });
 
 async function initDatabaseSafely() {
-  console.log('🚀 Đang kiểm tra và khởi tạo Database Firestore (Database ID: "default")...\n');
+  console.log(' Đang kiểm tra và khởi tạo Database Firestore (Database ID: "default")...\n');
 
   let addedCount = 0;
 
@@ -61,7 +61,7 @@ async function initDatabaseSafely() {
     if (!doc.exists) {
       await teachersRef.doc(t.id).set(t);
       addedCount++;
-      console.log(`   ✅ Đã tạo Giảng viên: "${t.name}" (ID: ${t.id})`);
+      console.log(`    Đã tạo Giảng viên: "${t.name}" (ID: ${t.id})`);
     }
   }
 
@@ -139,7 +139,7 @@ async function initDatabaseSafely() {
     if (!doc.exists) {
       await coursesRef.doc(c.id).set(c);
       addedCount++;
-      console.log(`   ✅ Đã tạo Khóa học: "${c.title}" (ID: ${c.id})`);
+      console.log(`    Đã tạo Khóa học: "${c.title}" (ID: ${c.id})`);
     }
   }
 
@@ -148,7 +148,7 @@ async function initDatabaseSafely() {
   const pathList = [
     {
       id: 'lp_ai_mastery_2026',
-      title: 'Chuyên Gia Trí Tuệ Nhân Tạo & Generative AI 2026 🌌',
+      title: 'Chuyên Gia Trí Tuệ Nhân Tạo & Generative AI 2026 ',
       subtitle: 'Lộ trình 4 chặng toàn diện từ Python đến xây dựng AI Agent thực tế',
       description: 'Chương trình đào tạo chuyên sâu được thiết kế bài bản qua 4 chặng học tập: Khởi đầu từ nền tảng Python vững chắc, làm chủ Cấu trúc Dữ liệu & Thuật toán, huấn luyện mô hình Machine Learning thực tế, và chinh phục Generative AI với công nghệ RAG & AI Agent đa tác vụ.',
       author_id: 'teacher_nhatanh_01',
@@ -182,7 +182,7 @@ async function initDatabaseSafely() {
     if (!doc.exists) {
       await pathRef.doc(p.id).set(p);
       addedCount++;
-      console.log(`   ✅ Đã tạo Lộ Trình: "${p.title}" (ID: ${p.id})`);
+      console.log(`    Đã tạo Lộ Trình: "${p.title}" (ID: ${p.id})`);
     }
   }
 
@@ -208,17 +208,17 @@ async function initDatabaseSafely() {
       plays_count: 86,
     });
     addedCount++;
-    console.log(`   ✅ Đã tạo Game Info: "Memory Matching Game" (ID: game_card_match_vr)`);
+    console.log(`    Đã tạo Game Info: "Memory Matching Game" (ID: game_card_match_vr)`);
   }
 
   console.log('\n==================================================');
-  console.log(`🎉 HOÀN THÀNH KHỞI TẠO DATABASE AN TOÀN!`);
+  console.log(` HOÀN THÀNH KHỞI TẠO DATABASE AN TOÀN!`);
   console.log(`   - Số tài liệu mới được tạo: ${addedCount}`);
   console.log(`   - Toàn bộ dữ liệu cũ được bảo lưu 100%`);
   console.log('==================================================\n');
 }
 
 initDatabaseSafely().catch((err) => {
-  console.error('💥 Lỗi khi khởi tạo database:', err);
+  console.error(' Lỗi khi khởi tạo database:', err);
   process.exit(1);
 });

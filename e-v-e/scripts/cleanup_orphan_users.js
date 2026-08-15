@@ -28,7 +28,7 @@ loadEnvLocal();
 
 const serviceAccountRaw = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY;
 if (!serviceAccountRaw) {
-  console.error("❌ Không tìm thấy FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY trong .env.local");
+  console.error(" Không tìm thấy FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY trong .env.local");
   process.exit(1);
 }
 
@@ -36,7 +36,7 @@ let serviceAccount;
 try {
   serviceAccount = JSON.parse(serviceAccountRaw);
 } catch (err) {
-  console.error("❌ Lỗi parse FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY:", err.message);
+  console.error(" Lỗi parse FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY:", err.message);
   process.exit(1);
 }
 
@@ -51,9 +51,9 @@ const db = getFirestore("default");
 const auth = getAuth();
 
 async function cleanupOrphanUsers() {
-  console.log("🔍 Đang quét toàn bộ collection 'users' trong Firestore...");
+  console.log(" Đang quét toàn bộ collection 'users' trong Firestore...");
   const snapshot = await db.collection("users").get();
-  console.log(`📊 Tìm thấy tổng cộng ${snapshot.size} documents trong collection 'users'.`);
+  console.log(` Tìm thấy tổng cộng ${snapshot.size} documents trong collection 'users'.`);
 
   let deletedCount = 0;
   let keptCount = 0;
@@ -65,7 +65,7 @@ async function cleanupOrphanUsers() {
     const docId = docSnap.id;
 
     if (!email) {
-      console.log(`⚠️ Document ${docId} không có email -> Tiến hành xóa.`);
+      console.log(` Document ${docId} không có email -> Tiến hành xóa.`);
       await docSnap.ref.delete();
       deletedCount++;
       continue;
@@ -84,37 +84,37 @@ async function cleanupOrphanUsers() {
     }
 
     if (!authUser) {
-      console.log(`❌ Email '${email}' (Doc ID: ${docId}) tồn tại trong Firestore nhưng KHÔNG tồn tại trong Firebase Auth -> Đang xóa...`);
+      console.log(` Email '${email}' (Doc ID: ${docId}) tồn tại trong Firestore nhưng KHÔNG tồn tại trong Firebase Auth -> Đang xóa...`);
       await docSnap.ref.delete();
       deletedCount++;
     } else {
       // User exists in Auth. Check if doc ID matches Auth UID or if it is a duplicate document
       if (docId !== authUser.uid) {
-        console.log(`⚠️ Document ID '${docId}' không khớp với Auth UID '${authUser.uid}' của email '${email}' -> Đang xóa duplicate/orphan doc...`);
+        console.log(` Document ID '${docId}' không khớp với Auth UID '${authUser.uid}' của email '${email}' -> Đang xóa duplicate/orphan doc...`);
         await docSnap.ref.delete();
         deletedCount++;
       } else {
         if (emailMap.has(email)) {
-          console.log(`⚠️ Document trùng lặp cho email '${email}' -> Đang xóa...`);
+          console.log(` Document trùng lặp cho email '${email}' -> Đang xóa...`);
           await docSnap.ref.delete();
           deletedCount++;
         } else {
           emailMap.set(email, docId);
           keptCount++;
-          console.log(`✅ Hợp lệ: '${email}' (UID: ${docId}) khớp chính xác giữa Firestore & Auth.`);
+          console.log(` Hợp lệ: '${email}' (UID: ${docId}) khớp chính xác giữa Firestore & Auth.`);
         }
       }
     }
   }
 
   console.log("\n=======================================================");
-  console.log(`🎉 HOÀN TẤT DỌN DẸP USERS:`);
+  console.log(` HOÀN TẤT DỌN DẸP USERS:`);
   console.log(`- Đã xóa: ${deletedCount} documents không hợp lệ / mồ côi / trùng lặp`);
   console.log(`- Đã giữ lại: ${keptCount} documents hợp lệ`);
   console.log("=======================================================\n");
 }
 
 cleanupOrphanUsers().catch((err) => {
-  console.error("❌ Lỗi khi thực hiện dọn dẹp:", err);
+  console.error(" Lỗi khi thực hiện dọn dẹp:", err);
   process.exit(1);
 });

@@ -110,39 +110,39 @@
   const DEFAULT_PAIRS = [
     {
       id: 'p1',
-      term: '🐱 Con Mèo (Cat)',
+      term: ' Con Mèo (Cat)',
       definition: 'Loài thú cưng nhanh nhẹn, tiếng kêu Meo Meo',
-      icon: '🐱',
+      icon: '',
     },
     {
       id: 'p2',
-      term: '🐶 Con Chó (Dog)',
+      term: ' Con Chó (Dog)',
       definition: 'Loài vật trung thành, tiếng sủa Gâu Gâu',
-      icon: '🐶',
+      icon: '',
     },
     {
       id: 'p3',
-      term: '🍎 Quả Táo (Apple)',
+      term: ' Quả Táo (Apple)',
       definition: 'Trái cây giàu vitamin C và chất xơ',
-      icon: '🍎',
+      icon: '',
     },
     {
       id: 'p4',
-      term: '📚 Sách Vở (Book)',
+      term: ' Sách Vở (Book)',
       definition: 'Kho tàng tri thức lưu giữ kiến thức nhân loại',
-      icon: '📚',
+      icon: '',
     },
     {
       id: 'p5',
-      term: '⚡ Thuật Toán (Algorithm)',
+      term: ' Thuật Toán (Algorithm)',
       definition: 'Tập hợp các bước hữu hạn giải quyết bài toán',
-      icon: '⚡',
+      icon: '',
     },
     {
       id: 'p6',
-      term: '🌌 Trí Tuệ Nhân Tạo (AI)',
+      term: ' Trí Tuệ Nhân Tạo (AI)',
       definition: 'Hệ thống máy tính mô phỏng trí thông minh con người',
-      icon: '🌌',
+      icon: '',
     },
   ];
 
@@ -157,7 +157,7 @@
         sdkInstance = new window.EVEGameSDK({
           gameId: 'game_card_match_vr',
           onInit: function (sessionData) {
-            console.log('🎮 SDK Initialized with session payload:', sessionData);
+            console.log(' SDK Initialized with session payload:', sessionData);
             if (sessionData && sessionData.courseTitle) {
               courseTitle.textContent = sessionData.courseTitle;
             }
@@ -166,7 +166,7 @@
                 id: p.id || 'pair_' + idx,
                 term: p.title || p.term || 'Khái niệm #' + (idx + 1),
                 definition: p.right_answer || p.definition || p.explanation || 'Định nghĩa #' + (idx + 1),
-                icon: '💡',
+                icon: '',
               }));
               startPairsCount.textContent = `${rawQuestionPairs.length} Cặp (${rawQuestionPairs.length * 2} Thẻ)`;
             }
@@ -190,7 +190,7 @@
         pairId: item.id,
         type: 'term',
         text: item.term,
-        icon: item.icon || '📌',
+        icon: item.icon || '',
         matched: false,
         flipped: false,
       });
@@ -201,7 +201,7 @@
         pairId: item.id,
         type: 'definition',
         text: item.definition,
-        icon: '📖',
+        icon: '',
         matched: false,
         flipped: false,
       });
@@ -373,7 +373,7 @@
   function updateHUD() {
     scoreDisplay.textContent = score.toString();
     comboDisplay.textContent = `x${combo}`;
-    livesDisplay.textContent = '❤️'.repeat(lives) + '🖤'.repeat(MAX_LIVES - lives);
+    livesDisplay.textContent = ''.repeat(lives) + ''.repeat(MAX_LIVES - lives);
   }
 
   // ─── Timer Functions ─────────────────────────────────────────────────────────
@@ -468,7 +468,7 @@
 
   btnSoundToggle.addEventListener('click', () => {
     soundEnabled = !soundEnabled;
-    btnSoundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+    btnSoundToggle.textContent = soundEnabled ? '' : '';
     if (bgmAudio) {
       if (soundEnabled) bgmAudio.play().catch(() => {});
       else bgmAudio.pause();

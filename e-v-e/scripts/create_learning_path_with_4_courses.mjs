@@ -11,7 +11,7 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 const serviceAccountKey = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY;
 
 if (!serviceAccountKey) {
-  console.error('❌ THẤT BẠI: Chưa có FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY trong .env.local');
+  console.error(' THẤT BẠI: Chưa có FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY trong .env.local');
   process.exit(1);
 }
 
@@ -24,7 +24,7 @@ const db = getFirestore(app, 'default');
 db.settings({ ignoreUndefinedProperties: true });
 
 async function createLearningPathWith4Courses() {
-  console.log('🚀 Bắt đầu tạo 4 khóa học và 1 Lộ Trình Học Tập lên Firestore...\n');
+  console.log(' Bắt đầu tạo 4 khóa học và 1 Lộ Trình Học Tập lên Firestore...\n');
 
   // 1. TẠO 4 KHÓA HỌC (COURSES)
   const courses = [
@@ -105,13 +105,13 @@ async function createLearningPathWith4Courses() {
   for (const c of courses) {
     const { id, ...data } = c;
     await db.collection('courses').doc(id).set(data, { merge: true });
-    console.log(`   ✅ Đã tạo/cập nhật Khóa học: "${c.title}" (ID: ${id})`);
+    console.log(`    Đã tạo/cập nhật Khóa học: "${c.title}" (ID: ${id})`);
   }
 
   // 2. TẠO 1 LỘ TRÌNH HỌC TẬP (LEARNING PATH) CHỨA 4 KHÓA HỌC TRÊN
   const learningPathId = 'lp_ai_mastery_2026';
   const learningPathData = {
-    title: 'Chuyên Gia Trí Tuệ Nhân Tạo & Generative AI 2026 🌌',
+    title: 'Chuyên Gia Trí Tuệ Nhân Tạo & Generative AI 2026 ',
     subtitle: 'Lộ trình 4 chặng toàn diện từ Python đến xây dựng AI Agent thực tế',
     description: 'Chương trình đào tạo chuyên sâu được thiết kế bài bản qua 4 chặng học tập: Khởi đầu từ nền tảng Python vững chắc, làm chủ Cấu trúc Dữ liệu & Thuật toán, huấn luyện mô hình Machine Learning thực tế, và chinh phục Generative AI với công nghệ RAG & AI Agent đa tác vụ.',
     author_id: 'teacher_nhatanh_01',
@@ -142,19 +142,19 @@ async function createLearningPathWith4Courses() {
   };
 
   await db.collection('learning_path').doc(learningPathId).set(learningPathData, { merge: true });
-  console.log(`\n🎉 ĐÃ TẠO THÀNH CÔNG LỘ TRÌNH HỌC TẬP LÊN FIRESTORE!`);
-  console.log(`   📌 Document ID: "${learningPathId}"`);
-  console.log(`   📌 Tên lộ trình: "${learningPathData.title}"`);
-  console.log(`   📌 Số khóa học liên kết: ${learningPathData.courses.length} courses`);
-  console.log(`   📌 Độ khó: ${learningPathData.difficulty} | Danh mục: ${learningPathData.category}`);
+  console.log(`\n ĐÃ TẠO THÀNH CÔNG LỘ TRÌNH HỌC TẬP LÊN FIRESTORE!`);
+  console.log(`    Document ID: "${learningPathId}"`);
+  console.log(`    Tên lộ trình: "${learningPathData.title}"`);
+  console.log(`    Số khóa học liên kết: ${learningPathData.courses.length} courses`);
+  console.log(`    Độ khó: ${learningPathData.difficulty} | Danh mục: ${learningPathData.category}`);
 }
 
 createLearningPathWith4Courses()
   .then(() => {
-    console.log('\n✨ Hoàn tất 100%!');
+    console.log('\n Hoàn tất 100%!');
     process.exit(0);
   })
   .catch((err) => {
-    console.error('❌ Lỗi khi tạo dữ liệu:', err);
+    console.error(' Lỗi khi tạo dữ liệu:', err);
     process.exit(1);
   });

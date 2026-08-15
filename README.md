@@ -5,13 +5,13 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 
 ---
 
-## 🌐 Trải Nghiệm Trực Tuyến & Tài Liệu Báo Cáo
+## Trải Nghiệm Trực Tuyến & Tài Liệu Báo Cáo
 
 - **Website Trải Nghiệm Demo:** [https://ttcm-rnd-k18.vercel.app](https://ttcm-rnd-k18.vercel.app)
 - **Thư mục tài liệu (Google Drive):** [Drive Folder](https://drive.google.com/drive/folders/1clPPIeyvm3CkhCIhyYJAkFBPT7n_2v02)
 - **Kế hoạch & tiến độ (Google Sheets):** [Sheets Báo Cáo](https://docs.google.com/spreadsheets/d/1XVPI0MKJFvKDSKv91b8vD7zJRsw2_1AHGjsWmiVpclA/edit?usp=sharing)
 
-### 🔑 Danh Sách Tài Khoản Thử Nghiệm Mặc Định
+### Danh Sách Tài Khoản Thử Nghiệm Mặc Định
 
 | Vai trò | Email | Mật khẩu | Chức năng chính |
 |:---|:---|:---:|:---|
@@ -23,7 +23,7 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 
 ---
 
-## 👥 Thành Viên Nhóm Phát Triển
+## Thành Viên Nhóm Phát Triển
 
 | STT | Họ và Tên | Vai trò | Phụ trách chính |
 |:---:|:---|:---:|:---|
@@ -33,31 +33,31 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 
 ---
 
-## 🚀 Các Tính Năng Nổi Bật
+## Các Tính Năng Nổi Bật
 
-### 1. 🗺️ Bản Đồ Cây Kỹ Năng & Mở Khóa Tuần Tự (Sequential Learning Path)
+### 1. Bản Đồ Cây Kỹ Năng & Mở Khóa Tuần Tự (Sequential Learning Path)
 - **Học tập có định hướng**: Các chặng bài học được kết nối theo dạng đồ thị cây kỹ năng trực quan.
 - **Cơ chế mở khóa tuần tự**: Học sinh bắt buộc phải hoàn thành đủ số lượt chơi minigame thực hành ở chặng trước để mở khóa chặng tiếp theo.
 - **Kiểm soát trạng thái lớp học**: Nếu học sinh đang ở trạng thái **Tạm Dừng (Bảo Lưu)** hoặc **Chưa Đăng Ký**, toàn bộ chặng bài học và game thực hành sẽ tự động bị khóa với cảnh báo hướng dẫn chi tiết.
 
-### 2. 🎮 E-V-E Game SDK & Minigame Ghép Cặp Thẻ Bài (Memory Match)
+### 2. E-V-E Game SDK & Minigame Ghép Cặp Thẻ Bài (Memory Match)
 - **Tự động Preload Extra Data**: Khi bắt đầu một bài học, minigame tự động kết nối máy chủ, xác thực Game Session Token và tải bộ câu hỏi / khái niệm định nghĩa của bài học.
 - **Preloader mượt mà**: Thanh tiến độ nạp dữ liệu hiển thị trực tiếp bên trong khung chứa trò chơi (Game Container).
 - **Cơ chế Chống Gian Lận (Anti-Cheat)**: Ký mã token phiên chơi từ máy chủ, kiểm soát thời gian chơi tối thiểu và hạn mức điểm tối đa hợp lệ.
 
-### 3. 🤖 Ứng Dụng Trí Tuệ Nhân Tạo (Google Gemini AI)
+### 3. Ứng Dụng Trí Tuệ Nhân Tạo (Google Gemini AI)
 - **AI Tutor cho Học Sinh**: Giải đáp thắc mắc lập trình 24/7, hướng dẫn tư duy giải bài tập, định dạng code syntax highlight với nút sao chép nhanh.
 - **AI Assistant cho Giáo Viên**: Hỗ trợ tự động tạo ngân hàng câu hỏi, soạn khung giáo án và cấu trúc nội dung bài giảng.
 - **Bảo Mật Client-Side**: Khóa Gemini API Key cá nhân được mã hóa và lưu trữ độc quyền tại trình duyệt (Local Storage), không lưu trữ trên máy chủ backend.
 
-### 4. 🏫 Quản Lý Lớp Học & Tương Tác Sư Phạm (Class Hub)
+### 4. Quản Lý Lớp Học & Tương Tác Sư Phạm (Class Hub)
 - **Theo dõi tiến độ học tập**: Đo lường phần trăm hoàn thành chặng học, điểm danh, bảng xếp hạng lớp học.
 - **Giao bài & Chấm bài**: Học sinh nộp bài trực tuyến, giáo viên chấm điểm và nhận xét chi tiết.
 - **Cửa Hàng Đổi Quà Gamification**: Tích lũy E-V-E Coins qua việc hoàn thành bài học và minigame để đổi các vật phẩm độc quyền.
 
 ---
 
-## 🛠️ Công Nghệ Sử Dụng (Tech Stack)
+## Công Nghệ Sử Dụng (Tech Stack)
 
 - **Frontend:** Next.js 16 (App Router & Turbopack), React 19, TypeScript, Tailwind CSS, Lucide Icons, Framer Motion
 - **Backend & API:** Next.js Route Handlers, Clean Architecture (Entities, Ports, Adapters)
@@ -67,7 +67,7 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 
 ---
 
-## 💻 Hướng Dẫn Cài Đặt & Chạy Môi Trường Cục Bộ (Local Setup)
+## Hướng Dẫn Cài Đặt & Chạy Môi Trường Cục Bộ (Local Setup)
 
 ### Yêu Cầu Môi Trường
 - **Node.js**: Phiên bản 18.x hoặc 20.x trở lên
@@ -121,7 +121,7 @@ Mở trình duyệt và truy cập: `http://localhost:3000`
 
 ---
 
-## 📁 Cấu Trúc Thư Mục Dự Án (`e-v-e/`)
+## Cấu Trúc Thư Mục Dự Án (`e-v-e/`)
 
 ```text
 e-v-e/
@@ -141,24 +141,23 @@ e-v-e/
 
 ---
 
-## 📊 Sơ Đồ Cơ Sở Dữ Liệu (Firestore ERD Schema)
+## Sơ Đồ Cơ Sở Dữ Liệu (Firestore ERD Schema)
 
 ![Sơ Đồ Cơ Sở Dữ Liệu Firestore E-V-E](docs/firestore_database_schema.png)
 
 ---
 
-## 📜 Bản Quyền & Giấy Phép
+## Bản Quyền & Giấy Phép
 
 Dự án được nghiên cứu và phát triển bởi **Nhóm 1 — Lớp TTCM - RnD - K18 (MindX)**.  
 Dành cho mục đích học tập, nghiên cứu khoa học và báo cáo đồ án.
 
 ---
 
-## 🤖 Đóng Góp & Hỗ Trợ Phát Triển Bởi Trí Tuệ Nhân Tạo (AI-Assisted Development)
+## Đóng Góp & Hỗ Trợ Phát Triển Bởi Trí Tuệ Nhân Tạo (AI-Assisted Development)
 
 > [!NOTE]
 > **Dự án được phát triển với sự hỗ trợ và đóng góp của Trí Tuệ Nhân Tạo (AI)**:
 > - **Trợ lý lập trình & Tối ưu kiến trúc (AI Pair Programming)**: Thiết kế kiến trúc Clean Architecture, chuẩn hóa TypeScript, phát triển Next.js 16 Route Handlers, hệ thống phân quyền 3 lớp và cơ chế bảo mật xác thực OTP 2FA.
 > - **Tích hợp Google Gemini AI**: Tích hợp các mô hình ngôn ngữ lớn (LLM) để xây dựng hệ thống Gia sư sư phạm ảo (AI Tutor) 24/7 và Trợ lý soạn giáo án cho giáo viên.
 > - **Tối ưu trải nghiệm tương tác & Gamification**: Xây dựng bản đồ cây kỹ năng tuần tự, giao thức E-V-E Game SDK Preload Extra Data và kiểm duyệt gian lận tự động.
-

@@ -32,7 +32,7 @@ loadEnvLocal();
 const serviceAccountRaw = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY;
 
 if (!serviceAccountRaw) {
-  console.error("❌ Không tìm thấy FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY trong .env.local");
+  console.error(" Không tìm thấy FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY trong .env.local");
   process.exit(1);
 }
 
@@ -78,13 +78,13 @@ async function addDatUsers() {
   };
 
   await db.collection("users").doc(adminId).set(adminPayload, { merge: true });
-  console.log(`✅ Đã tạo/cập nhật thành công Admin 'dat2@gmail.com' với ID '${adminId}'`);
+  console.log(` Đã tạo/cập nhật thành công Admin 'dat2@gmail.com' với ID '${adminId}'`);
 
   await db.collection("users").doc(teacherId).set(teacherPayload, { merge: true });
-  console.log(`✅ Đã tạo/cập nhật thành công Teacher 'dat1@gmail.com' với ID '${teacherId}'`);
+  console.log(` Đã tạo/cập nhật thành công Teacher 'dat1@gmail.com' với ID '${teacherId}'`);
 }
 
 addDatUsers().catch((err) => {
-  console.error("❌ Lỗi nạp tài khoản Đạt Admin & Teacher:", err);
+  console.error(" Lỗi nạp tài khoản Đạt Admin & Teacher:", err);
   process.exit(1);
 });

@@ -32,7 +32,7 @@ loadEnvLocal();
 const serviceAccountRaw = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY;
 
 if (!serviceAccountRaw) {
-  console.error("❌ Không tìm thấy FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY trong .env.local");
+  console.error(" Không tìm thấy FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY trong .env.local");
   process.exit(1);
 }
 
@@ -63,10 +63,10 @@ async function createDatUser() {
   };
 
   await db.collection("users").doc(userId).set(userPayload, { merge: true });
-  console.log(`✅ Đã tạo/cập nhật thành công Student 'dat@gmail.com' với ID '${userId}' trong collection 'users'!`);
+  console.log(` Đã tạo/cập nhật thành công Student 'dat@gmail.com' với ID '${userId}' trong collection 'users'!`);
 }
 
 createDatUser().catch((err) => {
-  console.error("❌ Lỗi tạo user Đạt:", err);
+  console.error(" Lỗi tạo user Đạt:", err);
   process.exit(1);
 });

@@ -314,7 +314,7 @@ export default function Home() {
                           : "bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700 text-zinc-200"
                       }`}
                     >
-                      A. print() {demoPairSolved && "✓ Đúng (+50c)"}
+                      A. print() {demoPairSolved && " Đúng (+50c)"}
                     </button>
 
                     <button

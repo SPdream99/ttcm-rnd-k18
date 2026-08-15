@@ -331,7 +331,7 @@ export default function StudentGamesArcadePage() {
           {[
             { id: "all", label: " Tất Cả" },
             { id: "boss", label: " Đấu Trùm Boss" },
-            { id: "memory", label: "🃏 Luyện Trí Nhớ" },
+            { id: "memory", label: " Luyện Trí Nhớ" },
             { id: "custom", label: " Game Cộng Đồng" },
           ].map((cat) => (
             <button

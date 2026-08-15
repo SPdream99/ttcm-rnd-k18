@@ -493,10 +493,10 @@ export default function TeacherMyContentsPage() {
                         className="px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] font-bold focus:outline-none focus:border-red-600 cursor-pointer"
                         title="Thay đổi quyền cấp phép & hiển thị"
                       >
-                        <option value="private">🔒 Private</option>
-                        <option value="public">🌐 Public</option>
-                        <option value="free_to_share">🔄 Free to Share</option>
-                        <option value="free_to_use">📥 Free to Use</option>
+                        <option value="private"> Private</option>
+                        <option value="public"> Public</option>
+                        <option value="free_to_share"> Free to Share</option>
+                        <option value="free_to_use"> Free to Use</option>
                       </select>
                     </div>
 
@@ -593,10 +593,10 @@ export default function TeacherMyContentsPage() {
                         className="px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] font-bold focus:outline-none focus:border-red-600 cursor-pointer"
                         title="Thay đổi quyền cấp phép & hiển thị"
                       >
-                        <option value="private">🔒 Private</option>
-                        <option value="public">🌐 Public</option>
-                        <option value="free_to_share">🔄 Free to Share</option>
-                        <option value="free_to_use">📥 Free to Use</option>
+                        <option value="private"> Private</option>
+                        <option value="public"> Public</option>
+                        <option value="free_to_share"> Free to Share</option>
+                        <option value="free_to_use"> Free to Use</option>
                       </select>
                     </div>
 
@@ -693,10 +693,10 @@ export default function TeacherMyContentsPage() {
                         className="px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] font-bold focus:outline-none focus:border-red-600 cursor-pointer"
                         title="Thay đổi quyền cấp phép & hiển thị"
                       >
-                        <option value="private">🔒 Private</option>
-                        <option value="public">🌐 Public</option>
-                        <option value="free_to_share">🔄 Free to Share</option>
-                        <option value="free_to_use">📥 Free to Use</option>
+                        <option value="private"> Private</option>
+                        <option value="public"> Public</option>
+                        <option value="free_to_share"> Free to Share</option>
+                        <option value="free_to_use"> Free to Use</option>
                       </select>
                     </div>
 

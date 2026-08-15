@@ -48,7 +48,7 @@ export default function StudentAITutorPage() {
 
     const storedKey = typeof window !== "undefined" ? localStorage.getItem("eve_gemini_api_key") || "" : "";
     const keyNote = !storedKey
-      ? `\n\n💡 *Lưu ý: Bạn chưa cài đặt API Key. Hãy **mở cài đặt key ở góc phải lên** hoặc **cài đặt key trong profile** để bắt đầu trò chuyện nhé!*`
+      ? `\n\n *Lưu ý: Bạn chưa cài đặt API Key. Hãy **mở cài đặt key ở góc phải lên** hoặc **cài đặt key trong profile** để bắt đầu trò chuyện nhé!*`
       : "";
 
     setMessages([
@@ -102,7 +102,7 @@ export default function StudentAITutorPage() {
           {
             id: `ai-nokey-${Date.now()}`,
             sender: "ai",
-            text: "⚠️ Bạn chưa cài đặt Google Gemini API Key. Vui lòng **mở cài đặt key ở góc phải lên** hoặc **cài đặt key trong profile** để bắt đầu trò chuyện cùng Gia sư AI nhé!",
+            text: " Bạn chưa cài đặt Google Gemini API Key. Vui lòng **mở cài đặt key ở góc phải lên** hoặc **cài đặt key trong profile** để bắt đầu trò chuyện cùng Gia sư AI nhé!",
             timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
           },
         ]);

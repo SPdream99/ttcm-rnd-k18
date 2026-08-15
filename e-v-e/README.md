@@ -65,13 +65,10 @@ npm run start
 
 ---
 
-## 🤖 Đóng Góp & Hỗ Trợ Phát Triển Bởi Trí Tuệ Nhân Tạo (AI)
+## Đóng Góp & Hỗ Trợ Phát Triển Bởi Trí Tuệ Nhân Tạo (AI)
 
 Dự án được phát triển với sự hỗ trợ và đóng góp toàn diện của **Trí Tuệ Nhân Tạo (AI Pair Programming & Google Gemini AI)** trong việc thiết kế kiến trúc, phát triển tính năng, tối ưu hiệu năng và kiểm thử tự động.
 
 ---
 
 Chi tiết tài liệu đồ án và thông tin nhóm xem tại [README.md gốc](../README.md).
-
-
-
