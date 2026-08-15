@@ -21,9 +21,14 @@ import {
   Coins,
   Lock,
   AlertCircle,
+  RotateCw,
+  PlusCircle,
+  ExternalLink,
+  CheckCircle2,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
-import { collection, getDocs, query, where, getDoc, doc } from "firebase/firestore";
+import { useToast } from "@/components/Toast";
+import { collection, getDocs, query, where, getDoc, doc, setDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 
 interface ArcadeGameItem {
@@ -45,14 +50,28 @@ interface ArcadeGameItem {
   tags: string[];
 }
 
+export interface GameCourseItem {
+  id: string;
+  title: string;
+  description: string;
+  learningPathId?: string;
+  learningPathTitle?: string;
+  enrollmentStatus: "active" | "paused" | "not_enrolled";
+  pairsCount: number;
+  authorName: string;
+  tags: string[];
+}
+
 export default function StudentGamesArcadePage() {
   const router = useRouter();
+  const toast = useToast();
   const { currentUser, profile } = useAuthAdapter();
   const studentCoins = currentUser?.coins ?? profile?.coins ?? 250;
 
   const [games, setGames] = useState<ArcadeGameItem[]>([]);
-  const [coursesList, setCoursesList] = useState<any[]>([]);
+  const [coursesList, setCoursesList] = useState<GameCourseItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -72,7 +91,7 @@ export default function StudentGamesArcadePage() {
         // Built-in standard games
         fetchedGames.push({
           id: "game_card_match_vr",
-          title: "Memory Matching Game (Lật Thẻ Trí Nhớ) ",
+          title: "Memory Matching Game (Lật Thẻ Trí Nhớ)",
           subtitle: "Rèn luyện trí nhớ và liên kết thuật ngữ 3D",
           genre: "Game Trí Nhớ 3D",
           category: "memory",
@@ -91,7 +110,7 @@ export default function StudentGamesArcadePage() {
 
         fetchedGames.push({
           id: "boss_battle_quiz",
-          title: "Boss Slayer Marathon Quiz ",
+          title: "Boss Slayer Marathon Quiz",
           subtitle: "Đấu trùm trắc nghiệm phản xạ kiến thức",
           genre: "Trắc Nghiệm Phản Xạ",
           category: "boss",
@@ -102,7 +121,7 @@ export default function StudentGamesArcadePage() {
           needExtraData: true,
           coursesAllowed: "all",
           thumbnailUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80",
-          badge: "HOT ",
+          badge: "HOT",
           rating: 4.8,
           playsCount: 2350,
           tags: ["Boss Battle", "Quiz", "Speed"],
@@ -135,9 +154,23 @@ export default function StudentGamesArcadePage() {
 
         setGames(fetchedGames);
 
-        // Fetch active non-paused courses for this student
+        // Fetch Learning Paths map
+        const pathSnap = await getDocs(collection(db, "learning_path"));
+        const courseToPathMap: Record<string, { pathId: string; pathTitle: string }> = {};
+        pathSnap.docs.forEach((d) => {
+          const pData = d.data();
+          const pCourses: string[] = Array.isArray(pData.courses) ? pData.courses : [];
+          pCourses.forEach((cId) => {
+            courseToPathMap[cId] = {
+              pathId: d.id,
+              pathTitle: pData.title || "Lộ trình học tập E-V-E",
+            };
+          });
+        });
+
+        // Fetch student enrollments
         const studentUid = currentUser?.uid || auth.currentUser?.uid;
-        const activeCourseIds = new Set<string>();
+        const userPathStatusMap = new Map<string, "active" | "paused">();
 
         if (studentUid) {
           try {
@@ -146,35 +179,63 @@ export default function StudentGamesArcadePage() {
             );
             for (const d of enSnap.docs) {
               const data = d.data();
-              if (data.status === "active") {
-                const lpDoc = await getDoc(doc(db, "learning_path", data.learning_path_id));
-                if (lpDoc.exists()) {
-                  const cList = lpDoc.data().courses || [];
-                  cList.forEach((cId: string) => activeCourseIds.add(cId));
-                }
+              if (data.learning_path_id) {
+                userPathStatusMap.set(data.learning_path_id, data.status === "paused" ? "paused" : "active");
               }
             }
           } catch (enErr) {
-            console.warn("Could not check student active enrollments:", enErr);
+            console.warn("Could not check student enrollments:", enErr);
           }
         }
 
-        // Fetch courses for modal - ONLY active enrolled courses
+        // Fetch all courses and attach enrollment status
         const coursesSnap = await getDocs(collection(db, "courses"));
-        const cl: any[] = [];
+        const cl: GameCourseItem[] = [];
         coursesSnap.docs.forEach((d) => {
-          if (activeCourseIds.has(d.id)) {
-            const cd = d.data();
-            cl.push({
-              id: d.id,
-              title: cd.title || d.id,
-              description: cd.description || "",
-              pairsCount: Array.isArray(cd.pairs) ? cd.pairs.length : 10,
-              authorName: cd.authorName || "Giảng viên",
-              tags: Array.isArray(cd.tags) ? cd.tags : ["Lập trình"],
-            });
-          }
+          const cd = d.data();
+          const pInfo = courseToPathMap[d.id];
+          const enrollmentStatus: "active" | "paused" | "not_enrolled" = pInfo
+            ? userPathStatusMap.get(pInfo.pathId) || "not_enrolled"
+            : "not_enrolled";
+
+          cl.push({
+            id: d.id,
+            title: cd.title || d.id,
+            description: cd.description || "Nội dung bài học & học liệu tương tác.",
+            learningPathId: pInfo?.pathId,
+            learningPathTitle: pInfo?.pathTitle,
+            enrollmentStatus,
+            pairsCount: Array.isArray(cd.pairs) ? cd.pairs.length : 10,
+            authorName: cd.authorName || "Giảng viên",
+            tags: Array.isArray(cd.tags) ? cd.tags : ["Lập trình"],
+          });
         });
+
+        // Fallback default courses if empty
+        if (cl.length === 0) {
+          cl.push({
+            id: "crs_coding_basics",
+            title: "Bài 1: Nhập Môn Tư Duy Lập Trình & Thuật Toán",
+            description: "Cấu trúc dữ liệu căn bản, rẽ nhánh và vòng lặp.",
+            learningPathId: "lp_fullstack_gamification_2026",
+            learningPathTitle: "Lộ Trình Chuyên Gia Lập Trình Fullstack & Gamification 2026",
+            enrollmentStatus: userPathStatusMap.get("lp_fullstack_gamification_2026") || "not_enrolled",
+            pairsCount: 12,
+            authorName: "ThS. Nguyễn Nhật Anh",
+            tags: ["Lập trình", "Cơ bản"],
+          });
+          cl.push({
+            id: "crs_computer_hardware",
+            title: "Bài 2: Khám Phá Phần Cứng & Kiến Trúc Máy Tính",
+            description: "Tìm hiểu CPU, RAM, GPU, Mainboard và nguyên lý hoạt động.",
+            learningPathId: "lp_fullstack_gamification_2026",
+            learningPathTitle: "Lộ Trình Chuyên Gia Lập Trình Fullstack & Gamification 2026",
+            enrollmentStatus: userPathStatusMap.get("lp_fullstack_gamification_2026") || "not_enrolled",
+            pairsCount: 15,
+            authorName: "ThS. Nguyễn Thành Đạt",
+            tags: ["Phần cứng", "Kiến trúc"],
+          });
+        }
 
         setCoursesList(cl);
       } catch (e) {
@@ -224,169 +285,180 @@ export default function StudentGamesArcadePage() {
     router.push(`/student/play/${selectedGameForPlay.id}/${courseId}`);
   };
 
-  const handleRandomPlay = () => {
-    if (games.length === 0) return;
-    const randomGame = games[Math.floor(Math.random() * games.length)];
-    handleSelectGame(randomGame);
+  const handleResumeOrEnroll = async (course: GameCourseItem, action: "resume" | "enroll") => {
+    const user = auth.currentUser;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    const pathId = course.learningPathId || "lp_fullstack_gamification_2026";
+    setActionLoadingId(course.id);
+
+    try {
+      const docKey = `${user.uid}_${pathId}`;
+      await setDoc(
+        doc(db, "student_learning_path", docKey),
+        {
+          student_id: user.uid,
+          student_name: user.displayName || "Học Viên E-V-E",
+          learning_path_id: pathId,
+          status: "active",
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+
+      toast.success(
+        action === "resume"
+          ? `Đã kích hoạt lại lộ trình "${course.learningPathTitle || "Lớp học"}"! Đang nạp trò chơi...`
+          : `Đăng ký thành công lộ trình "${course.learningPathTitle || "Lớp học"}"! Đang nạp trò chơi...`,
+        "Thành công"
+      );
+
+      setCoursesList((prev) =>
+        prev.map((c) =>
+          c.learningPathId === pathId ? { ...c, enrollmentStatus: "active" } : c
+        )
+      );
+
+      setTimeout(() => {
+        handleLaunchWithCourse(course.id);
+      }, 700);
+    } catch (err) {
+      console.error("Lỗi khi cập nhật trạng thái lộ trình:", err);
+      toast.error("Không thể cập nhật trạng thái lớp học. Vui lòng thử lại!", "Lỗi");
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   const modalFilteredCourses = useMemo(() => {
-    return coursesList.filter((c) => {
-      if (!courseSearchTerm) return true;
-      return (
-        c.title.toLowerCase().includes(courseSearchTerm.toLowerCase()) ||
-        c.description.toLowerCase().includes(courseSearchTerm.toLowerCase())
-      );
-    });
+    return coursesList
+      .filter((c) => {
+        if (!courseSearchTerm) return true;
+        const q = courseSearchTerm.toLowerCase();
+        return (
+          c.title.toLowerCase().includes(q) ||
+          c.description.toLowerCase().includes(q) ||
+          (c.learningPathTitle && c.learningPathTitle.toLowerCase().includes(q))
+        );
+      })
+      .sort((a, b) => {
+        // Active first, then paused, then not_enrolled
+        const rank = { active: 0, paused: 1, not_enrolled: 2 };
+        return rank[a.enrollmentStatus] - rank[b.enrollmentStatus];
+      });
   }, [coursesList, courseSearchTerm]);
 
-  if (loading) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-10 h-10 rounded-full border-4 border-zinc-200 border-t-red-600 animate-spin" />
-        <p className="text-red-600 font-bold text-sm">Đang nạp kho Minigame...</p>
-      </div>
-    );
-  }
+  const activeCoursesCount = useMemo(() => {
+    return coursesList.filter((c) => c.enrollmentStatus === "active").length;
+  }, [coursesList]);
 
   return (
-    <div className="space-y-8 font-sans pb-16">
-      {/* ================= HERO (RED & WHITE, NO GRADIENT) ================= */}
-      <div className="rounded-2xl border-2 border-red-600 bg-white p-6 md:p-8 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+    <div className="space-y-8 font-sans pb-12">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-zinc-900 via-zinc-800 to-zinc-900 border border-zinc-700 p-6 md:p-8 text-white shadow-xl">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-xs font-bold flex items-center gap-1.5">
-                <Gamepad2 className="w-4 h-4 text-red-600" /> KHO MINIGAME TƯƠNG TÁC
-              </span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-bold">
+              <Gamepad2 className="w-3.5 h-3.5 text-red-400" />
+              <span>E-V-E Game Arcade Studio</span>
             </div>
-
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">
-              Đấu Trường Minigame & <span className="text-red-600">Thực Chiến Kiến Thức</span>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
+              Kho Trò Chơi Giáo Dục Tương Tác
             </h1>
-
-            <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
-              Trải nghiệm học tập qua trò chơi tương tác. Tự động nạp bộ câu hỏi theo từng khóa học và tích lũy Coins để đổi thưởng.
+            <p className="text-xs md:text-sm text-zinc-300 leading-relaxed">
+              Trải nghiệm các trò chơi học tập tương tác, củng cố kiến thức các bài học thực tế, rèn luyện tư duy và tích lũy E-V-E Coins.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 border border-zinc-200 text-center justify-around">
-              <div>
-                <span className="text-[10px] font-bold text-zinc-500 uppercase block">Tổng Games</span>
-                <span className="text-lg font-black text-zinc-900 font-mono">{games.length} Games</span>
-              </div>
-              <div className="w-[1px] h-8 bg-zinc-200" />
-              <div>
-                <span className="text-[10px] font-bold text-zinc-500 uppercase block">Số Dư Coins</span>
-                <span className="text-lg font-black text-red-600 font-mono">{studentCoins} </span>
-              </div>
+          <div className="flex items-center gap-4 bg-zinc-800/80 backdrop-blur-xs border border-zinc-700 p-4 rounded-2xl self-start md:self-auto">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <Coins className="w-6 h-6" />
             </div>
-
-            <button
-              onClick={handleRandomPlay}
-              className="py-3 px-5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
-            >
-              <Shuffle className="w-4 h-4" />
-              <span>Chơi Ngẫu Nhiên Một Game </span>
-            </button>
+            <div>
+              <div className="text-[11px] text-zinc-400 font-medium">Số dư hiện tại</div>
+              <div className="text-xl font-black text-amber-400">{studentCoins.toLocaleString()} Coins</div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ================= CONTROLS & FILTER ================= */}
-      <div className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
+      {/* Filter & Search Toolbar */}
+      <div className="p-4 rounded-2xl bg-white border border-zinc-200 shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
             <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Tìm kiếm trò chơi theo tên, thể loại..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border-2 border-zinc-200 focus:border-red-600 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none transition-colors"
+              placeholder="Tìm kiếm trò chơi theo tên, thể loại, từ khóa..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 focus:border-red-600 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none transition-colors"
             />
           </div>
 
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-100 border border-zinc-200 text-xs">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
             <button
-              onClick={() => setExtraDataFilter("all")}
-              className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer font-bold ${
-                extraDataFilter === "all" ? "bg-red-600 text-white" : "text-zinc-600 hover:text-zinc-900"
+              onClick={() => setSelectedCategory("all")}
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
+                selectedCategory === "all"
+                  ? "bg-red-600 text-white"
+                  : "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
               }`}
             >
-              Tất Cả
+              Tất Cả Thể Loại
             </button>
             <button
-              onClick={() => setExtraDataFilter("dynamic")}
-              className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer font-bold ${
-                extraDataFilter === "dynamic" ? "bg-red-600 text-white" : "text-zinc-600 hover:text-zinc-900"
+              onClick={() => setSelectedCategory("memory")}
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
+                selectedCategory === "memory"
+                  ? "bg-red-600 text-white"
+                  : "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
               }`}
             >
-              Nhận Khóa Học
+              Lật Thẻ Trí Nhớ
             </button>
             <button
-              onClick={() => setExtraDataFilter("standalone")}
-              className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer font-bold ${
-                extraDataFilter === "standalone" ? "bg-red-600 text-white" : "text-zinc-600 hover:text-zinc-900"
+              onClick={() => setSelectedCategory("boss")}
+              className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
+                selectedCategory === "boss"
+                  ? "bg-red-600 text-white"
+                  : "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
               }`}
             >
-              Chơi Độc Lập
+              Đấu Trùm Boss Quiz
             </button>
           </div>
         </div>
-
-        {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-          {[
-            { id: "all", label: " Tất Cả" },
-            { id: "boss", label: " Đấu Trùm Boss" },
-            { id: "memory", label: " Luyện Trí Nhớ" },
-            { id: "custom", label: " Game Cộng Đồng" },
-          ].map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-4 py-2 rounded-xl whitespace-nowrap transition-colors cursor-pointer font-bold ${
-                selectedCategory === cat.id
-                  ? "bg-red-600 text-white"
-                  : "bg-white text-zinc-700 border border-zinc-200 hover:border-red-300"
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* ================= GAME CARDS GRID ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      {/* Games Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredGames.map((game) => (
           <div
             key={game.id}
-            className="rounded-2xl bg-white border border-zinc-200 hover:border-red-600 transition-all flex flex-col justify-between overflow-hidden shadow-sm group"
+            className="group rounded-2xl bg-white border border-zinc-200 overflow-hidden shadow-xs hover:border-red-600 hover:shadow-md transition-all flex flex-col justify-between"
           >
-            {/* Thumbnail */}
-            <div className="relative h-44 w-full overflow-hidden bg-zinc-100">
+            <div className="relative aspect-video w-full overflow-hidden bg-zinc-100">
               <img
                 src={game.thumbnailUrl}
                 alt={game.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
-              <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
-                <span className="px-2.5 py-1 rounded-full bg-white/90 border border-zinc-200 text-[10px] font-bold text-zinc-900 flex items-center gap-1 shadow-sm">
-                  <Star className="w-3 h-3 text-amber-500 fill-amber-500" /> {game.rating}
+              {game.badge && (
+                <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
+                  {game.badge}
                 </span>
-                {game.badge && (
-                  <span className="px-2.5 py-1 rounded-full bg-red-600 text-white text-[10px] font-bold shadow-sm">
-                    {game.badge}
-                  </span>
-                )}
-              </div>
+              )}
+              {game.needExtraData && (
+                <span className="absolute top-3 right-3 px-2 py-0.5 rounded-md bg-zinc-900/80 backdrop-blur-xs text-white text-[10px] font-bold border border-zinc-700">
+                  Dynamic Extra Data
+                </span>
+              )}
             </div>
 
-            {/* Content */}
-            <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+            <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
               <div className="space-y-1.5">
                 <div className="text-[10px] font-bold text-red-600 uppercase tracking-wider">
                   {game.genre}
@@ -418,10 +490,10 @@ export default function StudentGamesArcadePage() {
         ))}
       </div>
 
-      {/* ================= COURSE SELECTION MODAL ================= */}
+      {/* ================= COURSE SELECTION & SUGGESTION MODAL ================= */}
       {isModalOpen && selectedGameForPlay && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-          <div className="w-full max-w-xl rounded-2xl bg-white border-2 border-red-600 p-6 shadow-2xl space-y-5 max-h-[85vh] flex flex-col justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl rounded-2xl bg-white border-2 border-red-600 p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col justify-between">
             <div className="flex items-start justify-between gap-4 pb-3 border-b border-zinc-200">
               <div>
                 <span className="text-[10px] text-red-600 font-bold uppercase block">Nạp dữ liệu khóa học</span>
@@ -431,11 +503,24 @@ export default function StudentGamesArcadePage() {
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition"
+                className="p-1.5 rounded-lg bg-zinc-100 text-zinc-600 hover:text-zinc-900 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Thông báo gợi ý nếu chưa có khóa học đang học */}
+            {activeCoursesCount === 0 && (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                  <AlertCircle className="w-4 h-4 text-amber-600" />
+                  Bạn chưa có khóa học nào đang hoạt động chứa trò chơi này
+                </div>
+                <p className="text-[11px] text-amber-700 leading-relaxed">
+                  Dưới đây là các khóa học gợi ý hỗ trợ minigame này. Bạn có thể bấm <strong>"Đăng ký"</strong> hoặc <strong>"Học tiếp"</strong> (nếu đang bảo lưu) để kích hoạt và bắt đầu chơi ngay!
+                </p>
+              </div>
+            )}
 
             <div className="relative">
               <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -443,54 +528,116 @@ export default function StudentGamesArcadePage() {
                 type="text"
                 value={courseSearchTerm}
                 onChange={(e) => setCourseSearchTerm(e.target.value)}
-                placeholder="Tìm khóa học..."
+                placeholder="Tìm khóa học hoặc lộ trình..."
                 className="w-full pl-10 pr-4 py-2 rounded-xl bg-zinc-50 border border-zinc-300 focus:border-red-600 text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none"
               />
             </div>
 
-            <div className="space-y-2.5 overflow-y-auto max-h-[300px] pr-1">
-              {modalFilteredCourses.length === 0 ? (
-                <div className="p-6 text-center rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3">
-                  <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <div className="text-xs font-bold text-zinc-800">
-                    Không có khóa học nào đang hoạt động
-                  </div>
-                  <p className="text-[11px] text-zinc-500 max-w-sm mx-auto leading-relaxed">
-                    Bạn chỉ có thể nạp dữ liệu từ các khóa học thuộc lộ trình bạn đang học (không ở trạng thái tạm dừng/bảo lưu). Hãy đăng ký hoặc kích hoạt lại lớp học!
-                  </p>
-                  <Link href="/student/learning-paths">
-                    <button className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition cursor-pointer">
-                      Khám Phá Lộ Trình Học Tập
-                    </button>
-                  </Link>
-                </div>
-              ) : (
-                modalFilteredCourses.map((course) => (
+            <div className="space-y-3 overflow-y-auto max-h-[360px] pr-1">
+              {modalFilteredCourses.map((course) => {
+                const isActive = course.enrollmentStatus === "active";
+                const isPaused = course.enrollmentStatus === "paused";
+                const isNotEnrolled = course.enrollmentStatus === "not_enrolled";
+                const isActionLoading = actionLoadingId === course.id;
+
+                return (
                   <div
                     key={course.id}
-                    onClick={() => handleLaunchWithCourse(course.id)}
-                    className="p-3.5 rounded-xl bg-zinc-50 hover:bg-red-50 border border-zinc-200 hover:border-red-400 transition-all flex items-center justify-between gap-3 cursor-pointer group"
+                    className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                      isActive
+                        ? "bg-white border-zinc-200 hover:border-red-500 hover:bg-red-50/30"
+                        : isPaused
+                        ? "bg-amber-50/50 border-amber-200"
+                        : "bg-zinc-50 border-zinc-200"
+                    }`}
                   >
-                    <div>
-                      <h4 className="text-xs font-bold text-zinc-900 group-hover:text-red-600 transition-colors">
-                        {course.title}
-                      </h4>
+                    <div className="space-y-1 max-w-md">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isActive && (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold border border-emerald-200 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Đang Học
+                          </span>
+                        )}
+                        {isPaused && (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
+                            <Lock className="w-3 h-3" /> Đang Bảo Lưu
+                          </span>
+                        )}
+                        {isNotEnrolled && (
+                          <span className="px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-600 text-[10px] font-bold">
+                            Chưa Đăng Ký
+                          </span>
+                        )}
+                        {course.learningPathTitle && (
+                          <span className="text-[10px] text-zinc-500 font-medium truncate max-w-[220px]">
+                            Thuộc: {course.learningPathTitle}
+                          </span>
+                        )}
+                      </div>
+
+                      <h4 className="text-xs font-bold text-zinc-900">{course.title}</h4>
                       <p className="text-[11px] text-zinc-500 line-clamp-1">{course.description}</p>
                     </div>
-                    <button className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-[11px] font-bold shrink-0">
-                      Chọn Bài Này
-                    </button>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      <Link href={`/student/courses/${course.id}`}>
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[11px] font-bold border border-zinc-200 transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          <span>Chi Tiết</span>
+                        </button>
+                      </Link>
+
+                      {isActive && (
+                        <button
+                          type="button"
+                          onClick={() => handleLaunchWithCourse(course.id)}
+                          className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <Play className="w-3 h-3 fill-white" />
+                          <span>Nạp & Chơi</span>
+                        </button>
+                      )}
+
+                      {isPaused && (
+                        <button
+                          type="button"
+                          disabled={isActionLoading}
+                          onClick={() => handleResumeOrEnroll(course, "resume")}
+                          className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                        >
+                          <RotateCw className={`w-3 h-3 ${isActionLoading ? "animate-spin" : ""}`} />
+                          <span>{isActionLoading ? "Đang xử lý..." : "Học Tiếp"}</span>
+                        </button>
+                      )}
+
+                      {isNotEnrolled && (
+                        <button
+                          type="button"
+                          disabled={isActionLoading}
+                          onClick={() => handleResumeOrEnroll(course, "enroll")}
+                          className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                        >
+                          <PlusCircle className={`w-3 h-3 ${isActionLoading ? "animate-spin" : ""}`} />
+                          <span>{isActionLoading ? "Đang đăng ký..." : "Đăng Ký"}</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                ))
-              )}
+                );
+              })}
             </div>
 
-            <div className="pt-3 border-t border-zinc-200 text-right">
+            <div className="pt-3 border-t border-zinc-200 flex items-center justify-between">
+              <Link href="/student/learning-paths" className="text-xs text-red-600 hover:underline font-bold">
+                Xem Tất Cả Lộ Trình Học Tập →
+              </Link>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition"
+                className="px-4 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition cursor-pointer"
               >
                 Đóng
               </button>
