@@ -547,8 +547,8 @@ export default function StudentClassDetailPage({
               </h3>
               <p className="text-xs text-zinc-600 leading-relaxed">
                 {isPaused
-                  ? `Bạn muốn tiếp tục theo học lớp "${path.title}" với tiến độ (${progress}%) đã bảo lưu trước đó?`
-                  : `Bạn có chắc chắn muốn tạm dừng theo học lớp "${path.title}"? Toàn bộ tiến độ hoàn thành (${progress}%) và bài học đã qua của bạn sẽ được bảo lưu an toàn.`}
+                  ? `Bạn muốn tiếp tục theo học lớp "${path.title}" với tiến độ (${enrollment?.progress || 0}%) đã bảo lưu trước đó?`
+                  : `Bạn có chắc chắn muốn tạm dừng theo học lớp "${path.title}"? Toàn bộ tiến độ hoàn thành (${enrollment?.progress || 0}%) và bài học đã qua của bạn sẽ được bảo lưu an toàn.`}
               </p>
             </div>
 

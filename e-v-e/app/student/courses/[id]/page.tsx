@@ -10,9 +10,11 @@ import {
   Play,
   Layers,
   Sparkles,
+  Lock,
 } from "lucide-react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { doc, getDoc, getDocs, query, collection, where } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
 import { CourseContentPair } from "@/core/entities/Course";
 
 const DEFAULT_COURSES: Record<string, { title: string; description: string; pairs: CourseContentPair[] }> = {

@@ -28,7 +28,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, getDocs, query, collection, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { CourseContentPair } from "@/core/entities/Course";
 
@@ -173,6 +173,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const { currentUser, profile } = useAuthAdapter();
   const uid = currentUser?.uid || profile?.uid || "usr_student";
   const studentName = currentUser?.name || profile?.fullName || "Học Viên E-V-E";
+  const userRole = currentUser?.role || profile?.role || "student";
 
   const currentGameMeta = GAME_METADATA[gameId] || {
     title: gameId.replace(/_/g, " ").toUpperCase(),
