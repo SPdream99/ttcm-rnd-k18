@@ -20,8 +20,19 @@ interface LearningPathMapProps {
   coursePlayCounts?: Record<string, number>;
   requiredPlaysPerStage?: number;
   currentCourseId?: string;
+  courseTitles?: Record<string, string>;
   onSelectCourse?: (courseId: string) => void;
 }
+
+const DEFAULT_COURSE_TITLES: Record<string, string> = {
+  crs_coding_basics: "Bài 1: Nhập Môn Tư Duy Lập Trình & Thuật Toán",
+  crs_computer_hardware: "Bài 2: Khám Phá Phần Cứng & Kiến Trúc Máy Tính",
+  crs_python_foundation: "Bài 3: Lập Trình Python Căn Bản & Cấu Trúc Dữ Liệu",
+  crs_generative_ai_projects: "Bài 4: Thiết Kế Ứng Dụng Trí Tuệ Nhân Tạo AI",
+  crs_data_structures: "Bài 5: Cấu Trúc Dữ Liệu & Giải Thuật Chuyên Sâu",
+  crs_python_mini_games: "Bài 6: Lập Trình Trò Chơi Mini Với Python",
+  crs_ai_robotics: "Bài 7: Khám Phá Trí Tuệ Nhân Tạo & Robotics",
+};
 
 export default function LearningPathMap({
   courses = [],
@@ -29,6 +40,7 @@ export default function LearningPathMap({
   coursePlayCounts = {},
   requiredPlaysPerStage = 1,
   currentCourseId,
+  courseTitles = {},
   onSelectCourse,
 }: LearningPathMapProps) {
   const router = useRouter();
@@ -152,7 +164,7 @@ export default function LearningPathMap({
             const nextCourse = index < safeCourses.length - 1;
             const plays = coursePlayCounts[courseId] || (isCompleted ? requiredPlaysPerStage : 0);
 
-            const cleanName = courseId
+            const displayTitle = courseTitles[courseId] || DEFAULT_COURSE_TITLES[courseId] || courseId
               .replace(/^crs_/, "")
               .replace(/_/g, " ")
               .toUpperCase();
@@ -237,7 +249,7 @@ export default function LearningPathMap({
                       )}
                     </div>
                     <h3 className="font-bold text-sm md:text-base text-zinc-900 truncate">
-                      {cleanName}
+                      {displayTitle}
                     </h3>
                     <p className="text-xs text-zinc-500 mt-0.5">
                       {isCompleted
