@@ -427,23 +427,28 @@ export default function StudentClassDetailPage({
                   ? "Bạn đã hoàn thành toàn bộ lộ trình!"
                   : `Đã hoàn thành ${completedCoursesList.length}/${safePathCourses.length} chặng bài học.`}
               </p>
-            </div>
-
-            <Link
-              href={
-                safePathCourses.length > 0
-                  ? `/student/play/game_card_match_vr/${safePathCourses[Math.min(completedCoursesList.length, safePathCourses.length - 1)]}`
-                  : `/student/play/game_card_match_vr/crs_coding_basics`
-              }
-              className={`mt-4 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold text-white shadow-sm transition-all ${
-                isPaused
-                  ? "bg-amber-600 hover:bg-amber-700"
-                  : "bg-red-600 hover:bg-red-700"
-              }`}
-            >
-              <span>{isPaused ? "Chơi Game Thực Hành" : "Tiếp Tục Chặng Hiện Tại"}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            {isPaused ? (
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold text-white shadow-sm transition-all bg-amber-600 hover:bg-amber-700 cursor-pointer"
+              >
+                <span>Kích Hoạt Lại Lớp Để Tiếp Tục Học</span>
+                <PlayCircle className="w-4 h-4" />
+              </button>
+            ) : (
+              <Link
+                href={
+                  safePathCourses.length > 0
+                    ? `/student/play/game_card_match_vr/${safePathCourses[Math.min(completedCoursesList.length, safePathCourses.length - 1)]}`
+                    : `/student/play/game_card_match_vr/crs_coding_basics`
+                }
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold text-white shadow-sm transition-all bg-red-600 hover:bg-red-700"
+              >
+                <span>Tiếp Tục Chặng Hiện Tại</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -467,6 +472,8 @@ export default function StudentClassDetailPage({
             completedCourses={completedCoursesList}
             coursePlayCounts={coursePlayCounts}
             requiredPlaysPerStage={1}
+            isPaused={isPaused}
+            isEnrolled={enrollment !== null}
           />
         </div>
       </section>

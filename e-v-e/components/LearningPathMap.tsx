@@ -21,6 +21,8 @@ interface LearningPathMapProps {
   requiredPlaysPerStage?: number;
   currentCourseId?: string;
   courseTitles?: Record<string, string>;
+  isPaused?: boolean;
+  isEnrolled?: boolean;
   onSelectCourse?: (courseId: string) => void;
 }
 
@@ -41,17 +43,25 @@ export default function LearningPathMap({
   requiredPlaysPerStage = 1,
   currentCourseId,
   courseTitles = {},
+  isPaused = false,
+  isEnrolled = true,
   onSelectCourse,
 }: LearningPathMapProps) {
   const router = useRouter();
   const [lockedNotice, setLockedNotice] = useState<{ stageNum: number; prevStageNum: number } | null>(null);
+  const [showPausedNotice, setShowPausedNotice] = useState(false);
+  const [showNotEnrolledNotice, setShowNotEnrolledNotice] = useState(false);
 
   const safeCourses = Array.isArray(courses) ? courses : [];
   const safeCompletedCourses = Array.isArray(completedCourses) ? completedCourses : [];
 
   // Kiểm tra trạng thái mở khóa tuần tự:
-  // Chặng 0 luôn mở khóa. Chặng i chỉ mở khóa khi Chặng i-1 đã HOÀN THÀNH ĐỦ LƯỢT CHƠI.
+  // Nếu lớp học đang TẠM DỪNG hoặc CHƯA ĐĂNG KÝ -> Khóa toàn bộ chặng.
   const getCourseStatus = (courseId: string, index: number) => {
+    if (isPaused || !isEnrolled) {
+      return "locked";
+    }
+
     const plays = coursePlayCounts[courseId] || 0;
     const isCompleted = safeCompletedCourses.includes(courseId) || plays >= requiredPlaysPerStage;
 
@@ -72,6 +82,14 @@ export default function LearningPathMap({
   };
 
   const handleCourseClick = (courseId: string, index: number, status: string) => {
+    if (!isEnrolled) {
+      setShowNotEnrolledNotice(true);
+      return;
+    }
+    if (isPaused) {
+      setShowPausedNotice(true);
+      return;
+    }
     if (status === "locked") {
       setLockedNotice({ stageNum: index + 1, prevStageNum: index });
       return;
@@ -97,7 +115,70 @@ export default function LearningPathMap({
 
   return (
     <div className="w-full space-y-6">
-      {/* Modal Thông Báo Khi Bấm Chặng Đang Khóa */}
+      {/* Modal Thông Báo Khi Bấm Vào Khi Đang Tạm Dừng / Bảo Lưu */}
+      {showPausedNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl bg-white border-2 border-amber-500 p-6 shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center mx-auto text-amber-600">
+              <Lock className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-black text-zinc-900">
+                Lớp Học Đang Tạm Dừng (Bảo Lưu)
+              </h3>
+              <p className="text-xs text-zinc-600 leading-relaxed">
+                Bạn đang ở trạng thái <strong>tạm dừng/bảo lưu</strong> khóa học này, do đó tất cả các chặng bài học và minigame thực hành đều bị khóa.
+              </p>
+              <p className="text-xs text-amber-700 font-bold bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                💡 Vui lòng bấm nút <strong>"Kích Hoạt Lại Lớp"</strong> ở đầu trang để tiếp tục học tập và mở khóa các chặng!
+              </p>
+            </div>
+
+            <div className="pt-2 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowPausedNotice(false)}
+                className="px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-sm"
+              >
+                Đã Hiểu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Thông Báo Khi Chưa Đăng Ký Học */}
+      {showNotEnrolledNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl bg-white border-2 border-red-600 p-6 shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 border border-red-200 flex items-center justify-center mx-auto text-red-600">
+              <Lock className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-black text-zinc-900">
+                Bạn Chưa Tham Gia Lớp Học Này
+              </h3>
+              <p className="text-xs text-zinc-600 leading-relaxed">
+                Bạn cần đăng ký hoặc được giảng viên thêm vào danh sách lớp học để mở khóa và tương tác với các chặng bài học.
+              </p>
+            </div>
+
+            <div className="pt-2 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowNotEnrolledNotice(false)}
+                className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-sm"
+              >
+                Đã Hiểu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Thông Báo Khi Bấm Chặng Đang Khóa Tuần Tự */}
       {lockedNotice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="w-full max-w-md rounded-2xl bg-white border-2 border-red-600 p-6 shadow-2xl space-y-4">
@@ -122,6 +203,23 @@ export default function LearningPathMap({
               >
                 Đã Hiểu & Quay Lại
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Banner Cảnh Báo Khi Lớp Học Tạm Dừng */}
+      {isPaused && (
+        <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-900 flex items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-amber-200/80 text-amber-800 shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-sm">Lớp Học Đang Tạm Dừng / Bảo Lưu</div>
+              <div className="text-xs text-amber-700 mt-0.5">
+                Các chặng học và minigame tạm thời bị khóa. Hãy bấm nút <strong>"Kích Hoạt Lại Lớp"</strong> để tiếp tục học.
+              </div>
             </div>
           </div>
         </div>

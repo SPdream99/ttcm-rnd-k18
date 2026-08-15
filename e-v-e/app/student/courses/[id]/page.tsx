@@ -127,6 +127,38 @@ export default function CourseDetailPage() {
 
   const [course, setCourse] = useState<{ title: string; description: string; pairs: CourseContentPair[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
+  const [showPausedNotice, setShowPausedNotice] = useState(false);
+
+  useEffect(() => {
+    // Check if student's enrollment containing this course is paused
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const enSnap = await getDocs(
+            query(collection(db, "student_learning_path"), where("student_id", "==", user.uid))
+          );
+          for (const d of enSnap.docs) {
+            const data = d.data();
+            if (data.status === "paused") {
+              const lpDoc = await getDoc(doc(db, "learning_path", data.learning_path_id));
+              if (lpDoc.exists()) {
+                const courses = lpDoc.data().courses || [];
+                if (courses.includes(courseId)) {
+                  setIsPaused(true);
+                  break;
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("Could not check enrollment pause status:", err);
+        }
+      }
+    });
+
+    return () => unsubAuth();
+  }, [courseId]);
 
   useEffect(() => {
     async function loadCourse() {
@@ -266,6 +298,56 @@ export default function CourseDetailPage() {
         </div>
       </section>
 
+      {/* Modal Thông Báo Khi Bấm Vào Khi Đang Tạm Dừng / Bảo Lưu */}
+      {showPausedNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl bg-white border-2 border-amber-500 p-6 shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center mx-auto text-amber-600">
+              <Lock className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-black text-zinc-900">
+                Lớp Học Đang Tạm Dừng (Bảo Lưu)
+              </h3>
+              <p className="text-xs text-zinc-600 leading-relaxed">
+                Bài học này thuộc lớp học đang ở trạng thái <strong>tạm dừng/bảo lưu</strong>. Bạn không thể chơi game hay tương tác làm bài tập cho đến khi kích hoạt lại lớp học.
+              </p>
+              <p className="text-xs text-amber-700 font-bold bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                💡 Vui lòng quay lại trang <strong>"Lớp Học Của Tôi"</strong> và bấm nút kích hoạt lại lớp!
+              </p>
+            </div>
+
+            <div className="pt-2 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowPausedNotice(false)}
+                className="px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-sm"
+              >
+                Đã Hiểu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Banner Cảnh Báo Khi Lớp Học Tạm Dừng */}
+      {isPaused && (
+        <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-900 flex items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-amber-200/80 text-amber-800 shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-sm">Lớp Học Đang Tạm Dừng / Bảo Lưu</div>
+              <div className="text-xs text-amber-700 mt-0.5">
+                Bạn đang tạm dừng lớp học chứa bài này. Minigame và bài tập thực hành tạm thời bị khóa.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── AVAILABLE GAMES FOR THIS COURSE ── */}
       <section className="space-y-4 pt-4 border-t border-zinc-200">
         <h2 className="text-base font-extrabold text-zinc-900 flex items-center gap-2">
@@ -274,58 +356,114 @@ export default function CourseDetailPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Game 1: Memory Match */}
-          <Link
-            href={`/student/play/game_card_match_vr/${courseId}`}
-            className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 hover:shadow-md transition group flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="px-2.5 py-0.5 rounded-md bg-red-50 text-red-700 text-xs font-bold border border-red-200">
-                  Memory Match
-                </span>
-                <span className="text-xs text-amber-600 font-extrabold flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> +100 Coins
-                </span>
+          {isPaused ? (
+            <div
+              onClick={() => setShowPausedNotice(true)}
+              className="p-6 rounded-2xl bg-zinc-50 border-2 border-zinc-200 opacity-60 cursor-not-allowed flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="px-2.5 py-0.5 rounded-md bg-zinc-200 text-zinc-600 text-xs font-bold">
+                    Memory Match
+                  </span>
+                  <span className="text-xs text-zinc-400 font-bold flex items-center gap-1">
+                    <Lock className="w-3 h-3" /> Đang Khóa
+                  </span>
+                </div>
+                <h3 className="font-extrabold text-base text-zinc-700">
+                  Ghép Cặp Thẻ Bài Thuật Toán
+                </h3>
+                <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
+                  Tìm và ghép đôi thẻ chứa Khái niệm với thẻ chứa Định nghĩa tương ứng của bài học.
+                </p>
               </div>
-              <h3 className="font-extrabold text-base text-zinc-900 group-hover:text-red-600 transition">
-                Ghép Cặp Thẻ Bài Thuật Toán
-              </h3>
-              <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
-                Tìm và ghép đôi thẻ chứa Khái niệm với thẻ chứa Định nghĩa tương ứng của bài học.
-              </p>
+              <div className="mt-5 pt-3 border-t border-zinc-200 flex items-center justify-between text-xs font-bold text-zinc-400">
+                <span>Bị khóa do tạm dừng</span>
+                <Lock className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="mt-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-bold text-red-600">
-              <span>Bắt đầu chơi</span>
-              <Play className="w-3.5 h-3.5 fill-red-600" />
-            </div>
-          </Link>
+          ) : (
+            <Link
+              href={`/student/play/game_card_match_vr/${courseId}`}
+              className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 hover:shadow-md transition group flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="px-2.5 py-0.5 rounded-md bg-red-50 text-red-700 text-xs font-bold border border-red-200">
+                    Memory Match
+                  </span>
+                  <span className="text-xs text-amber-600 font-extrabold flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> +100 Coins
+                  </span>
+                </div>
+                <h3 className="font-extrabold text-base text-zinc-900 group-hover:text-red-600 transition">
+                  Ghép Cặp Thẻ Bài Thuật Toán
+                </h3>
+                <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
+                  Tìm và ghép đôi thẻ chứa Khái niệm với thẻ chứa Định nghĩa tương ứng của bài học.
+                </p>
+              </div>
+              <div className="mt-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-bold text-red-600">
+                <span>Bắt đầu chơi</span>
+                <Play className="w-3.5 h-3.5 fill-red-600" />
+              </div>
+            </Link>
+          )}
 
           {/* Game 2: Quiz Runner 3D */}
-          <Link
-            href={`/student/play/game_space_quiz_3d/${courseId}`}
-            className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 hover:shadow-md transition group flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-xs font-bold border border-zinc-200">
-                  Action Quiz 3D
-                </span>
-                <span className="text-xs text-amber-600 font-extrabold flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> +120 Coins
-                </span>
+          {isPaused ? (
+            <div
+              onClick={() => setShowPausedNotice(true)}
+              className="p-6 rounded-2xl bg-zinc-50 border-2 border-zinc-200 opacity-60 cursor-not-allowed flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="px-2.5 py-0.5 rounded-md bg-zinc-200 text-zinc-600 text-xs font-bold">
+                    Action Quiz 3D
+                  </span>
+                  <span className="text-xs text-zinc-400 font-bold flex items-center gap-1">
+                    <Lock className="w-3 h-3" /> Đang Khóa
+                  </span>
+                </div>
+                <h3 className="font-extrabold text-base text-zinc-700">
+                  Quiz Runner 3D - Trắc Nghiệm Tốc Độ
+                </h3>
+                <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
+                  Thử thách phản xạ, đọc câu hỏi từ bài học và chọn đáp án chính xác nhất.
+                </p>
               </div>
-              <h3 className="font-extrabold text-base text-zinc-900 group-hover:text-red-600 transition">
-                Quiz Runner 3D - Trắc Nghiệm Tốc Độ
-              </h3>
-              <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
-                Thử thách phản xạ, đọc câu hỏi từ bài học và chọn đáp án chính xác nhất.
-              </p>
+              <div className="mt-5 pt-3 border-t border-zinc-200 flex items-center justify-between text-xs font-bold text-zinc-400">
+                <span>Bị khóa do tạm dừng</span>
+                <Lock className="w-3.5 h-3.5" />
+              </div>
             </div>
-            <div className="mt-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-bold text-red-600">
-              <span>Bắt đầu chơi</span>
-              <Play className="w-3.5 h-3.5 fill-red-600" />
-            </div>
-          </Link>
+          ) : (
+            <Link
+              href={`/student/play/game_space_quiz_3d/${courseId}`}
+              className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 hover:shadow-md transition group flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-xs font-bold border border-zinc-200">
+                    Action Quiz 3D
+                  </span>
+                  <span className="text-xs text-amber-600 font-extrabold flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> +120 Coins
+                  </span>
+                </div>
+                <h3 className="font-extrabold text-base text-zinc-900 group-hover:text-red-600 transition">
+                  Quiz Runner 3D - Trắc Nghiệm Tốc Độ
+                </h3>
+                <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
+                  Thử thách phản xạ, đọc câu hỏi từ bài học và chọn đáp án chính xác nhất.
+                </p>
+              </div>
+              <div className="mt-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-bold text-red-600">
+                <span>Bắt đầu chơi</span>
+                <Play className="w-3.5 h-3.5 fill-red-600" />
+              </div>
+            </Link>
+          )}
         </div>
       </section>
 
