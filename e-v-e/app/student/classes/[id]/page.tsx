@@ -295,8 +295,21 @@ export default function StudentClassDetailPage({
     );
   }
 
-  const progress = Math.min(enrollment?.progress || 0, 100);
   const isPaused = enrollment?.status === "paused";
+
+  const safePathCourses = Array.isArray(path?.courses) && path.courses.length > 0
+    ? path.courses
+    : ["crs_coding_basics", "crs_python_foundation", "crs_data_structures"];
+
+  const completedCoursesList = safePathCourses.filter(
+    (cId) => (coursePlayCounts[cId] || 0) >= 1
+  );
+
+  const dynamicProgress = safePathCourses.length > 0
+    ? Math.round((completedCoursesList.length / safePathCourses.length) * 100)
+    : (enrollment?.progress || 0);
+
+  const displayProgress = enrollment?.progress ? Math.max(enrollment.progress, dynamicProgress) : dynamicProgress;
 
   return (
     <div className="space-y-8 font-sans pb-12">
