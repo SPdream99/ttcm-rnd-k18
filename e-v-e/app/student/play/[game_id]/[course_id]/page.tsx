@@ -490,8 +490,6 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     setSelectedAnswer(null);
     setIsCorrect(null);
     setMovesCount(0);
-    setSystemPowerOn(false);
-    setBootingProgress(0);
 
     if (isCardMatchingEngine) {
       initializeMemoryDeck();
@@ -631,8 +629,6 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     setSelectedAnswer(null);
     setIsCorrect(null);
     setMovesCount(0);
-    setSystemPowerOn(false);
-    setBootingProgress(0);
   };
 
   const currentPair = pairs[currentPairIdx];
