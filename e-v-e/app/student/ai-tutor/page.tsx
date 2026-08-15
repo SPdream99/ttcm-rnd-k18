@@ -11,6 +11,7 @@ import {
   Check,
   Lightbulb,
   Mic,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 
@@ -331,6 +332,13 @@ export default function StudentAITutorPage() {
             <p className="text-xs text-zinc-600 leading-relaxed">
               Nhập Google Gemini API Key để gia sư trực tiếp trả lời mọi câu hỏi:
             </p>
+
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-zinc-700 flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <span className="leading-relaxed text-[11px]">
+                <strong className="text-red-700">Lưu ý:</strong> Khóa API Key được <strong>lưu cục bộ trên thiết bị của bạn</strong> (Local Storage), hoàn toàn không được gửi hay lưu trữ trên máy chủ.
+              </span>
+            </div>
 
             <form onSubmit={handleSaveApiKey} className="space-y-4">
               <div>

@@ -394,6 +394,14 @@ export default function TeacherProfilePage() {
           </span>
         </div>
 
+        {/* Device-only Storage Notice */}
+        <div className="p-3.5 rounded-xl bg-red-50/70 border border-red-200 text-xs text-zinc-700 flex items-start gap-2.5">
+          <ShieldCheck className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+          <div className="leading-relaxed">
+            <strong className="text-red-700">Lưu ý bảo mật thiết bị:</strong> Khóa Google Gemini API Key của Thầy/Cô được <strong>mã hóa an toàn và chỉ lưu cục bộ trên trình duyệt thiết bị này</strong> (Local Storage). Hệ thống <strong>hoàn toàn không lưu trữ hay gửi API Key</strong> lên máy chủ backend.
+          </div>
+        </div>
+
         {isKeyConfigured ? (
           <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
