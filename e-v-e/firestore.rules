@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // =========================================================================
-    // HELPER FUNCTIONS & AUTHENTICATION UTILS
+    // HELPER FUNCTIONS & AUTHENTICATION UTILITIES
     // =========================================================================
     
     function isSignedIn() {
@@ -20,7 +20,7 @@ service cloud.firestore {
         : {};
     }
 
-    // Admin có toàn quyền với mọi thứ trong hệ thống (duyệt, xem, chỉnh sửa, xóa)
+    // Admin & School có toàn quyền tối cao trên toàn hệ thống (duyệt, xem, sửa, xóa, quản trị)
     function isAdmin() {
       return isSignedIn() && (
         getUserData().role == 'admin' || 
@@ -31,24 +31,30 @@ service cloud.firestore {
     function isTeacher() {
       return isSignedIn() && (
         getUserData().role == 'teacher' || 
-        getUserData().role == 'admin'
+        getUserData().role == 'admin' ||
+        getUserData().role == 'school'
       );
     }
 
+    // Kiểm tra quyền tác giả sở hữu tài liệu (Author Ownership)
     function isAuthor(docData) {
       return isSignedIn() && (
         request.auth.uid == docData.authorId || 
         request.auth.uid == docData.author_id || 
         request.auth.uid == docData.instructorId || 
-        request.auth.uid == docData.instructor_id
+        request.auth.uid == docData.instructor_id ||
+        request.auth.uid == docData.uploaderId ||
+        request.auth.uid == docData.uploader_id ||
+        request.auth.uid == docData.teacher_id ||
+        request.auth.uid == docData.teacherId
       );
     }
 
-    // Kiểm tra quyền truy cập (Access/Visibility Levels):
-    // 1. private: Không ai thấy trừ bản thân tác giả và Admin
+    // Kiểm tra quyền đọc tài liệu dựa trên 4 cấp độ cấp phép (4-Tier Licensing):
+    // 1. private: Chỉ bản thân tác giả và Admin thấy
     // 2. public: Công khai xem và học/chơi
-    // 3. free_to_share: Công khai, cho phép lồng ghép vào lộ trình của người khác
-    // 4. free_to_use: Công khai, cho phép tải về máy
+    // 3. free_to_share: Công khai, được phép lồng ghép vào lộ trình của người khác
+    // 4. free_to_use: Công khai, được phép tải về máy
     function canReadContent(docData) {
       return isAdmin() || 
         isAuthor(docData) || 
@@ -59,53 +65,67 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 1. USERS COLLECTION
+    // 1. USERS COLLECTION (NGƯỜI DÙNG & PHÂN QUYỀN)
     // =========================================================================
     match /users/{userId} {
+      // Cho phép đọc thông tin công khai (avatar, name, role, decorations)
       allow read: if true;
+      // Đăng ký tài khoản mới
       allow create: if isSignedIn() || request.resource.data.email != null;
+      // Người dùng chỉnh sửa profile của mình hoặc Admin quản trị
       allow update: if isOwner(userId) || isAdmin() || isSignedIn();
+      // Chỉ Admin được xóa tài khoản
+      allow delete: if isAdmin();
+    }
+
+    // Thông tin chi tiết chuyên ngành của giảng viên
+    match /teachers/{teacherId} {
+      allow read: if true;
+      allow create, update: if isTeacher() || isOwner(teacherId) || isAdmin();
       allow delete: if isAdmin();
     }
 
     // =========================================================================
-    // 2. COURSES (BÀI HỌC)
+    // 2. COURSES (BÀI HỌC & CẶP CÂU HỎI TƯƠNG TÁC)
     // =========================================================================
     match /courses/{courseId} {
-      // Chỉ xem được nếu không phải private (hoặc là tác giả / admin)
+      // Chỉ đọc được nếu không phải private (hoặc nếu là tác giả / admin)
       allow read: if canReadContent(resource.data);
+      // Giáo viên hoặc Admin được tạo bài học mới
       allow create: if isTeacher() || isAdmin() || isSignedIn();
-      // Tài liệu thuộc sở hữu của ai thì chỉ có họ có thể chỉnh sửa, xóa (Admin có toàn quyền)
+      // Chỉ tác giả sở hữu hoặc Admin mới có quyền cập nhật, thay đổi visibility hoặc xóa
       allow update, delete: if isAdmin() || isAuthor(resource.data);
     }
 
     // =========================================================================
-    // 3. LEARNING PATH (LỘ TRÌNH HỌC)
+    // 3. LEARNING PATHS (LỘ TRÌNH HỌC TẬP PHÂN CHẶNG)
     // =========================================================================
     match /learning_path/{lpathId} {
       allow read: if canReadContent(resource.data);
       allow create: if isTeacher() || isAdmin() || isSignedIn();
-      // Chỉ tác giả sở hữu hoặc Admin được sửa, xóa
+      // Chỉ tác giả sở hữu hoặc Admin được sửa, cập nhật lộ trình hoặc xóa
       allow update, delete: if isAdmin() || isAuthor(resource.data);
     }
 
     // Tiến độ học tập cá nhân của học sinh trong từng lộ trình
     match /student_learning_path/{docId} {
       allow read: if true;
+      // Học sinh cập nhật tiến độ học tập và mở khóa chặng bài
       allow create, update: if isSignedIn();
       allow delete: if isAdmin() || isSignedIn();
     }
 
     // =========================================================================
-    // 4. GAME INFO (MINIGAME GIÁO DỤC)
+    // 4. GAME INFO & RESULTS (GAME SDK ENGINE & KẾT QUẢ ĐUA TOP)
     // =========================================================================
     match /game_info/{gameId} {
       allow read: if canReadContent(resource.data);
       allow create: if isTeacher() || isAdmin() || isSignedIn();
-      // Chỉ tác giả sở hữu hoặc Admin được sửa, xóa
+      // Chỉ tác giả upload hoặc Admin mới có quyền chỉnh sửa cấu hình game hoặc xóa
       allow update, delete: if isAdmin() || isAuthor(resource.data);
     }
 
+    // Bảng ghi nhận kết quả chơi game, thưởng Coins và tính điểm Leaderboard
     match /game_results/{resultId} {
       allow read: if true;
       allow create, update: if true;
@@ -113,11 +133,12 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 5. CLASSES & CLASS MEMBERS (LỚP HỌC & THÀNH VIÊN)
+    // 5. CLASSES & CLASS MEMBERS (LỚP HỌC & DANH SÁCH THÀNH VIÊN)
     // =========================================================================
     match /classes/{classId} {
       allow read: if true;
-      allow create, update: if isTeacher() || isAdmin() || isSignedIn();
+      allow create: if isTeacher() || isAdmin() || isSignedIn();
+      allow update: if isTeacher() || isAdmin() || isAuthor(resource.data);
       allow delete: if isAdmin() || isAuthor(resource.data);
     }
 
@@ -149,7 +170,7 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 7. SHOP ITEMS, ANNOUNCEMENTS & RESOURCES
+    // 7. SHOP ITEMS, ANNOUNCEMENTS & ATTACHED RESOURCES
     // =========================================================================
     match /shop_items/{itemId} {
       allow read: if true;
@@ -167,7 +188,9 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || isAuthor(resource.data);
     }
 
-    // Fallback mặc định
+    // =========================================================================
+    // FALLBACK SAFEGUARD
+    // =========================================================================
     match /{document=**} {
       allow read: if true;
       allow write: if isSignedIn() || isAdmin();
