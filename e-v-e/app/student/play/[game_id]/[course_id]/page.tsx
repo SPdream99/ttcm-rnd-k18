@@ -128,19 +128,6 @@ const FALLBACK_COURSE_DATA: Record<string, { title: string; pairs: CourseContent
 };
 
 const GAME_METADATA: Record<string, { title: string; subtitle: string; category: string; description: string; author: string; controls: string; instructions: string[] }> = {
-  game_space_quiz_3d: {
-    title: "Quiz Runner 3D - Trắc Nghiệm Tốc Độ",
-    subtitle: "Thử Thách Phản Xạ & Kiểm Tra Kiến Thức",
-    category: "Action Quiz 3D",
-    description: "Trò chơi trắc nghiệm tốc độ: Đọc kỹ câu hỏi trích xuất từ bài học và chọn đáp án chính xác nhất để ghi điểm và tích lũy Coins thưởng.",
-    author: "Ban Học Thuật E-V-E",
-    controls: "Sử dụng Chuột hoặc Phím Số (1, 2, 3, 4) để chọn đáp án.",
-    instructions: [
-      "Mỗi câu hỏi có 1 đáp án đúng và các phương án gây nhiễu.",
-      "Trả lời đúng liên tiếp để kích hoạt chuỗi Combo.",
-      "Hoàn thành toàn bộ câu hỏi để qua bài.",
-    ],
-  },
   game_card_match_vr: {
     title: "Ghép Cặp Thẻ Bài Thuật Toán (Memory Match)",
     subtitle: "Luyện Trí Nhớ & Khắc Sâu Định Nghĩa",
@@ -995,7 +982,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                     </button>
                   </div>
                 </div>
-              ) : isCardMatchingEngine ? (
+              ) : (
                 /* STATE 3: PLAYING MEMORY CARD MATCH */
                 <div className="space-y-6">
                   {/* Status Banner */}
@@ -1065,69 +1052,6 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                       );
                     })}
                   </div>
-                </div>
-              ) : (
-                /* Engine 2: Quiz Runner */
-                <div className="max-w-2xl mx-auto space-y-6">
-                  <div className="flex items-center justify-between text-xs text-zinc-500 font-bold">
-                    <span>Câu hỏi: <strong className="text-zinc-900">{currentPairIdx + 1}</strong> / {pairs.length}</span>
-                    <span>Tiến độ: <strong className="text-red-600">{Math.round(((currentPairIdx + 1) / pairs.length) * 100)}%</strong></span>
-                  </div>
-
-                  {currentPair && (
-                    <div className="p-6 md:p-8 rounded-2xl bg-zinc-50 border border-zinc-200 shadow-sm space-y-6">
-                      <h3 className="text-base md:text-lg font-bold text-zinc-900 text-center leading-relaxed">
-                        {currentPair.title}
-                      </h3>
-
-                      <div className="grid grid-cols-1 gap-3">
-                        {shuffledOptions.map((option, idx) => {
-                          const isPicked = selectedAnswer === option;
-                          const isRightAnswer = option === (currentPair.description || (currentPair as any).rightAnswer);
-
-                          let style = "bg-white hover:bg-zinc-100 border-zinc-200 text-zinc-800";
-                          if (selectedAnswer !== null) {
-                            if (isRightAnswer) {
-                              style = "bg-emerald-50 border-emerald-500 text-emerald-800 font-bold";
-                            } else if (isPicked) {
-                              style = "bg-red-50 border-red-500 text-red-700 font-bold";
-                            } else {
-                              style = "bg-zinc-50 border-zinc-200 text-zinc-400 opacity-50";
-                            }
-                          }
-
-                          return (
-                            <button
-                              key={idx}
-                              disabled={selectedAnswer !== null}
-                              onClick={() => handleSelectQuizAnswer(option)}
-                              className={`p-4 rounded-xl border text-left text-xs md:text-sm font-medium transition-colors flex items-center justify-between gap-3 cursor-pointer ${style}`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className="w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center font-bold text-xs shrink-0 text-zinc-700">
-                                  {String.fromCharCode(65 + idx)}
-                                </span>
-                                <span>{option}</span>
-                              </div>
-                              {selectedAnswer !== null && isRightAnswer && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
-                              {selectedAnswer !== null && isPicked && !isRightAnswer && <XCircle className="w-5 h-5 text-red-600 shrink-0" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {selectedAnswer !== null && (currentPair.explanation || (currentPair as any).explain) && (
-                        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs space-y-1">
-                          <div className="font-bold text-[11px] text-red-700 flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-red-600" /> Giải thích kiến thức:
-                          </div>
-                          <p className="leading-relaxed">
-                            {currentPair.explanation || (currentPair as any).explain}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
             </div>

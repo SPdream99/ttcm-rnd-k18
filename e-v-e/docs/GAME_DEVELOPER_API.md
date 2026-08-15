@@ -20,8 +20,8 @@ E-V-E hỗ trợ 2 phương thức giao tiếp song song:
 - **Request Body**:
   ```json
   {
-    "gameId": "game_space_quiz_3d",
-    "courseId": "crs_quantum_101",
+    "gameId": "game_card_match_vr",
+    "courseId": "crs_coding_basics",
     "userId": "usr_student_001"
   }
   ```
@@ -29,18 +29,17 @@ E-V-E hỗ trợ 2 phương thức giao tiếp song song:
   ```json
   {
     "success": true,
-    "gameId": "game_space_quiz_3d",
-    "courseId": "crs_quantum_101",
-    "courseTitle": "Vật Lý Lượng Tử Cơ Bản (Quantum 101)",
+    "gameId": "game_card_match_vr",
+    "courseId": "crs_coding_basics",
+    "courseTitle": "Nhập Môn Tư Duy Lập Trình & Thuật Toán",
     "totalPairs": 3,
     "pairs": [
       {
         "id": "p1",
-        "title": "Hiện tượng quang điện chứng minh tính chất gì của ánh sáng?",
-        "description": "Tính chất hạt (Photon)",
-        "explanation": "Hiện tượng quang điện chỉ có thể giải thích được bằng thuyết lượng tử ánh sáng của Einstein, coi ánh sáng là chùm các hạt photon mang năng lượng.",
-        "distractions": ["Tính chất sóng", "Tính chất phản xạ", "Tính chất tán sắc"],
-        "image_url": "https://images.unsplash.com/..."
+        "title": "Cấu trúc điều kiện nào dùng để rẽ nhánh khi đúng hoặc sai?",
+        "description": "Cấu trúc IF - ELSE",
+        "explanation": "Cấu trúc IF - ELSE cho phép chương trình kiểm tra biểu thức điều kiện Logic.",
+        "distractions": ["Vòng lặp For", "Vòng lặp While", "Hàm Function"]
       }
     ],
     "targetScore": 100
@@ -55,8 +54,8 @@ E-V-E hỗ trợ 2 phương thức giao tiếp song song:
 - **Request Body**:
   ```json
   {
-    "gameId": "game_space_quiz_3d",
-    "courseId": "crs_quantum_101",
+    "gameId": "game_card_match_vr",
+    "courseId": "crs_coding_basics",
     "userId": "usr_student_001",
     "score": 60,
     "currentStreak": 3,
@@ -72,9 +71,9 @@ E-V-E hỗ trợ 2 phương thức giao tiếp song song:
 - **Request Body**:
   ```json
   {
-    "gameId": "game_space_quiz_3d",
-    "courseId": "crs_quantum_101",
-    "pathId": "path_quantum_physics",
+    "gameId": "game_card_match_vr",
+    "courseId": "crs_coding_basics",
+    "pathId": "path_fullstack_gamification_2026",
     "userId": "usr_student_001",
     "score": 95,
     "isWin": true,

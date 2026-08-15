@@ -16,19 +16,6 @@ interface GameLobbyProps {
 }
 
 const GAME_CATALOG: Record<string, { title: string; subtitle: string; category: string; description: string; author: string; defaultCourseId: string; compatibleCourses: Array<{ id: string; title: string; difficulty: string }> }> = {
-  game_space_quiz_3d: {
-    title: "Quiz Runner 3D - Trắc Nghiệm Tốc Độ",
-    subtitle: "Thử Thách Phản Xạ & Kiểm Tra Kiến Thức",
-    category: "Action Quiz 3D",
-    description: "Trò chơi trắc nghiệm tốc độ: Đọc kỹ câu hỏi trích xuất từ bài học và chọn đáp án chính xác nhất để ghi điểm và tích lũy Coins thưởng.",
-    author: "Ban Học Thuật E-V-E",
-    defaultCourseId: "crs_coding_basics",
-    compatibleCourses: [
-      { id: "crs_coding_basics", title: "Bài 1: Nhập Môn Tư Duy Lập Trình & Thuật Toán", difficulty: "Cơ Bản" },
-      { id: "crs_python_mini_games", title: "Bài 3: Lập Trình Trò Chơi Mini Với Python", difficulty: "Trung Cấp" },
-      { id: "crs_ai_robotics", title: "Bài 4: Khám Phá Trí Tuệ Nhân Tạo AI", difficulty: "Nâng Cao" },
-    ],
-  },
   game_card_match_vr: {
     title: "Ghép Cặp Thẻ Bài Thuật Toán (Memory Match)",
     subtitle: "Luyện Trí Nhớ & Khắc Sâu Định Nghĩa",

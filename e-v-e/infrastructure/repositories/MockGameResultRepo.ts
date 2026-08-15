@@ -9,8 +9,8 @@ export class MockGameResultRepo implements GameResultPort {
     {
       id: "res_001",
       uid: "usr_student_001",
-      cid: "crs_quantum_101",
-      gid: "game_space_quiz_3d",
+      cid: "crs_coding_basics",
+      gid: "game_card_match_vr",
       result: 95,
       reward: 50,
       playedAt: new Date("2026-08-10"),
@@ -18,8 +18,8 @@ export class MockGameResultRepo implements GameResultPort {
     {
       id: "res_002",
       uid: "usr_student_001",
-      cid: "crs_astrophysics",
-      gid: "game_space_quiz_3d",
+      cid: "crs_python_foundation",
+      gid: "game_card_match_vr",
       result: 88,
       reward: 40,
       playedAt: new Date("2026-08-12"),

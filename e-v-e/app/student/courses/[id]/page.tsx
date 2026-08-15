@@ -409,61 +409,6 @@ export default function CourseDetailPage() {
               </div>
             </Link>
           )}
-
-          {/* Game 2: Quiz Runner 3D */}
-          {isPaused ? (
-            <div
-              onClick={() => setShowPausedNotice(true)}
-              className="p-6 rounded-2xl bg-zinc-50 border-2 border-zinc-200 opacity-60 cursor-not-allowed flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="px-2.5 py-0.5 rounded-md bg-zinc-200 text-zinc-600 text-xs font-bold">
-                    Action Quiz 3D
-                  </span>
-                  <span className="text-xs text-zinc-400 font-bold flex items-center gap-1">
-                    <Lock className="w-3 h-3" /> Đang Khóa
-                  </span>
-                </div>
-                <h3 className="font-extrabold text-base text-zinc-700">
-                  Quiz Runner 3D - Trắc Nghiệm Tốc Độ
-                </h3>
-                <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
-                  Thử thách phản xạ, đọc câu hỏi từ bài học và chọn đáp án chính xác nhất.
-                </p>
-              </div>
-              <div className="mt-5 pt-3 border-t border-zinc-200 flex items-center justify-between text-xs font-bold text-zinc-400">
-                <span>Bị khóa do tạm dừng</span>
-                <Lock className="w-3.5 h-3.5" />
-              </div>
-            </div>
-          ) : (
-            <Link
-              href={`/student/play/game_space_quiz_3d/${courseId}`}
-              className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 hover:shadow-md transition group flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-xs font-bold border border-zinc-200">
-                    Action Quiz 3D
-                  </span>
-                  <span className="text-xs text-amber-600 font-extrabold flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> +120 Coins
-                  </span>
-                </div>
-                <h3 className="font-extrabold text-base text-zinc-900 group-hover:text-red-600 transition">
-                  Quiz Runner 3D - Trắc Nghiệm Tốc Độ
-                </h3>
-                <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
-                  Thử thách phản xạ, đọc câu hỏi từ bài học và chọn đáp án chính xác nhất.
-                </p>
-              </div>
-              <div className="mt-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-bold text-red-600">
-                <span>Bắt đầu chơi</span>
-                <Play className="w-3.5 h-3.5 fill-red-600" />
-              </div>
-            </Link>
-          )}
         </div>
       </section>
 
