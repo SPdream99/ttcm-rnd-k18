@@ -63,9 +63,18 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 // HOOK
 // ============================================================
 
-export function useToast() {
+export interface ToastHelpers {
+  success: (message: string, title?: string) => void;
+  error: (message: string, title?: string) => void;
+  info: (message: string, title?: string) => void;
+  warning: (message: string, title?: string) => void;
+}
+
+export type ToastHookReturn = ToastHelpers & { toast: ToastHelpers };
+
+export function useToast(): ToastHookReturn {
   const ctx = useContext(ToastContext);
-  const helpers = {
+  const helpers: ToastHelpers = {
     success: (message: string, title?: string) =>
       ctx ? ctx.addToast({ type: "success", message, title }) : console.log("[Toast Success]", title, message),
     error: (message: string, title?: string) =>
