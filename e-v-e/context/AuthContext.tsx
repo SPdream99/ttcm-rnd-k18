@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: data.role || "student",
             status: data.status || "active",
             coins: Number(data.coins) || 0,
-            twoFactorEnabled: Boolean(data.two_factor_enabled ?? data.twoFactorEnabled),
+            twoFactorEnabled: data.two_factor_enabled !== false && data.twoFactorEnabled !== false,
             profileDecorations: data.profile_decorations || [],
           };
         } else {
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: "student",
             status: "active",
             coins: 0,
-            twoFactorEnabled: false,
+            twoFactorEnabled: true,
             profileDecorations: [],
           };
         }

@@ -56,7 +56,7 @@ export default function StudentProfilePage() {
   const [maskedKeyDisplay, setMaskedKeyDisplay] = useState("");
 
   // ── 2FA Security State ──
-  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [is2FAEnabled, setIs2FAEnabled] = useState(true);
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [otpInput, setOtpInput] = useState("");
   const [isSending2FA, setIsSending2FA] = useState(false);
@@ -71,8 +71,8 @@ export default function StudentProfilePage() {
       setMaskedKeyDisplay(getMaskedAIKey());
     }
 
-    if (currentUser?.twoFactorEnabled) {
-      setIs2FAEnabled(true);
+    if (currentUser?.twoFactorEnabled !== undefined) {
+      setIs2FAEnabled(currentUser.twoFactorEnabled !== false);
     }
 
     // Fetch user courses progress

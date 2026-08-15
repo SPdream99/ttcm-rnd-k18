@@ -33,7 +33,7 @@ export class FirebaseAuthRepo implements AuthPort {
       let coins = 0;
       let profileDecorations: string[] = [];
       let activeDecorations = { avatarFrame: "", badge: "" };
-      let twoFactorEnabled = false;
+      let twoFactorEnabled = true;
 
       if (!userDoc.exists()) {
         const fallbackDoc: any = {
@@ -46,7 +46,7 @@ export class FirebaseAuthRepo implements AuthPort {
           status: "active",
           coins: 0,
           profile_decorations: [],
-          twoFactorEnabled: false,
+          twoFactorEnabled: true,
           createdAt: new Date().toISOString(),
         };
         await setDoc(doc(db, "users", user.uid), fallbackDoc);
@@ -57,7 +57,7 @@ export class FirebaseAuthRepo implements AuthPort {
         coins = data.coins || 0;
         profileDecorations = data.profile_decorations || [];
         activeDecorations = data.active_decorations || { avatarFrame: "", badge: "" };
-        twoFactorEnabled = data.twoFactorEnabled ?? data.two_factor_enabled ?? false;
+        twoFactorEnabled = data.twoFactorEnabled !== false && data.two_factor_enabled !== false;
       }
 
       const returnUser: User = {

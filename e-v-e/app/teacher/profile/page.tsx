@@ -40,7 +40,7 @@ export default function TeacherProfilePage() {
   const [isKeyConfigured, setIsKeyConfigured] = useState(false);
   const [maskedKeyDisplay, setMaskedKeyDisplay] = useState("");
 
-  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [is2FAEnabled, setIs2FAEnabled] = useState(true);
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [otpInput, setOtpInput] = useState("");
   const [isSending2FA, setIsSending2FA] = useState(false);
@@ -63,8 +63,8 @@ export default function TeacherProfilePage() {
       setMaskedKeyDisplay(getMaskedAIKey());
     }
 
-    if (currentUser?.twoFactorEnabled) {
-      setIs2FAEnabled(true);
+    if (currentUser?.twoFactorEnabled !== undefined) {
+      setIs2FAEnabled(currentUser.twoFactorEnabled !== false);
     }
 
     async function loadStats() {

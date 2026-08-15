@@ -77,7 +77,7 @@ const SEED_DATA = {
       profile_decorations: ["item_frame_cosmic_01", "item_title_explorer"],
       bio: "Học viên chuyên ngành Công Nghệ Phần Mềm & Lập Trình Game tại E-V-E.",
       avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80",
-      twoFactorEnabled: false,
+      twoFactorEnabled: true,
     },
     {
       id: "YMdybMQPIYWQVlUmb346L92P3z53",
@@ -90,7 +90,7 @@ const SEED_DATA = {
       profile_decorations: ["item_title_master"],
       bio: "Giảng viên chuyên ngành Khoa Học Máy Tính & Trò Chơi Giáo Dục tại E-V-E.",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
-      twoFactorEnabled: false,
+      twoFactorEnabled: true,
     },
     {
       id: "4iFol5R21cTdeB5UmKxKal2n4tl2",
@@ -103,7 +103,7 @@ const SEED_DATA = {
       profile_decorations: ["item_frame_gold", "item_title_admin"],
       bio: "Quản trị viên toàn hệ thống nền tảng học tập E-V-E Learning Hub.",
       avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80",
-      twoFactorEnabled: false,
+      twoFactorEnabled: true,
     },
     {
       id: "student_minh_anh_01",
@@ -116,7 +116,7 @@ const SEED_DATA = {
       profile_decorations: ["item_frame_cosmic_01"],
       bio: "Học sinh đam mê thuật toán Python và thiết kế Web.",
       avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80",
-      twoFactorEnabled: false,
+      twoFactorEnabled: true,
     },
     {
       id: "student_bao_ngoc_02",
@@ -129,7 +129,7 @@ const SEED_DATA = {
       profile_decorations: [],
       bio: "Học viên xuất sắc chặng 2 môn Lập trình Python.",
       avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&auto=format&fit=crop&q=80",
-      twoFactorEnabled: false,
+      twoFactorEnabled: true,
     },
   ],
 
