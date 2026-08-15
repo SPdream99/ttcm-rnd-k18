@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Gamepad2,
   Play,
@@ -18,10 +19,12 @@ import {
   Star,
   Users,
   Coins,
+  Lock,
+  AlertCircle,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, getDocs, query, where, getDoc, doc } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
 
 interface ArcadeGameItem {
   id: string;
@@ -132,39 +135,46 @@ export default function StudentGamesArcadePage() {
 
         setGames(fetchedGames);
 
-        // Fetch courses for modal
+        // Fetch active non-paused courses for this student
+        const studentUid = currentUser?.uid || auth.currentUser?.uid;
+        const activeCourseIds = new Set<string>();
+
+        if (studentUid) {
+          try {
+            const enSnap = await getDocs(
+              query(collection(db, "student_learning_path"), where("student_id", "==", studentUid))
+            );
+            for (const d of enSnap.docs) {
+              const data = d.data();
+              if (data.status === "active") {
+                const lpDoc = await getDoc(doc(db, "learning_path", data.learning_path_id));
+                if (lpDoc.exists()) {
+                  const cList = lpDoc.data().courses || [];
+                  cList.forEach((cId: string) => activeCourseIds.add(cId));
+                }
+              }
+            }
+          } catch (enErr) {
+            console.warn("Could not check student active enrollments:", enErr);
+          }
+        }
+
+        // Fetch courses for modal - ONLY active enrolled courses
         const coursesSnap = await getDocs(collection(db, "courses"));
         const cl: any[] = [];
         coursesSnap.docs.forEach((d) => {
-          const cd = d.data();
-          cl.push({
-            id: d.id,
-            title: cd.title || d.id,
-            description: cd.description || "",
-            pairsCount: Array.isArray(cd.pairs) ? cd.pairs.length : 10,
-            authorName: cd.authorName || "Giảng viên",
-            tags: Array.isArray(cd.tags) ? cd.tags : ["Lập trình"],
-          });
+          if (activeCourseIds.has(d.id)) {
+            const cd = d.data();
+            cl.push({
+              id: d.id,
+              title: cd.title || d.id,
+              description: cd.description || "",
+              pairsCount: Array.isArray(cd.pairs) ? cd.pairs.length : 10,
+              authorName: cd.authorName || "Giảng viên",
+              tags: Array.isArray(cd.tags) ? cd.tags : ["Lập trình"],
+            });
+          }
         });
-
-        if (cl.length === 0) {
-          cl.push({
-            id: "crs_python_foundation",
-            title: "Lập Trình Python Cơ Bản",
-            description: "Biến, kiểu dữ liệu, vòng lặp và câu lệnh rẽ nhánh trong Python.",
-            pairsCount: 12,
-            authorName: "ThS. Nguyễn Nhật Anh",
-            tags: ["Python", "Cơ bản"],
-          });
-          cl.push({
-            id: "crs_data_structures",
-            title: "Cấu Trúc Dữ Liệu & Giải Thuật",
-            description: "Mảng, danh sách liên kết, cây nhị phân và đồ thị.",
-            pairsCount: 15,
-            authorName: "ThS. Nguyễn Thành Đạt",
-            tags: ["Thuật toán", "DSA"],
-          });
-        }
 
         setCoursesList(cl);
       } catch (e) {
@@ -175,7 +185,7 @@ export default function StudentGamesArcadePage() {
     }
 
     loadArcadeData();
-  }, []);
+  }, [currentUser]);
 
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
@@ -439,23 +449,42 @@ export default function StudentGamesArcadePage() {
             </div>
 
             <div className="space-y-2.5 overflow-y-auto max-h-[300px] pr-1">
-              {modalFilteredCourses.map((course) => (
-                <div
-                  key={course.id}
-                  onClick={() => handleLaunchWithCourse(course.id)}
-                  className="p-3.5 rounded-xl bg-zinc-50 hover:bg-red-50 border border-zinc-200 hover:border-red-400 transition-all flex items-center justify-between gap-3 cursor-pointer group"
-                >
-                  <div>
-                    <h4 className="text-xs font-bold text-zinc-900 group-hover:text-red-600 transition-colors">
-                      {course.title}
-                    </h4>
-                    <p className="text-[11px] text-zinc-500 line-clamp-1">{course.description}</p>
+              {modalFilteredCourses.length === 0 ? (
+                <div className="p-6 text-center rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3">
+                  <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+                    <Lock className="w-5 h-5" />
                   </div>
-                  <button className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-[11px] font-bold shrink-0">
-                    Chọn Bài Này
-                  </button>
+                  <div className="text-xs font-bold text-zinc-800">
+                    Không có khóa học nào đang hoạt động
+                  </div>
+                  <p className="text-[11px] text-zinc-500 max-w-sm mx-auto leading-relaxed">
+                    Bạn chỉ có thể nạp dữ liệu từ các khóa học thuộc lộ trình bạn đang học (không ở trạng thái tạm dừng/bảo lưu). Hãy đăng ký hoặc kích hoạt lại lớp học!
+                  </p>
+                  <Link href="/student/learning-paths">
+                    <button className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition cursor-pointer">
+                      Khám Phá Lộ Trình Học Tập
+                    </button>
+                  </Link>
                 </div>
-              ))}
+              ) : (
+                modalFilteredCourses.map((course) => (
+                  <div
+                    key={course.id}
+                    onClick={() => handleLaunchWithCourse(course.id)}
+                    className="p-3.5 rounded-xl bg-zinc-50 hover:bg-red-50 border border-zinc-200 hover:border-red-400 transition-all flex items-center justify-between gap-3 cursor-pointer group"
+                  >
+                    <div>
+                      <h4 className="text-xs font-bold text-zinc-900 group-hover:text-red-600 transition-colors">
+                        {course.title}
+                      </h4>
+                      <p className="text-[11px] text-zinc-500 line-clamp-1">{course.description}</p>
+                    </div>
+                    <button className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-[11px] font-bold shrink-0">
+                      Chọn Bài Này
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
 
             <div className="pt-3 border-t border-zinc-200 text-right">

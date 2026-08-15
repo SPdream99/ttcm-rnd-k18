@@ -129,32 +129,40 @@ export default function CourseDetailPage() {
 
   const [course, setCourse] = useState<{ title: string; description: string; pairs: CourseContentPair[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEnrolled, setIsEnrolled] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [showPausedNotice, setShowPausedNotice] = useState(false);
+  const [showNotice, setShowNotice] = useState<"paused" | "not_enrolled" | null>(null);
 
   useEffect(() => {
-    // Check if student's enrollment containing this course is paused
+    // Check if student is actively enrolled in a path containing this course
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
           const enSnap = await getDocs(
             query(collection(db, "student_learning_path"), where("student_id", "==", user.uid))
           );
+          let enrolled = false;
+          let paused = false;
+
           for (const d of enSnap.docs) {
             const data = d.data();
-            if (data.status === "paused") {
-              const lpDoc = await getDoc(doc(db, "learning_path", data.learning_path_id));
-              if (lpDoc.exists()) {
-                const courses = lpDoc.data().courses || [];
-                if (courses.includes(courseId)) {
-                  setIsPaused(true);
-                  break;
+            const lpDoc = await getDoc(doc(db, "learning_path", data.learning_path_id));
+            if (lpDoc.exists()) {
+              const courses = lpDoc.data().courses || [];
+              if (courses.includes(courseId)) {
+                enrolled = true;
+                if (data.status === "paused") {
+                  paused = true;
                 }
+                break;
               }
             }
           }
+
+          setIsEnrolled(enrolled);
+          setIsPaused(paused);
         } catch (err) {
-          console.warn("Could not check enrollment pause status:", err);
+          console.warn("Could not check enrollment status:", err);
         }
       }
     });
@@ -300,50 +308,70 @@ export default function CourseDetailPage() {
         </div>
       </section>
 
-      {/* Modal Thông Báo Khi Bấm Vào Khi Đang Tạm Dừng / Bảo Lưu */}
-      {showPausedNotice && (
+      {/* Modal Thong Bao Khi Bam Vao Khi Chua Hoc / Dang Tam Dung */}
+      {showNotice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-2xl bg-white border-2 border-amber-500 p-6 shadow-2xl space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center mx-auto text-amber-600">
+          <div className="w-full max-w-md rounded-2xl bg-white border-2 border-red-500 p-6 shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 border border-red-200 flex items-center justify-center mx-auto text-red-600">
               <Lock className="w-6 h-6" />
             </div>
 
             <div className="text-center space-y-2">
               <h3 className="text-lg font-black text-zinc-900">
-                Lớp Học Đang Tạm Dừng (Bảo Lưu)
+                {showNotice === "paused" ? "Lớp Học Đang Tạm Dừng (Bảo Lưu)" : "Chưa Tham Gia Lớp Học Này"}
               </h3>
               <p className="text-xs text-zinc-600 leading-relaxed">
-                Bài học này thuộc lớp học đang ở trạng thái <strong>tạm dừng/bảo lưu</strong>. Bạn không thể chơi game hay tương tác làm bài tập cho đến khi kích hoạt lại lớp học.
+                {showNotice === "paused"
+                  ? "Khóa học này thuộc lộ trình đang ở trạng thái TẠM DỪNG (BẢO LƯU). Bạn cần kích hoạt lại lớp học để tiếp tục chơi minigame."
+                  : "Bạn chưa đăng ký hoặc chưa tham gia lớp học có chứa khóa học này. Vui lòng đăng ký tham gia lớp học để mở khóa minigame và học liệu."}
               </p>
-              <p className="text-xs text-amber-700 font-bold bg-amber-50 p-2.5 rounded-xl border border-amber-200">
-                 Vui lòng quay lại trang <strong>"Lớp Học Của Tôi"</strong> và bấm nút kích hoạt lại lớp!
+              <p className="text-xs text-red-700 font-bold bg-red-50 p-2.5 rounded-xl border border-red-200">
+                {showNotice === "paused"
+                  ? "Vui lòng vào trang 'Lớp Học Của Tôi' và bấm nút kích hoạt lại lớp học!"
+                  : "Vui lòng vào trang 'Lộ Trình Học Tập' hoặc 'Lớp Học' để đăng ký tham gia!"}
               </p>
             </div>
 
-            <div className="pt-2 flex justify-center">
+            <div className="pt-2 flex justify-center gap-3">
               <button
                 type="button"
-                onClick={() => setShowPausedNotice(false)}
-                className="px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-sm"
+                onClick={() => setShowNotice(null)}
+                className="px-6 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-sm"
               >
                 Đã Hiểu
               </button>
+              <Link href={showNotice === "paused" ? "/student/classes" : "/student/learning-paths"}>
+                <button
+                  type="button"
+                  className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-sm"
+                >
+                  {showNotice === "paused" ? "Đến Lớp Học" : "Xem Lộ Trình"}
+                </button>
+              </Link>
             </div>
           </div>
         </div>
       )}
 
-      {/* Banner Cảnh Báo Khi Lớp Học Tạm Dừng */}
-      {isPaused && (
-        <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-900 flex items-center justify-between gap-3 shadow-xs">
+      {/* Banner Canh Bao Khi Khong Duoc Phep Choi */}
+      {(!isEnrolled || isPaused) && (
+        <div className={`p-4 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-xs ${
+          isPaused ? "bg-amber-50 border-amber-300 text-amber-900" : "bg-red-50 border-red-300 text-red-900"
+        }`}>
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-amber-200/80 text-amber-800 shrink-0">
+            <div className={`p-2 rounded-xl shrink-0 ${
+              isPaused ? "bg-amber-200 text-amber-800" : "bg-red-200 text-red-800"
+            }`}>
               <Lock className="w-5 h-5" />
             </div>
             <div>
-              <div className="font-bold text-sm">Lớp Học Đang Tạm Dừng / Bảo Lưu</div>
-              <div className="text-xs text-amber-700 mt-0.5">
-                Bạn đang tạm dừng lớp học chứa bài này. Minigame và bài tập thực hành tạm thời bị khóa.
+              <div className="font-bold text-sm">
+                {isPaused ? "Lớp Học Đang Tạm Dừng / Bảo Lưu" : "Khóa Học Chưa Được Đăng Ký"}
+              </div>
+              <div className={`text-xs mt-0.5 ${isPaused ? "text-amber-700" : "text-red-700"}`}>
+                {isPaused
+                  ? "Bạn đang tạm dừng lớp học chứa bài này. Minigame và thực hành tạm thời bị khóa."
+                  : "Bạn chỉ có thể chơi minigame khi đang tham gia lớp học có chứa khóa học này."}
               </div>
             </div>
           </div>
@@ -358,9 +386,9 @@ export default function CourseDetailPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Game 1: Memory Match */}
-          {isPaused ? (
+          {(!isEnrolled || isPaused) ? (
             <div
-              onClick={() => setShowPausedNotice(true)}
+              onClick={() => setShowNotice(isPaused ? "paused" : "not_enrolled")}
               className="p-6 rounded-2xl bg-zinc-50 border-2 border-zinc-200 opacity-60 cursor-not-allowed flex flex-col justify-between"
             >
               <div>
@@ -380,7 +408,7 @@ export default function CourseDetailPage() {
                 </p>
               </div>
               <div className="mt-5 pt-3 border-t border-zinc-200 flex items-center justify-between text-xs font-bold text-zinc-400">
-                <span>Bị khóa do tạm dừng</span>
+                <span>{isPaused ? "Bị khóa do tạm dừng" : "Chưa đăng ký khóa học"}</span>
                 <Lock className="w-3.5 h-3.5" />
               </div>
             </div>

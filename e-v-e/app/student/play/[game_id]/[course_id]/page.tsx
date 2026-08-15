@@ -312,7 +312,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
               return;
             }
 
-            if (enSnap.docs.length > 0 && !hasEnrolled) {
+            if (!hasEnrolled) {
               setDataStatus("error");
               setLoadErrorDetails("Bạn chưa đăng ký hoặc chưa từng học lộ trình chứa bài học này. Vui lòng tham gia lớp học để mở khóa và chơi trò chơi với dữ liệu này!");
               return;

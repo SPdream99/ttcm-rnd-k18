@@ -19,6 +19,7 @@ import {
   Search,
   X,
   Layers,
+  Lock,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
@@ -48,6 +49,8 @@ export default function StudentDashboardPage() {
         setLoading(true);
         const user = auth.currentUser;
 
+        const activeCourseIds = new Set<string>();
+
         // 1. Fetch Enrolled Classes
         if (user) {
           try {
@@ -60,7 +63,7 @@ export default function StudentDashboardPage() {
 
             for (const docItem of enrollSnap.docs) {
               const eData = docItem.data();
-              // Lớp học đang tạm dừng/bảo lưu thì KHÔNG hiển thị ở Dashboard
+              // Lớp học đang tạm dừng/bảo lưu thì KHÔNG hiển thị ở Dashboard và không thể chọn bài nạp dữ liệu
               if (eData.status === "paused") {
                 continue;
               }
@@ -74,6 +77,7 @@ export default function StudentDashboardPage() {
               if (pathDoc.exists()) {
                 const pData = pathDoc.data();
                 const courses = Array.isArray(pData.courses) ? pData.courses : [];
+                courses.forEach((cId: string) => activeCourseIds.add(cId));
                 classesData.push({
                   id: pathDoc.id,
                   title: pData.title || "Lớp học E-V-E",
@@ -91,41 +95,23 @@ export default function StudentDashboardPage() {
           }
         }
 
-        // 2. Fetch Courses List for extra data injection
+        // 2. Fetch Courses List for extra data injection (ONLY active enrolled courses)
         const coursesSnap = await getDocs(collection(db, "courses"));
         const cl: any[] = [];
         coursesSnap.docs.forEach((d) => {
-          const cd = d.data();
-          cl.push({
-            id: d.id,
-            title: cd.title || d.id,
-            description: cd.description || "",
-            pairsCount: Array.isArray(cd.pairs) ? cd.pairs.length : 10,
-            authorName: cd.authorName || "Giảng viên",
-            tags: Array.isArray(cd.tags) ? cd.tags : ["Lập trình"],
-          });
+          if (activeCourseIds.has(d.id)) {
+            const cd = d.data();
+            cl.push({
+              id: d.id,
+              title: cd.title || d.id,
+              description: cd.description || "",
+              pairsCount: Array.isArray(cd.pairs) ? cd.pairs.length : 10,
+              authorName: cd.authorName || "Giảng viên",
+              tags: Array.isArray(cd.tags) ? cd.tags : ["Lập trình"],
+            });
+          }
         });
 
-        if (cl.length === 0) {
-          cl.push(
-            {
-              id: "crs_python_foundation",
-              title: "Lập Trình Python Cơ Bản",
-              description: "Biến, kiểu dữ liệu, vòng lặp và câu lệnh rẽ nhánh trong Python.",
-              pairsCount: 12,
-              authorName: "ThS. Nguyễn Nhật Anh",
-              tags: ["Python", "Cơ bản"],
-            },
-            {
-              id: "crs_data_structures",
-              title: "Cấu Trúc Dữ Liệu & Giải Thuật",
-              description: "Mảng, danh sách liên kết, cây nhị phân và đồ thị.",
-              pairsCount: 15,
-              authorName: "ThS. Nguyễn Thành Đạt",
-              tags: ["Thuật toán", "DSA"],
-            }
-          );
-        }
         setCoursesList(cl);
 
         // 3. Fetch Games List from Firestore
@@ -475,8 +461,21 @@ export default function StudentDashboardPage() {
 
             <div className="space-y-2.5 overflow-y-auto max-h-[280px] pr-1">
               {filteredCourses.length === 0 ? (
-                <div className="py-8 text-center text-xs text-zinc-500">
-                  Không tìm thấy khóa học phù hợp với từ khóa.
+                <div className="p-6 text-center rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3">
+                  <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div className="text-xs font-bold text-zinc-800">
+                    Không có khóa học nào đang hoạt động
+                  </div>
+                  <p className="text-[11px] text-zinc-500 max-w-sm mx-auto leading-relaxed">
+                    Bạn chỉ có thể nạp dữ liệu từ các khóa học thuộc lộ trình bạn đang học (không tạm dừng/bảo lưu). Hãy đăng ký hoặc kích hoạt lại lớp học!
+                  </p>
+                  <Link href="/student/learning-paths">
+                    <button className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition cursor-pointer">
+                      Khám Phá Lộ Trình Học Tập
+                    </button>
+                  </Link>
                 </div>
               ) : (
                 filteredCourses.map((course) => (
