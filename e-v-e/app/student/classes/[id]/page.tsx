@@ -427,6 +427,8 @@ export default function StudentClassDetailPage({
                   ? "Bạn đã hoàn thành toàn bộ lộ trình!"
                   : `Đã hoàn thành ${completedCoursesList.length}/${safePathCourses.length} chặng bài học.`}
               </p>
+            </div>
+
             {isPaused ? (
               <button
                 type="button"
