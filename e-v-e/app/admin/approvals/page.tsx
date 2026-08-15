@@ -19,6 +19,7 @@ import {
 import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/components/Toast";
+import { cacheService } from "@/lib/cacheService";
 import { Course, CourseContentPair } from "@/core/entities/Course";
 import { Game } from "@/core/entities/Game";
 
@@ -126,6 +127,7 @@ export default function AdminApprovalsPage() {
       setCourses((prev) =>
         prev.map((c) => (c.id === courseId ? { ...c, isAccepted } : c))
       );
+      cacheService.clearFullAppCache(true);
       toast.success(`Đã ${isAccepted ? "DUYỆT" : "HỦY DUYỆT"} khóa học thành công!`, "Kiểm Duyệt Khóa Học");
     } catch {
       toast.error("Lỗi khi cập nhật trạng thái khóa học.", "Kiểm Duyệt");
@@ -153,6 +155,7 @@ export default function AdminApprovalsPage() {
       }
       setCourses((prev) => prev.filter((c) => c.id !== courseId));
       if (selectedCourse?.id === courseId) setSelectedCourse(null);
+      cacheService.clearFullAppCache(true);
       toast.success("Đã xóa vĩnh viễn khóa học khỏi hệ thống thành công!", "Kiểm Duyệt");
     } catch {
       toast.error("Lỗi khi xóa khóa học.", "Kiểm Duyệt");
@@ -193,6 +196,7 @@ export default function AdminApprovalsPage() {
     setGames((prev) =>
       prev.map((g) => (g.id === gameId || g.gameId === gameId ? { ...g, isAccepted } : g))
     );
+    cacheService.clearFullAppCache(true);
     toast.success(`Đã ${isAccepted ? "DUYỆT" : "HỦY DUYỆT"} Game Engine thành công!`, "Kiểm Duyệt Game");
   };
 
@@ -222,6 +226,7 @@ export default function AdminApprovalsPage() {
     } catch {}
 
     setGames((prev) => prev.filter((g) => g.id !== gameId && g.gameId !== gameId));
+    cacheService.clearFullAppCache(true);
     toast.success("Đã xóa vĩnh viễn Game Engine khỏi hệ thống thành công!", "Kiểm Duyệt Game");
   };
 

@@ -26,6 +26,7 @@ import {
   hasAIKey,
   getMaskedAIKey,
 } from "@/lib/secureKeyStorage";
+import { cacheService } from "@/lib/cacheService";
 
 export default function TeacherProfilePage() {
   const { toast } = useToast();
@@ -479,6 +480,31 @@ export default function TeacherProfilePage() {
             </button>
           </form>
         )}
+      </div>
+
+      {/* Cache & Local Storage Management */}
+      <div className="p-6 rounded-2xl bg-white border border-zinc-200 space-y-3 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-base text-zinc-900 flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-red-600" /> Quản Lý Bộ Nhớ Đệm (Cache)
+            </h3>
+            <p className="text-xs text-zinc-500 mt-1">
+              Xóa sạch các bản lưu cache học liệu và danh sách game để tải lại dữ liệu mới nhất từ máy chủ.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              cacheService.clearFullAppCache(true);
+              toast.success("Đã dọn dẹp bộ nhớ đệm cache và làm mới dữ liệu thành công!", "Xóa Cache");
+            }}
+            className="px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-red-50 text-zinc-700 hover:text-red-700 border border-zinc-200 text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 shrink-0 self-start sm:self-auto"
+          >
+            <Trash2 className="w-4 h-4 text-red-600" /> Xóa Cache Ngay
+          </button>
+        </div>
       </div>
 
       {/* MODAL XÁC NHẬN HÀNH ĐỘNG */}

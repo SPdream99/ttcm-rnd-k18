@@ -21,6 +21,7 @@ import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { useToast } from "@/components/Toast";
 import { collection, addDoc, getDocs, doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { cacheService } from "@/lib/cacheService";
 import { CourseContentPair } from "@/core/entities/Course";
 
 export default function TeacherUploadCenterPage() {
@@ -243,6 +244,7 @@ export default function TeacherUploadCenterPage() {
       await addDoc(collection(db, "courses"), payload);
     } catch {}
 
+    cacheService.clearFullAppCache(true);
     toast.success(`Đã lưu Bài Học "${courseTitle}" với ${pairs.length} câu hỏi!`, "Soạn Bài");
     setCourseTitle("");
     setCourseDesc("");
@@ -273,6 +275,7 @@ export default function TeacherUploadCenterPage() {
       await addDoc(collection(db, "learning_paths"), payload);
     } catch {}
 
+    cacheService.clearFullAppCache(true);
     toast.success(`Đã gửi Lộ Trình "${pathTitle}" gồm ${selectedCourses.length} bài học lên hệ thống!`, "Lộ Trình");
     setPathTitle("");
     setPathDesc("");
@@ -361,6 +364,8 @@ export default function TeacherUploadCenterPage() {
       localStorage.setItem("eve_uploaded_games", JSON.stringify(updatedList));
       window.dispatchEvent(new Event("eve_games_updated"));
     } catch {}
+
+    cacheService.clearFullAppCache(true);
 
     await new Promise((r) => setTimeout(r, 600));
     setUploadProgress(100);

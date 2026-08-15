@@ -1,3 +1,8 @@
+/**
+ * E-V-E CACHE SERVICE & REVALIDATION ENGINE
+ * Quản lý bộ nhớ đệm (Memory, SessionStorage, LocalStorage) và cơ chế xóa cache thông minh.
+ */
+
 type CacheEntry<T> = {
   data: T;
   timestamp: number;
@@ -13,7 +18,7 @@ class CacheService {
   }
 
   /**
-   * Set cache entry in Memory and SessionStorage
+   * Lưu cache vào Memory và SessionStorage
    */
   set<T>(key: string, data: T, ttlMs: number = 60000): void {
     const entry: CacheEntry<T> = {
@@ -28,11 +33,11 @@ class CacheService {
       try {
         sessionStorage.setItem(`eve_cache_${key}`, JSON.stringify(entry));
       } catch {
-        // Ignore quota errors
+        // Bỏ qua lỗi quota
       }
     }
 
-    // Notify subscribers of new data
+    // Thông báo cho các listeners
     const listeners = this.subscribers.get(key);
     if (listeners) {
       listeners.forEach((listener) => listener(data));
@@ -40,7 +45,7 @@ class CacheService {
   }
 
   /**
-   * Get cached data if available and not expired
+   * Lấy dữ liệu đã cache nếu còn hạn
    */
   get<T>(key: string): { data: T; isStale: boolean } | null {
     let entry: CacheEntry<T> | undefined = this.memoryCache.get(key);
@@ -66,8 +71,7 @@ class CacheService {
   }
 
   /**
-   * Stale-While-Revalidate pattern:
-   * Returns cached data immediately if available, then fetches in background if stale.
+   * Stale-While-Revalidate: Trả về cache ngay và ngầm tải dữ liệu mới nếu stale.
    */
   async getOrFetch<T>(
     key: string,
@@ -79,7 +83,6 @@ class CacheService {
     if (!forceRefresh) {
       const cached = this.get<T>(key);
       if (cached) {
-        // If stale, revalidate in background without blocking caller
         if (cached.isStale) {
           fetcher()
             .then((fresh) => this.set(key, fresh, ttlMs))
@@ -89,14 +92,13 @@ class CacheService {
       }
     }
 
-    // Fetch fresh data
     const freshData = await fetcher();
     this.set(key, freshData, ttlMs);
     return freshData;
   }
 
   /**
-   * Subscribe to cache updates for a specific key
+   * Đăng ký lắng nghe cập nhật cache
    */
   subscribe<T>(key: string, callback: (data: T) => void): () => void {
     if (!this.subscribers.has(key)) {
@@ -117,7 +119,7 @@ class CacheService {
   }
 
   /**
-   * Invalidate cache matching key or regex
+   * Xóa cache theo key hoặc regex pattern
    */
   invalidate(keyOrPattern: string | RegExp): void {
     if (typeof keyOrPattern === "string") {
@@ -126,7 +128,6 @@ class CacheService {
         sessionStorage.removeItem(`eve_cache_${keyOrPattern}`);
       }
     } else {
-      // Regex pattern
       for (const k of Array.from(this.memoryCache.keys())) {
         if (keyOrPattern.test(k)) {
           this.memoryCache.delete(k);
@@ -139,7 +140,7 @@ class CacheService {
   }
 
   /**
-   * Invalidate all cached data
+   * Xóa toàn bộ cache trong phiên
    */
   invalidateAll(): void {
     this.memoryCache.clear();
@@ -154,6 +155,49 @@ class CacheService {
         }
         keysToRemove.forEach((k) => sessionStorage.removeItem(k));
       } catch {}
+    }
+  }
+
+  /**
+   * Xóa sạch toàn diện bộ nhớ cache (Session, Local Cache, Temp Data)
+   * Đồng thời phát Event cho toàn bộ ứng dụng cập nhật lại tức thì.
+   */
+  clearFullAppCache(preserveAuth: boolean = true): void {
+    this.invalidateAll();
+
+    if (this.isBrowser()) {
+      try {
+        // Xóa các key cache trong localStorage nhưng giữ lại Auth Token / API Key nếu cần
+        const preserved: Record<string, string | null> = {};
+        if (preserveAuth) {
+          preserved["eve_auth_user"] = localStorage.getItem("eve_auth_user");
+          preserved["eve_user"] = localStorage.getItem("eve_user");
+          preserved["eve_gemini_api_key"] = localStorage.getItem("eve_gemini_api_key");
+          preserved["eve_2fa_pending_secret"] = localStorage.getItem("eve_2fa_pending_secret");
+        }
+
+        const localKeysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith("eve_cache_") || key.startsWith("eve_uploaded_"))) {
+            localKeysToRemove.push(key);
+          }
+        }
+        localKeysToRemove.forEach((k) => localStorage.removeItem(k));
+
+        if (preserveAuth) {
+          Object.entries(preserved).forEach(([k, v]) => {
+            if (v !== null) localStorage.setItem(k, v);
+          });
+        }
+
+        // Bắn tín hiệu đồng bộ qua window event
+        window.dispatchEvent(new Event("eve_cache_cleared"));
+        window.dispatchEvent(new Event("eve_games_updated"));
+        window.dispatchEvent(new Event("storage"));
+      } catch (err) {
+        console.warn("Lỗi khi dọn dẹp localStorage:", err);
+      }
     }
   }
 }
