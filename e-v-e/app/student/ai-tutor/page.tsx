@@ -24,6 +24,8 @@ interface ChatMessage {
 
 export default function StudentAITutorPage() {
   const { currentUser, profile } = useAuthAdapter();
+  const studentName = currentUser?.name || currentUser?.displayName || profile?.fullName || "bạn";
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
