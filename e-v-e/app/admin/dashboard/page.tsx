@@ -56,12 +56,24 @@ export default function AdminDashboardPage() {
     try {
       let usersList: any[] = [];
       try {
-        const usersSnap = await getDocs(collection(db, "users"));
-        if (!usersSnap.empty) {
-          usersList = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const res = await fetch("/api/admin/users");
+        const data = await res.json();
+        if (data.success && Array.isArray(data.users)) {
+          usersList = data.users;
         }
-      } catch (err) {
-        console.warn("Firestore users fetch warning:", err);
+      } catch (apiErr) {
+        console.warn("API /api/admin/users fetch warning in admin dashboard:", apiErr);
+      }
+
+      if (usersList.length === 0) {
+        try {
+          const usersSnap = await getDocs(collection(db, "users"));
+          if (!usersSnap.empty) {
+            usersList = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          }
+        } catch (err) {
+          console.warn("Firestore users fetch warning:", err);
+        }
       }
 
       try {
