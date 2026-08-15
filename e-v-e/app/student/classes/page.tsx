@@ -23,6 +23,7 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
+import { cacheService } from "@/lib/cacheService";
 
 interface StudentLearningPath {
   id: string;
@@ -43,8 +44,12 @@ interface ClassItem {
 }
 
 export default function StudentClassPage() {
-  const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [classes, setClasses] = useState<ClassItem[]>(() => {
+    return cacheService.get<ClassItem[]>("student_classes_page")?.data || [];
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    return !cacheService.get<ClassItem[]>("student_classes_page");
+  });
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -122,6 +127,7 @@ export default function StudentClassPage() {
         }
 
         setClasses(classList);
+        cacheService.set("student_classes_page", classList, 60000);
       } catch (error) {
         console.error("Error loading classes:", error);
       } finally {

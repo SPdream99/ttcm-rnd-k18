@@ -12,6 +12,7 @@ import {
 import { db } from "@/lib/firebase";
 import { Game } from "@/core/entities/Game";
 import { GamePort, CreateGameInput } from "@/core/ports/GamePort";
+import { cacheService } from "@/lib/cacheService";
 
 const COLLECTION_NAME = "game_info";
 
@@ -43,99 +44,139 @@ export class FirestoreGameRepo implements GamePort {
   }
 
   async getGameById(gameId: string): Promise<Game | null> {
-    try {
-      const docRef = doc(db, COLLECTION_NAME, gameId);
-      const snap = await getDoc(docRef);
-      if (!snap.exists()) return null;
-      return this.mapDocToGame(snap.id, snap.data());
-    } catch (error) {
-      console.error("Error getting game by ID:", error);
-      return null;
-    }
+    return cacheService.getOrFetch(
+      `game_${gameId}`,
+      async () => {
+        try {
+          const docRef = doc(db, COLLECTION_NAME, gameId);
+          const snap = await getDoc(docRef);
+          if (!snap.exists()) return null;
+          return this.mapDocToGame(snap.id, snap.data());
+        } catch (error) {
+          console.error("Error getting game by ID:", error);
+          return null;
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 
   async getAllGames(): Promise<Game[]> {
-    try {
-      const snap = await getDocs(collection(db, COLLECTION_NAME));
-      return snap.docs.map((d) => this.mapDocToGame(d.id, d.data()));
-    } catch (error) {
-      console.error("Error getting all games:", error);
-      return [];
-    }
+    return cacheService.getOrFetch(
+      "games_all",
+      async () => {
+        try {
+          const snap = await getDocs(collection(db, COLLECTION_NAME));
+          return snap.docs.map((d) => this.mapDocToGame(d.id, d.data()));
+        } catch (error) {
+          console.error("Error getting all games:", error);
+          return [];
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 
   async getAcceptedGames(): Promise<Game[]> {
-    try {
-      const q = query(
-        collection(db, COLLECTION_NAME),
-        where("is_accepted", "==", true)
-      );
-      const snap = await getDocs(q);
-      return snap.docs.map((d) => this.mapDocToGame(d.id, d.data()));
-    } catch (error) {
-      console.error("Error getting accepted games:", error);
-      return [];
-    }
+    return cacheService.getOrFetch(
+      "games_accepted",
+      async () => {
+        try {
+          const q = query(
+            collection(db, COLLECTION_NAME),
+            where("is_accepted", "==", true)
+          );
+          const snap = await getDocs(q);
+          if (snap.empty) {
+            const fallbackQ = query(
+              collection(db, COLLECTION_NAME),
+              where("isAccepted", "==", true)
+            );
+            const fallbackSnap = await getDocs(fallbackQ);
+            return fallbackSnap.docs.map((d) => this.mapDocToGame(d.id, d.data()));
+          }
+          return snap.docs.map((d) => this.mapDocToGame(d.id, d.data()));
+        } catch (error) {
+          console.error("Error getting accepted games:", error);
+          return [];
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 
   async getGamesByUploader(uploaderId: string): Promise<Game[]> {
-    try {
-      const q = query(
-        collection(db, COLLECTION_NAME),
-        where("uploader_id", "==", uploaderId)
-      );
-      const snap = await getDocs(q);
-      return snap.docs.map((d) => this.mapDocToGame(d.id, d.data()));
-    } catch (error) {
-      console.error("Error getting games by uploader:", error);
-      return [];
-    }
+    return cacheService.getOrFetch(
+      `games_uploader_${uploaderId}`,
+      async () => {
+        try {
+          const q = query(
+            collection(db, COLLECTION_NAME),
+            where("uploader_id", "==", uploaderId)
+          );
+          const snap = await getDocs(q);
+          return snap.docs.map((d) => this.mapDocToGame(d.id, d.data()));
+        } catch (error) {
+          console.error("Error getting games by uploader:", error);
+          return [];
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 
   async createGame(input: CreateGameInput): Promise<Game> {
-    const newDocRef = doc(collection(db, COLLECTION_NAME));
-    const gameId = newDocRef.id;
-
-    const payload = {
-      id: gameId,
-      authors: input.authors,
-      title: input.title,
-      description: input.description,
-      is_accepted: false,
-      courses_allowed: input.coursesAllowed,
-      courses_blocked: input.coursesBlocked || [],
-      need_extra_data: input.needExtraData,
-      source_url: input.sourceUrl,
-      uploader_id: input.uploaderId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    await setDoc(newDocRef, payload);
-
-    return this.mapDocToGame(gameId, payload);
+    try {
+      const newDocRef = doc(collection(db, COLLECTION_NAME));
+      const payload = {
+        title: input.title,
+        description: input.description,
+        authors: input.authors,
+        is_accepted: false,
+        courses_allowed: input.coursesAllowed,
+        courses_blocked: input.coursesBlocked || [],
+        need_extra_data: input.needExtraData,
+        source_url: input.sourceUrl,
+        uploader_id: input.uploaderId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      await setDoc(newDocRef, payload);
+      cacheService.invalidate(/games/);
+      return this.mapDocToGame(newDocRef.id, payload);
+    } catch (error) {
+      console.error("Error creating game:", error);
+      throw error;
+    }
   }
 
-  async updateGame(gameId: string, data: Partial<Game>): Promise<Game> {
-    const docRef = doc(db, COLLECTION_NAME, gameId);
+  async updateGame(
+    gameId: string,
+    data: Partial<Game>
+  ): Promise<Game> {
+    try {
+      const docRef = doc(db, COLLECTION_NAME, gameId);
+      const updatePayload: any = {
+        updated_at: new Date().toISOString(),
+      };
+      if (data.title !== undefined) updatePayload.title = data.title;
+      if (data.description !== undefined) updatePayload.description = data.description;
+      if (data.authors !== undefined) updatePayload.authors = data.authors;
+      if (data.isAccepted !== undefined) updatePayload.is_accepted = data.isAccepted;
+      if (data.coursesAllowed !== undefined) updatePayload.courses_allowed = data.coursesAllowed;
+      if (data.coursesBlocked !== undefined) updatePayload.courses_blocked = data.coursesBlocked;
+      if (data.needExtraData !== undefined) updatePayload.need_extra_data = data.needExtraData;
+      if (data.sourceUrl !== undefined) updatePayload.source_url = data.sourceUrl;
 
-    const updatePayload: any = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (data.title !== undefined) updatePayload.title = data.title;
-    if (data.description !== undefined) updatePayload.description = data.description;
-    if (data.authors !== undefined) updatePayload.authors = data.authors;
-    if (data.isAccepted !== undefined) updatePayload.is_accepted = data.isAccepted;
-    if (data.coursesAllowed !== undefined) updatePayload.courses_allowed = data.coursesAllowed;
-    if (data.coursesBlocked !== undefined) updatePayload.courses_blocked = data.coursesBlocked;
-    if (data.needExtraData !== undefined) updatePayload.need_extra_data = data.needExtraData;
-    if (data.sourceUrl !== undefined) updatePayload.source_url = data.sourceUrl;
-
-    await updateDoc(docRef, updatePayload);
-
-    const updatedSnap = await getDoc(docRef);
-    return this.mapDocToGame(updatedSnap.id, updatedSnap.data());
+      await updateDoc(docRef, updatePayload);
+      cacheService.invalidate(/games/);
+      const updated = await this.getGameById(gameId);
+      if (!updated) throw new Error("Game not found after update");
+      return updated;
+    } catch (error) {
+      console.error("Error updating game:", error);
+      throw error;
+    }
   }
 
   async approveGame(gameId: string): Promise<boolean> {
@@ -145,6 +186,7 @@ export class FirestoreGameRepo implements GamePort {
         is_accepted: true,
         updated_at: new Date().toISOString(),
       });
+      cacheService.invalidate(/games/);
       return true;
     } catch (error) {
       console.error("Error approving game:", error);
@@ -156,6 +198,7 @@ export class FirestoreGameRepo implements GamePort {
     try {
       const docRef = doc(db, COLLECTION_NAME, gameId);
       await deleteDoc(docRef);
+      cacheService.invalidate(/games/);
       return true;
     } catch (error) {
       console.error("Error deleting game:", error);

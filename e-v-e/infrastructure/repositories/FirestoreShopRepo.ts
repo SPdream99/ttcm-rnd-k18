@@ -10,6 +10,7 @@ import {
 import { db } from "@/lib/firebase";
 import { ShopItem } from "@/core/entities/ShopItem";
 import { ShopPort } from "@/core/ports/ShopPort";
+import { cacheService } from "@/lib/cacheService";
 
 const COLLECTION_NAME = "shop_items";
 
@@ -26,13 +27,19 @@ export class FirestoreShopRepo implements ShopPort {
   }
 
   async getShopItems(): Promise<ShopItem[]> {
-    try {
-      const snap = await getDocs(collection(db, COLLECTION_NAME));
-      return snap.docs.map((d) => this.mapDocToShopItem(d.id, d.data()));
-    } catch (error) {
-      console.error("Error getting shop items:", error);
-      return [];
-    }
+    return cacheService.getOrFetch(
+      "shop_items_catalogue",
+      async () => {
+        try {
+          const snap = await getDocs(collection(db, COLLECTION_NAME));
+          return snap.docs.map((d) => this.mapDocToShopItem(d.id, d.data()));
+        } catch (error) {
+          console.error("Error getting shop items:", error);
+          return [];
+        }
+      },
+      { ttlMs: 120000 }
+    );
   }
 
   async buyShopItem(
@@ -67,6 +74,10 @@ export class FirestoreShopRepo implements ShopPort {
         profile_decorations: arrayUnion(itemId),
       });
 
+      // Invalidate user cache on purchase
+      cacheService.invalidate(`user_${uid}`);
+      cacheService.invalidate(`user_decorations_${uid}`);
+
       return { success: true, newCoins: currentCoins - price };
     } catch (error: any) {
       console.error("Error buying shop item:", error);
@@ -75,16 +86,22 @@ export class FirestoreShopRepo implements ShopPort {
   }
 
   async getUserDecorations(uid: string): Promise<string[]> {
-    try {
-      const userSnap = await getDoc(doc(db, "users", uid));
-      if (userSnap.exists()) {
-        const data = userSnap.data();
-        return Array.isArray(data.profile_decorations) ? data.profile_decorations : [];
-      }
-      return [];
-    } catch (error) {
-      console.error("Error getting user decorations:", error);
-      return [];
-    }
+    return cacheService.getOrFetch(
+      `user_decorations_${uid}`,
+      async () => {
+        try {
+          const userSnap = await getDoc(doc(db, "users", uid));
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            return Array.isArray(data.profile_decorations) ? data.profile_decorations : [];
+          }
+          return [];
+        } catch (error) {
+          console.error("Error getting user decorations:", error);
+          return [];
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 }

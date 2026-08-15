@@ -15,6 +15,7 @@ import {
   LearningPathPort,
   CreateLearningPathInput,
 } from "@/core/ports/LearningPathPort";
+import { cacheService } from "@/lib/cacheService";
 
 const COLLECTION_NAME = "learning_path";
 
@@ -34,94 +35,124 @@ export class FirestoreLearningPathRepo implements LearningPathPort {
   }
 
   async getLearningPathById(lpathId: string): Promise<LearningPath | null> {
-    try {
-      const docRef = doc(db, COLLECTION_NAME, lpathId);
-      const snap = await getDoc(docRef);
-      if (!snap.exists()) return null;
-      return this.mapDocToLearningPath(snap.id, snap.data());
-    } catch (error) {
-      console.error("Error getting learning path by ID:", error);
-      return null;
-    }
+    return cacheService.getOrFetch(
+      `learning_path_${lpathId}`,
+      async () => {
+        try {
+          const docRef = doc(db, COLLECTION_NAME, lpathId);
+          const snap = await getDoc(docRef);
+          if (!snap.exists()) return null;
+          return this.mapDocToLearningPath(snap.id, snap.data());
+        } catch (error) {
+          console.error("Error getting learning path by ID:", error);
+          return null;
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 
   async getAllLearningPaths(): Promise<LearningPath[]> {
-    try {
-      const snap = await getDocs(collection(db, COLLECTION_NAME));
-      return snap.docs.map((d) => this.mapDocToLearningPath(d.id, d.data()));
-    } catch (error) {
-      console.error("Error getting all learning paths:", error);
-      return [];
-    }
+    return cacheService.getOrFetch(
+      "learning_paths_all",
+      async () => {
+        try {
+          const snap = await getDocs(collection(db, COLLECTION_NAME));
+          return snap.docs.map((d) => this.mapDocToLearningPath(d.id, d.data()));
+        } catch (error) {
+          console.error("Error getting all learning paths:", error);
+          return [];
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 
   async getAcceptedLearningPaths(): Promise<LearningPath[]> {
-    try {
-      const q = query(
-        collection(db, COLLECTION_NAME),
-        where("is_accepted", "==", true)
-      );
-      const snap = await getDocs(q);
-      return snap.docs.map((d) => this.mapDocToLearningPath(d.id, d.data()));
-    } catch (error) {
-      console.error("Error getting accepted learning paths:", error);
-      return [];
-    }
+    return cacheService.getOrFetch(
+      "learning_paths_accepted",
+      async () => {
+        try {
+          const q = query(
+            collection(db, COLLECTION_NAME),
+            where("is_accepted", "==", true)
+          );
+          const snap = await getDocs(q);
+          return snap.docs.map((d) => this.mapDocToLearningPath(d.id, d.data()));
+        } catch (error) {
+          console.error("Error getting accepted learning paths:", error);
+          return [];
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 
   async getLearningPathsByAuthor(authorId: string): Promise<LearningPath[]> {
-    try {
-      const q = query(
-        collection(db, COLLECTION_NAME),
-        where("author_id", "==", authorId)
-      );
-      const snap = await getDocs(q);
-      return snap.docs.map((d) => this.mapDocToLearningPath(d.id, d.data()));
-    } catch (error) {
-      console.error("Error getting learning paths by author:", error);
-      return [];
-    }
+    return cacheService.getOrFetch(
+      `learning_paths_author_${authorId}`,
+      async () => {
+        try {
+          const q = query(
+            collection(db, COLLECTION_NAME),
+            where("author_id", "==", authorId)
+          );
+          const snap = await getDocs(q);
+          return snap.docs.map((d) => this.mapDocToLearningPath(d.id, d.data()));
+        } catch (error) {
+          console.error("Error getting learning paths by author:", error);
+          return [];
+        }
+      },
+      { ttlMs: 60000 }
+    );
   }
 
   async createLearningPath(input: CreateLearningPathInput): Promise<LearningPath> {
-    const newDocRef = doc(collection(db, COLLECTION_NAME));
-    const lpathId = newDocRef.id;
-
-    const payload = {
-      id: lpathId,
-      title: input.title,
-      description: input.description,
-      author_id: input.authorId,
-      courses: input.courses,
-      is_accepted: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    await setDoc(newDocRef, payload);
-
-    return this.mapDocToLearningPath(lpathId, payload);
+    try {
+      const newDocRef = doc(collection(db, COLLECTION_NAME));
+      const payload = {
+        title: input.title,
+        description: input.description,
+        author_id: input.authorId,
+        courses: input.courses,
+        is_accepted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      await setDoc(newDocRef, payload);
+      cacheService.invalidate(/learning_path/);
+      return this.mapDocToLearningPath(newDocRef.id, payload);
+    } catch (error) {
+      console.error("Error creating learning path:", error);
+      throw error;
+    }
   }
 
   async updateLearningPath(
     lpathId: string,
     data: Partial<LearningPath>
   ): Promise<LearningPath> {
-    const docRef = doc(db, COLLECTION_NAME, lpathId);
+    try {
+      const docRef = doc(db, COLLECTION_NAME, lpathId);
+      const updatePayload: any = {
+        updated_at: new Date().toISOString(),
+      };
+      if (data.title !== undefined) updatePayload.title = data.title;
+      if (data.description !== undefined) updatePayload.description = data.description;
+      if (data.authorId !== undefined) updatePayload.author_id = data.authorId;
+      if (data.courses !== undefined) updatePayload.courses = data.courses;
+      if (data.isAccepted !== undefined) updatePayload.is_accepted = data.isAccepted;
 
-    const updatePayload: any = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (data.title !== undefined) updatePayload.title = data.title;
-    if (data.description !== undefined) updatePayload.description = data.description;
-    if (data.courses !== undefined) updatePayload.courses = data.courses;
-    if (data.isAccepted !== undefined) updatePayload.is_accepted = data.isAccepted;
-
-    await updateDoc(docRef, updatePayload);
-
-    const updatedSnap = await getDoc(docRef);
-    return this.mapDocToLearningPath(updatedSnap.id, updatedSnap.data());
+      await updateDoc(docRef, updatePayload);
+      cacheService.invalidate(/learning_path/);
+      const updated = await this.getLearningPathById(lpathId);
+      if (!updated) throw new Error("Learning path not found after update");
+      return updated;
+    } catch (error) {
+      console.error("Error updating learning path:", error);
+      throw error;
+    }
   }
 
   async approveLearningPath(lpathId: string): Promise<boolean> {
@@ -131,6 +162,7 @@ export class FirestoreLearningPathRepo implements LearningPathPort {
         is_accepted: true,
         updated_at: new Date().toISOString(),
       });
+      cacheService.invalidate(/learning_path/);
       return true;
     } catch (error) {
       console.error("Error approving learning path:", error);
@@ -142,6 +174,7 @@ export class FirestoreLearningPathRepo implements LearningPathPort {
     try {
       const docRef = doc(db, COLLECTION_NAME, lpathId);
       await deleteDoc(docRef);
+      cacheService.invalidate(/learning_path/);
       return true;
     } catch (error) {
       console.error("Error deleting learning path:", error);

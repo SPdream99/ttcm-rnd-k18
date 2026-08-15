@@ -23,6 +23,8 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/components/student/Toast";
 
+import { cacheService } from "@/lib/cacheService";
+
 interface LearningPath {
   id: string;
   title: string;
@@ -47,10 +49,14 @@ export default function StudentLearningPathPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
+  const [learningPaths, setLearningPaths] = useState<LearningPath[]>(() => {
+    return cacheService.get<LearningPath[]>("student_learning_paths_page")?.data || [];
+  });
   const [search, setSearch] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => {
+    return !cacheService.get<LearningPath[]>("student_learning_paths_page");
+  });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -146,6 +152,7 @@ export default function StudentLearningPathPage() {
         })
       );
       setLearningPaths(paths);
+      cacheService.set("student_learning_paths_page", paths, 60000);
     }
 
     return () => unsubscribe();
