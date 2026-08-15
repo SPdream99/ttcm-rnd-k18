@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useTeacherAdapter } from "@/hooks/useTeacherAdapter";
+import { useToast } from "@/components/Toast";
 import {
   Plus,
   Eye,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 
 export default function TeacherLectureManagementPage() {
+  const toast = useToast();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newClassName, setNewClassName] = useState("10A1 - Vật Lý");
@@ -111,8 +113,8 @@ export default function TeacherLectureManagementPage() {
                 <Eye className="w-3.5 h-3.5 text-red-600" /> Xem Trước Bài Giảng
               </button>
               <button
-                onClick={() => alert(`Đã sao chép liên kết chia sẻ bài giảng ${lec.title}`)}
-                className="p-2 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-600 hover:text-zinc-900 transition-colors"
+                onClick={() => toast.success(`Đã sao chép liên kết chia sẻ bài giảng "${lec.title}"!`, "Chia Sẻ Bài Giảng")}
+                className="p-2 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-600 hover:text-zinc-900 transition-colors cursor-pointer"
                 title="Chia sẻ liên kết"
               >
                 <Share2 className="w-4 h-4" />

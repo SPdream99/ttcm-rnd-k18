@@ -19,20 +19,22 @@ import {
   X,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { useToast } from "@/components/Toast";
 import {
   saveEncryptedAIKey,
   removeAIKey,
   hasAIKey,
   getMaskedAIKey,
 } from "@/lib/secureKeyStorage";
+import { cacheService } from "@/lib/cacheService";
 
 export default function TeacherProfilePage() {
+  const { toast } = useToast();
   const { currentUser, profile } = useAuthAdapter();
   const displayName = currentUser?.name || profile?.fullName || "Thầy/Cô Giáo Viên";
   const displayEmail = currentUser?.email || "teacher@eve.edu.vn";
   const userUid = currentUser?.uid || profile?.uid || "usr_teacher";
 
-  const [savedMsg, setSavedMsg] = useState("");
   const [keyInput, setKeyInput] = useState("");
   const [showRawKey, setShowRawKey] = useState(false);
   const [isKeyConfigured, setIsKeyConfigured] = useState(false);
@@ -47,6 +49,12 @@ export default function TeacherProfilePage() {
   const [demoOtpHint, setDemoOtpHint] = useState<string | null>(null);
 
   const [stats, setStats] = useState({ courses: 0, games: 0, plays: 0 });
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    desc: string;
+    confirmText?: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   useEffect(() => {
     const configured = hasAIKey();
@@ -98,44 +106,55 @@ export default function TeacherProfilePage() {
     setIsKeyConfigured(true);
     setMaskedKeyDisplay(getMaskedAIKey());
     setKeyInput("");
-    setSavedMsg("Đã lưu và kích hoạt Google Gemini API Key an toàn trên thiết bị của Thầy/Cô!");
-    setTimeout(() => setSavedMsg(""), 4000);
+    toast.success("Đã lưu và kích hoạt Google Gemini API Key an toàn trên thiết bị của Thầy/Cô!", "API Key");
   };
 
   const handleRemoveAIKey = () => {
-    if (!confirm("Thầy/Cô có chắc chắn muốn xóa khóa API khỏi trình duyệt này không?")) return;
-    removeAIKey();
-    setIsKeyConfigured(false);
-    setMaskedKeyDisplay("");
-    setSavedMsg("Đã xóa khóa API.");
-    setTimeout(() => setSavedMsg(""), 3000);
+    setConfirmModal({
+      title: "Xóa Khóa API Key",
+      desc: "Thầy/Cô có chắc chắn muốn xóa khóa Google Gemini API khỏi trình duyệt này không? Tính năng Trợ Lý AI sẽ tạm ngưng cho đến khi nhập lại khóa mới.",
+      confirmText: "Xác Nhận Xóa",
+      onConfirm: () => {
+        removeAIKey();
+        setIsKeyConfigured(false);
+        setMaskedKeyDisplay("");
+        toast.info("Đã xóa khóa API.", "API Key");
+        setConfirmModal(null);
+      },
+    });
   };
 
   const handleInitiate2FAToggle = async () => {
     if (is2FAEnabled) {
-      if (!confirm("Thầy/Cô có chắc chắn muốn tắt tính năng Bảo Mật 2 Lớp (2FA qua Email) không?")) return;
-      setIsVerifying2FA(true);
-      try {
-        const res = await fetch("/api/auth/2fa/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: displayEmail,
-            otp: "DISABLE_2FA",
-            purpose: "disable",
-          }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          setIs2FAEnabled(false);
-          setSavedMsg("Đã tắt tính năng 2FA thành công.");
-          setTimeout(() => setSavedMsg(""), 4000);
-        }
-      } catch {
-        alert("Lỗi khi tắt 2FA.");
-      } finally {
-        setIsVerifying2FA(false);
-      }
+      setConfirmModal({
+        title: "Tắt Xác Thực 2 Lớp (2FA)",
+        desc: "Thầy/Cô có chắc chắn muốn tắt tính năng Bảo Mật 2 Lớp (2FA qua Email) không? Tài khoản sẽ giảm mức độ bảo vệ khi đăng nhập.",
+        confirmText: "Tắt 2FA",
+        onConfirm: async () => {
+          setConfirmModal(null);
+          setIsVerifying2FA(true);
+          try {
+            const res = await fetch("/api/auth/2fa/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: displayEmail,
+                otp: "DISABLE_2FA",
+                purpose: "disable",
+              }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              setIs2FAEnabled(false);
+              toast.info("Đã tắt tính năng 2FA thành công.", "Bảo Mật");
+            }
+          } catch {
+            toast.error("Lỗi khi tắt 2FA.", "Bảo Mật");
+          } finally {
+            setIsVerifying2FA(false);
+          }
+        },
+      });
       return;
     }
 
@@ -158,10 +177,10 @@ export default function TeacherProfilePage() {
         }
         setShow2FAModal(true);
       } else {
-        alert("Không thể gửi mã xác thực. Vui lòng thử lại sau.");
+        toast.error("Không thể gửi mã xác thực. Vui lòng thử lại sau.", "Bảo Mật");
       }
     } catch {
-      alert("Lỗi kết nối khi gửi mã OTP.");
+      toast.error("Lỗi kết nối khi gửi mã OTP.", "Bảo Mật");
     } finally {
       setIsSending2FA(false);
     }
@@ -191,8 +210,7 @@ export default function TeacherProfilePage() {
       if (data.success) {
         setIs2FAEnabled(true);
         setShow2FAModal(false);
-        setSavedMsg("Đã kích hoạt Bảo Mật 2 Lớp (2FA qua Email) thành công!");
-        setTimeout(() => setSavedMsg(""), 4000);
+        toast.success("Đã kích hoạt Bảo Mật 2 Lớp (2FA qua Email) thành công!", "Bảo Mật");
       } else {
         setModalMsg(data.error || "Mã OTP không chính xác.");
       }
@@ -220,12 +238,6 @@ export default function TeacherProfilePage() {
           <GraduationCap className="w-4 h-4 text-red-600" /> Giáo Viên Chính Thức
         </div>
       </div>
-
-      {savedMsg && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center justify-between">
-          <span>{savedMsg}</span>
-        </div>
-      )}
 
       {/* Profile Overview Card */}
       <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm flex flex-col md:flex-row items-center gap-6">
@@ -403,6 +415,14 @@ export default function TeacherProfilePage() {
           </span>
         </div>
 
+        {/* Device-only Storage Notice */}
+        <div className="p-3.5 rounded-xl bg-red-50/70 border border-red-200 text-xs text-zinc-700 flex items-start gap-2.5">
+          <ShieldCheck className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+          <div className="leading-relaxed">
+            <strong className="text-red-700">Lưu ý bảo mật thiết bị:</strong> Khóa Google Gemini API Key của Thầy/Cô được <strong>mã hóa an toàn và chỉ lưu cục bộ trên trình duyệt thiết bị này</strong> (Local Storage). Hệ thống <strong>hoàn toàn không lưu trữ hay gửi API Key</strong> lên máy chủ backend.
+          </div>
+        </div>
+
         {isKeyConfigured ? (
           <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -461,6 +481,57 @@ export default function TeacherProfilePage() {
           </form>
         )}
       </div>
+
+      {/* Cache & Local Storage Management */}
+      <div className="p-6 rounded-2xl bg-white border border-zinc-200 space-y-3 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-base text-zinc-900 flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-red-600" /> Quản Lý Bộ Nhớ Đệm (Cache)
+            </h3>
+            <p className="text-xs text-zinc-500 mt-1">
+              Xóa sạch các bản lưu cache học liệu và danh sách game để tải lại dữ liệu mới nhất từ máy chủ.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              cacheService.clearFullAppCache(true);
+              toast.success("Đã dọn dẹp bộ nhớ đệm cache và làm mới dữ liệu thành công!", "Xóa Cache");
+            }}
+            className="px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-red-50 text-zinc-700 hover:text-red-700 border border-zinc-200 text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 shrink-0 self-start sm:self-auto"
+          >
+            <Trash2 className="w-4 h-4 text-red-600" /> Xóa Cache Ngay
+          </button>
+        </div>
+      </div>
+
+      {/* MODAL XÁC NHẬN HÀNH ĐỘNG */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <div className="w-full max-w-md rounded-2xl bg-white border-2 border-red-600 p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+            <h3 className="text-base font-bold text-zinc-900">{confirmModal.title}</h3>
+            <p className="text-xs text-zinc-600 leading-relaxed">{confirmModal.desc}</p>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition cursor-pointer"
+              >
+                Hủy Bỏ
+              </button>
+              <button
+                type="button"
+                onClick={confirmModal.onConfirm}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition cursor-pointer shadow-sm"
+              >
+                {confirmModal.confirmText || "Xác Nhận"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

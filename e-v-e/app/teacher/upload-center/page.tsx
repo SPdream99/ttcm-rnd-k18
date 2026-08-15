@@ -18,17 +18,19 @@ import {
   Download,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { useToast } from "@/components/Toast";
 import { collection, addDoc, getDocs, doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { cacheService } from "@/lib/cacheService";
 import { CourseContentPair } from "@/core/entities/Course";
 
 export default function TeacherUploadCenterPage() {
+  const { toast } = useToast();
   const { currentUser, profile } = useAuthAdapter();
   const teacherUid = currentUser?.uid || profile?.uid || "usr_teacher";
   const teacherName = currentUser?.name || profile?.fullName || "Giảng viên";
 
   const [activeTab, setActiveTab] = useState<"course" | "path" | "game">("course");
-  const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   // 1. Create Course State
   const [courseTitle, setCourseTitle] = useState("");
@@ -47,15 +49,20 @@ export default function TeacherUploadCenterPage() {
     },
   ]);
 
+  // 1. Create Course State
+  const [courseVisibility, setCourseVisibility] = useState<"private" | "public" | "free_to_share" | "free_to_use">("public");
+
   // 2. Create Learning Path State
   const [pathTitle, setPathTitle] = useState("");
   const [pathDesc, setPathDesc] = useState("");
+  const [pathVisibility, setPathVisibility] = useState<"private" | "public" | "free_to_share" | "free_to_use">("public");
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [availableCourses, setAvailableCourses] = useState<{ id: string; title: string }[]>([]);
 
   // 3. Upload Game State
   const [gameTitle, setGameTitle] = useState("");
   const [gameDesc, setGameDesc] = useState("");
+  const [gameVisibility, setGameVisibility] = useState<"private" | "public" | "free_to_share" | "free_to_use">("public");
   const [gameZipFile, setGameZipFile] = useState<File | null>(null);
   const [needExtraData, setNeedExtraData] = useState(true);
   const DAILY_GAME_LIMIT = 2;
@@ -78,8 +85,15 @@ export default function TeacherUploadCenterPage() {
       cSnap.forEach((d) => {
         const data = d.data();
         const docAuthor = data.authorId || data.author_id || data.instructorId || data.instructor_id;
-        if (docAuthor === teacherUid) {
-          myCourses.push({ id: d.id, title: data.title || "Khóa học" });
+        const isOwn = docAuthor === teacherUid;
+        const isShareable = data.visibility === "free_to_share" || data.visibility === "free_to_use";
+        if (isOwn || isShareable) {
+          myCourses.push({
+            id: d.id,
+            title: isOwn
+              ? `${data.title || "Khóa học"} (Của bạn)`
+              : `${data.title || "Khóa học"} (Chia sẻ từ ${data.authorName || "GV khác"})`,
+          });
         }
       });
 
@@ -88,7 +102,7 @@ export default function TeacherUploadCenterPage() {
         localCourses.forEach((lc: any) => {
           const lcAuthor = lc.authorId || lc.author_id || lc.instructorId || lc.instructor_id;
           if ((!lcAuthor || lcAuthor === teacherUid) && !myCourses.some((c) => c.id === lc.id)) {
-            myCourses.push({ id: lc.id, title: lc.title || "Khóa học mới" });
+            myCourses.push({ id: lc.id, title: `${lc.title || "Khóa học mới"} (Cục bộ)` });
           }
         });
       }
@@ -201,7 +215,7 @@ export default function TeacherUploadCenterPage() {
           setGameTitle(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
         }
       } else {
-        alert("Vui lòng tải lên file định dạng nén (.zip, .rar, .tar.gz).");
+        toast.error("Vui lòng tải lên file định dạng nén (.zip, .rar, .tar.gz).", "Định Dạng File");
       }
     }
   };
@@ -209,7 +223,7 @@ export default function TeacherUploadCenterPage() {
   const handleSubmitCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!courseTitle || pairs.length === 0) {
-      alert("Vui lòng nhập tên bài học và ít nhất 1 cặp câu hỏi.");
+      toast.warning("Vui lòng nhập tên bài học và ít nhất 1 cặp câu hỏi.", "Thiếu Thông Tin");
       return;
     }
 
@@ -219,6 +233,7 @@ export default function TeacherUploadCenterPage() {
       authorId: teacherUid,
       authorName: teacherName,
       resources: resources.filter((r) => r.title.trim() && r.url.trim()),
+      visibility: courseVisibility,
       isAccepted: false,
       is_accepted: false,
       contentData: { pairs },
@@ -229,18 +244,18 @@ export default function TeacherUploadCenterPage() {
       await addDoc(collection(db, "courses"), payload);
     } catch {}
 
-    setActionMsg(`Đã lưu Bài Học "${courseTitle}" với ${pairs.length} câu hỏi!`);
+    cacheService.clearFullAppCache(true);
+    toast.success(`Đã lưu Bài Học "${courseTitle}" với ${pairs.length} câu hỏi!`, "Soạn Bài");
     setCourseTitle("");
     setCourseDesc("");
     setPairs([{ id: "pair_1", title: "", description: "", explanation: "", distractions: [""], image_url: "" }]);
     setResources([]);
-    setTimeout(() => setActionMsg(null), 4500);
   };
 
   const handleSubmitPath = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pathTitle || selectedCourses.length === 0) {
-      alert("Vui lòng nhập tiêu đề lộ trình và chọn ít nhất 1 bài học.");
+      toast.warning("Vui lòng nhập tiêu đề lộ trình và chọn ít nhất 1 bài học.", "Thiếu Thông Tin");
       return;
     }
 
@@ -250,6 +265,7 @@ export default function TeacherUploadCenterPage() {
       authorId: teacherUid,
       authorName: teacherName,
       courses: selectedCourses,
+      visibility: pathVisibility,
       isAccepted: false,
       is_accepted: false,
       createdAt: new Date().toISOString(),
@@ -259,22 +275,22 @@ export default function TeacherUploadCenterPage() {
       await addDoc(collection(db, "learning_paths"), payload);
     } catch {}
 
-    setActionMsg(`Đã gửi Lộ Trình "${pathTitle}" gồm ${selectedCourses.length} bài học lên Admin để duyệt!`);
+    cacheService.clearFullAppCache(true);
+    toast.success(`Đã gửi Lộ Trình "${pathTitle}" gồm ${selectedCourses.length} bài học lên hệ thống!`, "Lộ Trình");
     setPathTitle("");
     setPathDesc("");
-    setTimeout(() => setActionMsg(null), 4500);
   };
 
   const handleSubmitGame = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (todayGameUploads >= DAILY_GAME_LIMIT) {
-      alert(`Mỗi giáo viên chỉ có thể đăng tối đa ${DAILY_GAME_LIMIT} Game/ngày. Bạn đã tải lên ${todayGameUploads}/${DAILY_GAME_LIMIT} game hôm nay.`);
+      toast.error(`Mỗi giáo viên chỉ có thể đăng tối đa ${DAILY_GAME_LIMIT} Game/ngày. Bạn đã tải lên ${todayGameUploads}/${DAILY_GAME_LIMIT} game hôm nay.`, "Giới Hạn Tải Lên");
       return;
     }
 
     if (!gameTitle.trim()) {
-      alert("Vui lòng nhập tiêu đề Game.");
+      toast.warning("Vui lòng nhập tiêu đề Game.", "Thiếu Tiêu Đề");
       return;
     }
 
@@ -313,6 +329,7 @@ export default function TeacherUploadCenterPage() {
       uploader_id: teacherUid,
       authorName: teacherName,
       authors: [teacherName],
+      visibility: gameVisibility,
       needExtraData,
       need_extra_data: needExtraData,
       coursesAllowed: whitelistMode === "all" ? "all" : allowedCourses,
@@ -348,19 +365,20 @@ export default function TeacherUploadCenterPage() {
       window.dispatchEvent(new Event("eve_games_updated"));
     } catch {}
 
+    cacheService.clearFullAppCache(true);
+
     await new Promise((r) => setTimeout(r, 600));
     setUploadProgress(100);
     setUploadStepText("4/4: Hoàn tất 100%! Game đã được chuyển tới hàng chờ Admin duyệt.");
 
     await new Promise((r) => setTimeout(r, 400));
     setIsUploading(false);
-    setActionMsg(`Đã tải lên Game "${gameTitle}" (.zip) thành công!`);
+    toast.success(`Đã tải lên Game "${gameTitle}" (.zip) thành công!`, "Tải Lên Game");
     setGameTitle("");
     setGameDesc("");
     setGameZipFile(null);
     setUploadProgress(0);
     setUploadStepText("");
-    setTimeout(() => setActionMsg(null), 6000);
   };
 
   return (
@@ -376,13 +394,6 @@ export default function TeacherUploadCenterPage() {
           </p>
         </div>
       </div>
-
-      {actionMsg && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center justify-between">
-          <span>{actionMsg}</span>
-          <button onClick={() => setActionMsg(null)} className="text-zinc-400 hover:text-zinc-900"></button>
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-zinc-200 pb-3">
@@ -679,6 +690,49 @@ export default function TeacherUploadCenterPage() {
             </div>
           </div>
 
+          {/* Visibility / Licensing Selector */}
+          <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                Quyền Cấp Phép & Mức Độ Hiển Thị Bài Học
+              </label>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Thiết lập quyền sở hữu và cách thức người dùng khác tiếp cận bài học này.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+              {[
+                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "🔒" },
+                { id: "public", title: "Public (Công khai)", desc: "Học sinh & mọi người xem, học và làm bài", icon: "🌐" },
+                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được đưa vào lộ trình học", icon: "🔄" },
+                { id: "free_to_use", title: "Free to Use", desc: "Cho phép tải tài liệu & câu hỏi về máy", icon: "📥" },
+              ].map((lvl) => (
+                <button
+                  key={lvl.id}
+                  type="button"
+                  onClick={() => setCourseVisibility(lvl.id as any)}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    courseVisibility === lvl.id
+                      ? "border-red-600 bg-red-50/50 ring-2 ring-red-200"
+                      : "border-zinc-200 bg-zinc-50 hover:bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-lg">{lvl.icon}</span>
+                    {courseVisibility === lvl.id && (
+                      <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                        Đang chọn
+                      </span>
+                    )}
+                  </div>
+                  <strong className="text-xs text-zinc-900 font-bold block">{lvl.title}</strong>
+                  <span className="text-[11px] text-zinc-500 line-clamp-2 mt-1">{lvl.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
             type="submit"
             className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
@@ -760,6 +814,49 @@ export default function TeacherUploadCenterPage() {
                   </label>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Visibility / Licensing Selector */}
+          <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                Quyền Cấp Phép & Mức Độ Hiển Thị Lộ Trình
+              </label>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Thiết lập quyền sở hữu và cách thức người dùng khác tiếp cận lộ trình học này.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+              {[
+                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "🔒" },
+                { id: "public", title: "Public (Công khai)", desc: "Học sinh tham gia học theo chặng bản đồ", icon: "🌐" },
+                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được áp dụng vào lớp học", icon: "🔄" },
+                { id: "free_to_use", title: "Free to Use", desc: "Cho phép xuất và tải tài nguyên về máy", icon: "📥" },
+              ].map((lvl) => (
+                <button
+                  key={lvl.id}
+                  type="button"
+                  onClick={() => setPathVisibility(lvl.id as any)}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    pathVisibility === lvl.id
+                      ? "border-red-600 bg-red-50/50 ring-2 ring-red-200"
+                      : "border-zinc-200 bg-zinc-50 hover:bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-lg">{lvl.icon}</span>
+                    {pathVisibility === lvl.id && (
+                      <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                        Đang chọn
+                      </span>
+                    )}
+                  </div>
+                  <strong className="text-xs text-zinc-900 font-bold block">{lvl.title}</strong>
+                  <span className="text-[11px] text-zinc-500 line-clamp-2 mt-1">{lvl.desc}</span>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -904,6 +1001,49 @@ export default function TeacherUploadCenterPage() {
               <div className="text-[11px] text-zinc-500">{uploadStepText}</div>
             </div>
           )}
+
+          {/* Visibility / Licensing Selector */}
+          <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                Quyền Cấp Phép & Mức Độ Hiển Thị Trò Chơi
+              </label>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Thiết lập quyền sở hữu và cách thức chia sẻ game trong hệ sinh thái E-V-E.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+              {[
+                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "🔒" },
+                { id: "public", title: "Public (Công khai)", desc: "Học sinh chơi và tính điểm xếp hạng", icon: "🌐" },
+                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được nạp câu hỏi bài họ vào", icon: "🔄" },
+                { id: "free_to_use", title: "Free to Use", desc: "Cho phép tải gói mã nguồn .zip về máy", icon: "📥" },
+              ].map((lvl) => (
+                <button
+                  key={lvl.id}
+                  type="button"
+                  onClick={() => setGameVisibility(lvl.id as any)}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    gameVisibility === lvl.id
+                      ? "border-red-600 bg-red-50/50 ring-2 ring-red-200"
+                      : "border-zinc-200 bg-zinc-50 hover:bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-lg">{lvl.icon}</span>
+                    {gameVisibility === lvl.id && (
+                      <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                        Đang chọn
+                      </span>
+                    )}
+                  </div>
+                  <strong className="text-xs text-zinc-900 font-bold block">{lvl.title}</strong>
+                  <span className="text-[11px] text-zinc-500 line-clamp-2 mt-1">{lvl.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           <button
             type="submit"

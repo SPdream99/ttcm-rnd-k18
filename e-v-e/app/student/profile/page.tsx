@@ -30,8 +30,11 @@ import {
 
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import { useToast } from "@/components/Toast";
+import { cacheService } from "@/lib/cacheService";
 
 export default function StudentProfilePage() {
+  const { toast } = useToast();
   const { currentUser, profile } = useAuthAdapter();
   const displayName = currentUser?.name || profile?.fullName || "Học Viên";
   const displayEmail = currentUser?.email || "student@eve.edu.vn";
@@ -40,7 +43,6 @@ export default function StudentProfilePage() {
 
   const [activeFrame, setActiveFrame] = useState("frame_supernova_gold");
   const [activeBadge, setActiveBadge] = useState("badge_cosmic_legend");
-  const [savedMsg, setSavedMsg] = useState("");
 
   // Courses Progress State
   const [activeCoursesList, setActiveCoursesList] = useState<any[]>([]);
@@ -138,21 +140,18 @@ export default function StudentProfilePage() {
     setIsKeyConfigured(true);
     setMaskedKeyDisplay(getMaskedAIKey());
     setKeyInput("");
-    setSavedMsg("Khóa API đã được mã hóa an toàn và lưu vào bộ nhớ trình duyệt.");
-    setTimeout(() => setSavedMsg(""), 4000);
+    toast.success("Khóa API đã được mã hóa an toàn và lưu vào bộ nhớ trình duyệt.", "API Key");
   };
 
   const handleRemoveAIKey = () => {
     removeAIKey();
     setIsKeyConfigured(false);
     setMaskedKeyDisplay("");
-    setSavedMsg("Đã xóa khóa API.");
-    setTimeout(() => setSavedMsg(""), 4000);
+    toast.info("Đã xóa khóa API.", "API Key");
   };
 
   const handleSaveEquipment = () => {
-    setSavedMsg("Đã lưu thiết lập danh hiệu & khung trang trí thành công!");
-    setTimeout(() => setSavedMsg(""), 4000);
+    toast.success("Đã lưu thiết lập danh hiệu & khung trang trí thành công!", "Trang Bị");
   };
 
   // 2FA Handlers
@@ -172,11 +171,10 @@ export default function StudentProfilePage() {
         const data = await res.json();
         if (data.success) {
           setIs2FAEnabled(false);
-          setSavedMsg("Đã tắt Xác Thực 2 Bước.");
-          setTimeout(() => setSavedMsg(""), 4000);
+          toast.info("Đã tắt Xác Thực 2 Bước (2FA).", "Bảo Mật");
         }
       } catch {
-        setSavedMsg("Lỗi khi tắt 2FA.");
+        toast.error("Lỗi khi tắt 2FA.", "Bảo Mật");
       } finally {
         setIsSending2FA(false);
       }
@@ -240,8 +238,7 @@ export default function StudentProfilePage() {
       if (data.success) {
         setIs2FAEnabled(true);
         setShow2FAModal(false);
-        setSavedMsg("Đã kích hoạt Bảo Mật 2 Lớp (2FA qua Email) thành công!");
-        setTimeout(() => setSavedMsg(""), 5000);
+        toast.success("Đã kích hoạt Bảo Mật 2 Lớp (2FA qua Email) thành công!", "Bảo Mật");
       } else {
         setModalMsg(data.error || "Mã OTP không chính xác.");
       }
@@ -272,12 +269,6 @@ export default function StudentProfilePage() {
           <span className="font-mono font-bold text-sm text-red-600">{displayCoins} Coins</span>
         </div>
       </div>
-
-      {savedMsg && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center justify-between">
-          <span>{savedMsg}</span>
-        </div>
-      )}
 
       {/* Profile Overview Card (Solid Red & White) */}
       <div className="p-6 md:p-8 rounded-2xl bg-white border-2 border-red-600 shadow-sm flex flex-col md:flex-row items-center gap-6">
@@ -556,6 +547,14 @@ export default function StudentProfilePage() {
           </span>
         </div>
 
+        {/* Device-only Storage Notice */}
+        <div className="p-3.5 rounded-xl bg-red-50/70 border border-red-200 text-xs text-zinc-700 flex items-start gap-2.5">
+          <ShieldCheck className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+          <div className="leading-relaxed">
+            <strong className="text-red-700">Lưu ý bảo mật thiết bị:</strong> Khóa API Key của bạn được <strong>mã hóa an toàn và chỉ lưu trữ cục bộ trên thiết bị/trình duyệt này</strong> (Local Storage). Hệ thống <strong>hoàn toàn không lưu trữ hay truyền tải API Key</strong> lên bất kỳ máy chủ nào. Bạn có toàn quyền xóa khóa bất kỳ lúc nào.
+          </div>
+        </div>
+
         {isKeyConfigured ? (
           <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -680,6 +679,31 @@ export default function StudentProfilePage() {
               </label>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Cache & System Storage Section */}
+      <div className="p-6 rounded-2xl bg-white border border-zinc-200 space-y-3 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-base text-zinc-900 flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-red-600" /> Quản Lý Bộ Nhớ Đệm (Cache)
+            </h3>
+            <p className="text-xs text-zinc-500 mt-1">
+              Xóa sạch dữ liệu cache lưu tạm trong trình duyệt để tải mới toàn bộ nội dung từ máy chủ khi gặp lỗi hiển thị.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              cacheService.clearFullAppCache(true);
+              toast.success("Đã dọn dẹp bộ nhớ đệm cache và làm mới dữ liệu thành công!", "Xóa Cache");
+            }}
+            className="px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-red-50 text-zinc-700 hover:text-red-700 border border-zinc-200 text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 shrink-0 self-start sm:self-auto"
+          >
+            <Trash2 className="w-4 h-4 text-red-600" /> Xóa Cache Ngay
+          </button>
         </div>
       </div>
 

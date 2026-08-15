@@ -11,10 +11,12 @@ import {
   Award,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { useToast } from "@/components/Toast";
 import { doc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function StudentShopPage() {
+  const { toast } = useToast();
   const { currentUser, profile } = useAuthAdapter();
   const uid = currentUser?.uid || profile?.uid || "usr_student";
   const [coins, setCoins] = useState(currentUser?.coins ?? profile?.coins ?? 250);
@@ -22,7 +24,6 @@ export default function StudentShopPage() {
     "frame_supernova_gold",
     "badge_cosmic_legend",
   ]);
-  const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   const shopItems = [
     {
@@ -61,7 +62,7 @@ export default function StudentShopPage() {
 
   const handleBuy = async (item: typeof shopItems[0]) => {
     if (coins < item.price) {
-      alert("Bạn không đủ Coins để đổi vật phẩm này. Hãy hoàn thành thêm các bài học!");
+      toast.error("Bạn không đủ Coins để đổi vật phẩm này. Hãy hoàn thành thêm các bài học!", "Cửa Hàng");
       return;
     }
 
@@ -78,8 +79,7 @@ export default function StudentShopPage() {
       }
     } catch {}
 
-    setActionMsg(`Chúc mừng! Bạn đã đổi thành công "${item.name}". Hãy vào trang Hồ Sơ để trang bị!`);
-    setTimeout(() => setActionMsg(null), 4000);
+    toast.success(`Chúc mừng! Bạn đã đổi thành công "${item.name}". Hãy vào trang Hồ Sơ để trang bị!`, "Cửa Hàng");
   };
 
   return (
@@ -101,13 +101,6 @@ export default function StudentShopPage() {
         </div>
       </div>
 
-      {actionMsg && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center justify-between">
-          <span>{actionMsg}</span>
-          <button onClick={() => setActionMsg(null)} className="text-zinc-500 hover:text-zinc-900"></button>
-        </div>
-      )}
-
       {/* Shop Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {shopItems.map((item) => {
@@ -120,35 +113,33 @@ export default function StudentShopPage() {
               className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 transition-all flex flex-col justify-between space-y-5 shadow-sm"
             >
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
-                  <Icon className="w-6 h-6" />
+                <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 shrink-0">
+                  <Icon className="w-7 h-7" />
                 </div>
-
-                <div className="min-w-0">
-                  <span className="text-[10px] uppercase font-bold text-red-600 tracking-wider">
+                <div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-700 text-xs font-bold border border-zinc-200">
                     {item.category}
                   </span>
-                  <h3 className="font-bold text-base text-zinc-900 mt-0.5">{item.name}</h3>
-                  <p className="text-xs text-zinc-500 mt-1">{item.description}</p>
+                  <h3 className="font-bold text-lg text-zinc-900 mt-2">{item.name}</h3>
+                  <p className="text-xs text-zinc-600 mt-1 leading-relaxed">{item.description}</p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
-                <div className="flex items-center gap-1.5 font-bold text-red-600 text-sm">
-                  <Coins className="w-4 h-4" />
-                  {item.price} Coins
+              <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
+                <div className="flex items-center gap-1.5 font-mono font-bold text-red-700 text-base">
+                  <Coins className="w-4 h-4 text-red-600" /> {item.price} Coins
                 </div>
 
                 {isOwned ? (
-                  <span className="px-3.5 py-1.5 rounded-lg bg-zinc-100 text-zinc-700 text-xs font-bold flex items-center gap-1.5">
+                  <span className="px-4 py-2 rounded-xl bg-zinc-100 text-zinc-600 text-xs font-bold flex items-center gap-1.5 border border-zinc-200">
                     <Check className="w-4 h-4 text-emerald-600" /> Đã Sở Hữu
                   </span>
                 ) : (
                   <button
                     onClick={() => handleBuy(item)}
-                    className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                    className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
                   >
-                    <ShoppingBag className="w-3.5 h-3.5" /> Mua Ngay
+                    Đổi Ngay
                   </button>
                 )}
               </div>

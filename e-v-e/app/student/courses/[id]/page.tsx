@@ -196,9 +196,12 @@ export default function CourseDetailPage() {
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center font-sans">
         <BookOpen className="w-12 h-12 text-zinc-400 mb-4" />
         <h1 className="text-xl font-bold text-zinc-900 mb-2">Không tìm thấy bài học</h1>
-        <Link href="/student/classes" className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition">
-          Quay lại danh sách lớp
-        </Link>
+        <button
+          onClick={() => router.back()}
+          className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition flex items-center gap-2 cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" /> Quay lại
+        </button>
       </div>
     );
   }
@@ -206,18 +209,20 @@ export default function CourseDetailPage() {
   return (
     <div className="space-y-8 pb-12 font-sans">
       {/* ── HEADER BANNER ── */}
-      <header className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 shadow-sm space-y-6">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-red-600 transition cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Quay lại
-        </button>
+      <header className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-zinc-100 border border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors cursor-pointer shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4" /> Quay Lại
+          </button>
+          <span className="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5 text-red-600" /> Chi Tiết Bài Giảng
+          </span>
+        </div>
 
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-red-600 mb-1.5">
-            <BookOpen className="w-4 h-4" /> Chi Tiết Khóa Học & Bài Giảng
-          </div>
           <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight">
             {course.title}
           </h1>
@@ -233,7 +238,6 @@ export default function CourseDetailPage() {
           <h2 className="text-base font-extrabold text-zinc-900 flex items-center gap-2">
             <Layers className="w-4 h-4 text-red-600" /> Cặp Khái Niệm & Định Nghĩa ({course.pairs.length})
           </h2>
-          <span className="text-xs text-zinc-500 font-medium">Tự động nạp vào game Memory Match & Quiz Runner</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -351,6 +355,22 @@ export default function CourseDetailPage() {
           </Link>
         </div>
       </section>
+
+      {/* ── BOTTOM NAVIGATION ── */}
+      <div className="pt-4 flex items-center justify-between border-t border-zinc-200">
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-100 border border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors cursor-pointer shadow-sm"
+        >
+          <ArrowLeft className="w-4 h-4" /> Quay Lại
+        </button>
+        <Link
+          href="/student/classes"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm"
+        >
+          Về Danh Sách Lớp Học
+        </Link>
+      </div>
     </div>
   );
 }

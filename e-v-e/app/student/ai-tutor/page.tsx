@@ -11,6 +11,7 @@ import {
   Check,
   Lightbulb,
   Mic,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 
@@ -43,12 +44,16 @@ export default function StudentAITutorPage() {
       }
     }
 
-    const studentName = currentUser?.name || profile?.fullName || "bạn";
+    const storedKey = typeof window !== "undefined" ? localStorage.getItem("eve_gemini_api_key") || "" : "";
+    const keyNote = !storedKey
+      ? `\n\n💡 *Lưu ý: Bạn chưa cài đặt API Key. Hãy **mở cài đặt key ở góc phải lên** hoặc **cài đặt key trong profile** để bắt đầu trò chuyện nhé!*`
+      : "";
+
     setMessages([
       {
         id: "msg-welcome",
         sender: "ai",
-        text: `Chào ${studentName}!  Mình là **Gia Sư Trực Tuyến E-V-E**, đồng hành học tập cùng bạn hôm nay.\n\nBạn có thể hỏi mình mọi thứ về:\n-  **Lập trình Python, Scratch & Cấu trúc thuật toán**\n-  **Tra cứu bài học, kho minigame & bản đồ lộ trình**\n-  **Kiến thức phần cứng & máy tính**\n-  **Giải bài tập và tư duy logic**\n\nBạn muốn khám phá chủ đề nào trước?`,
+        text: `Chào ${studentName}! Mình là **Gia Sư Trực Tuyến E-V-E**, đồng hành học tập cùng bạn hôm nay.\n\nBạn có thể hỏi mình mọi thứ về:\n- **Lập trình Python, Scratch & Cấu trúc thuật toán**\n- **Tra cứu bài học, kho minigame & bản đồ lộ trình**\n- **Kiến thức phần cứng & máy tính**\n- **Giải bài tập và tư duy logic**\n\nBạn muốn khám phá chủ đề nào trước?${keyNote}`,
         timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
       },
     ]);
@@ -88,6 +93,20 @@ export default function StudentAITutorPage() {
         typeof window !== "undefined"
           ? localStorage.getItem("eve_gemini_api_key") || ""
           : "";
+
+      if (!storedKey) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ai-nokey-${Date.now()}`,
+            sender: "ai",
+            text: "⚠️ Bạn chưa cài đặt Google Gemini API Key. Vui lòng **mở cài đặt key ở góc phải lên** hoặc **cài đặt key trong profile** để bắt đầu trò chuyện cùng Gia sư AI nhé!",
+            timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+        setIsSending(false);
+        return;
+      }
 
       const res = await fetch("/api/tutor", {
         method: "POST",
@@ -132,6 +151,28 @@ export default function StudentAITutorPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const renderFormattedText = (rawText: string) => {
+    const parts = rawText.split(/(\*\*.*?\*\*|`.*?`)/g);
+
+    return parts.map((part, pIdx) => {
+      if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+        return (
+          <strong key={pIdx} className="font-extrabold text-inherit">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
+        return (
+          <code key={pIdx} className="px-1.5 py-0.5 rounded bg-zinc-100 text-red-600 font-mono text-[11px] border border-zinc-200">
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      return part;
+    });
+  };
+
   const renderMessageContent = (text: string) => {
     const blocks = text.split(/(```[\s\S]*?```)/g);
 
@@ -158,9 +199,9 @@ export default function StudentAITutorPage() {
       }
 
       return (
-        <p key={bIdx} className="whitespace-pre-wrap leading-relaxed">
-          {block}
-        </p>
+        <div key={bIdx} className="whitespace-pre-wrap leading-relaxed">
+          {renderFormattedText(block)}
+        </div>
       );
     });
   };
@@ -331,6 +372,13 @@ export default function StudentAITutorPage() {
             <p className="text-xs text-zinc-600 leading-relaxed">
               Nhập Google Gemini API Key để gia sư trực tiếp trả lời mọi câu hỏi:
             </p>
+
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-zinc-700 flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <span className="leading-relaxed text-[11px]">
+                <strong className="text-red-700">Lưu ý:</strong> Khóa API Key được <strong>lưu cục bộ trên thiết bị của bạn</strong> (Local Storage), hoàn toàn không được gửi hay lưu trữ trên máy chủ.
+              </span>
+            </div>
 
             <form onSubmit={handleSaveApiKey} className="space-y-4">
               <div>

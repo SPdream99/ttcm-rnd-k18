@@ -45,6 +45,26 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 
 ---
 
+## Ứng dụng Trí Tuệ Nhân Tạo (AI Integration)
+
+Dự án **E-V-E** ứng dụng mô hình ngôn ngữ lớn **Google Gemini AI** nhằm tối ưu hóa trải nghiệm học tập và hỗ trợ công tác giảng dạy:
+
+1. **Gia Sư Học Tập 24/7 (AI Tutor cho Học Sinh):**
+   - Hỗ trợ học sinh giải đáp kiến thức lập trình, toán học, tư duy logic và hướng dẫn làm bài tập.
+   - Định dạng phản hồi trực quan (Markdown, in đậm cú pháp, Code Snippets với nút sao chép nhanh).
+   - Đưa ra các gợi ý học tập bám sát lộ trình và nội dung bài học.
+
+2. **Trợ Giảng Sư Phạm Thông Minh (AI Assistant cho Giáo Viên):**
+   - Tự động sinh ngân hàng câu hỏi trắc nghiệm / ghép cặp theo chủ đề bài giảng.
+   - Hỗ trợ xây dựng khung chương trình và gợi ý cấu trúc bài giảng.
+   - Hướng dẫn tích hợp mã nguồn Game SDK vào các minigame giáo dục.
+
+3. **Bảo Mật & Quyền Riêng Tư (Local Device Storage):**
+   - Cho phép người dùng linh hoạt cấu hình **Google Gemini API Key** cá nhân.
+   - Khóa API được **mã hóa và chỉ lưu trữ cục bộ trên thiết bị/trình duyệt của người dùng** (Local Storage), hoàn toàn không được truyền tải hay lưu trữ trên máy chủ backend.
+
+---
+
 ## Công nghệ sử dụng
 
 - **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, Lucide Icons

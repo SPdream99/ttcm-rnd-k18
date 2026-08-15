@@ -15,11 +15,14 @@ import {
   UserCheck,
   Check,
   RefreshCw,
+  Trash2,
   X,
   HelpCircle,
 } from "lucide-react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useToast } from "@/components/Toast";
+import { cacheService } from "@/lib/cacheService";
 
 interface ConfirmModalData {
   title: string;
@@ -30,6 +33,7 @@ interface ConfirmModalData {
 }
 
 export default function AdminDashboardPage() {
+  const toast = useToast();
   const [stats, setStats] = useState({
     totalUsers: 0,
     studentsCount: 0,
@@ -208,10 +212,11 @@ export default function AdminDashboardPage() {
       }
 
       setFeedbackMsg(`Đã phê duyệt thành công tài khoản giáo viên: ${teacher.name || teacher.email}!`);
+      toast.success(`Đã phê duyệt tài khoản: ${teacher.name || teacher.email}!`, "Phê Duyệt");
       await loadStats();
       setTimeout(() => setFeedbackMsg(null), 4000);
     } catch {
-      alert("Lỗi khi duyệt tài khoản.");
+      toast.error("Lỗi khi duyệt tài khoản giáo viên.", "Lỗi Xử Lý");
     } finally {
       setApprovingId(null);
     }
@@ -233,7 +238,19 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => {
+              cacheService.clearFullAppCache(true);
+              toast.success("Đã xóa sạch bộ nhớ đệm (Cache) toàn hệ thống thành công!", "Xóa Cache");
+              loadStats();
+            }}
+            className="px-3 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 border border-red-200"
+            title="Xóa cache và làm mới dữ liệu hệ thống"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-red-600" /> Xóa Cache
+          </button>
+
           <button
             onClick={() => loadStats()}
             className="px-3.5 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 border border-zinc-200"

@@ -15,21 +15,28 @@ import {
   Inbox,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { useToast } from "@/components/Toast";
+import { collection, getDocs, deleteDoc, updateDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function TeacherMyContentsPage() {
+  const { toast } = useToast();
   const { currentUser, profile } = useAuthAdapter();
   const teacherUid = currentUser?.uid || currentUser?.id || profile?.uid || profile?.id || "";
   const teacherEmail = currentUser?.email || profile?.email || "";
 
   const [activeTab, setActiveTab] = useState<"courses" | "paths" | "games">("courses");
-  const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [courses, setCourses] = useState<any[]>([]);
   const [paths, setPaths] = useState<any[]>([]);
   const [games, setGames] = useState<any[]>([]);
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState<{
+    type: "course" | "path" | "game";
+    id: string;
+    title: string;
+    authorId: string;
+  } | null>(null);
 
   const loadOwnContent = async () => {
     if (!teacherUid && !teacherEmail) {
@@ -71,6 +78,7 @@ export default function TeacherMyContentsPage() {
                 pairsCount: pairs.length,
                 resourcesCount: data.resources?.length || 0,
                 authorId: docAuthor,
+                visibility: data.visibility || "public",
                 isAccepted: Boolean(data.isAccepted ?? data.is_accepted),
                 createdAt: data.createdAt
                   ? new Date(data.createdAt).toLocaleDateString("vi-VN")
@@ -151,6 +159,7 @@ export default function TeacherMyContentsPage() {
                 description: data.description || "",
                 coursesCount: courseIds.length,
                 authorId: docAuthor,
+                visibility: data.visibility || "public",
                 isAccepted: Boolean(data.isAccepted ?? data.is_accepted),
                 createdAt: data.createdAt
                   ? new Date(data.createdAt).toLocaleDateString("vi-VN")
@@ -191,6 +200,7 @@ export default function TeacherMyContentsPage() {
                 needExtraData: Boolean(data.needExtraData ?? data.need_extra_data),
                 playsCount: Number(data.playsCount ?? data.plays_count ?? data.playCount ?? data.plays ?? 0),
                 authorId: docAuthor,
+                visibility: data.visibility || "public",
                 authorName:
                   data.authorName ||
                   (Array.isArray(data.authors) ? data.authors.join(", ") : "Tôi"),
@@ -267,13 +277,13 @@ export default function TeacherMyContentsPage() {
     }
   }, [teacherUid, teacherEmail]);
 
-  const handleDeleteItem = async (
-    type: "course" | "path" | "game",
-    id: string,
-    authorId: string
-  ) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa nội dung này của mình không?"))
-      return;
+  const executeDeleteItem = async (item: {
+    type: "course" | "path" | "game";
+    id: string;
+    title: string;
+    authorId: string;
+  }) => {
+    const { type, id } = item;
 
     try {
       const collectionName =
@@ -314,8 +324,45 @@ export default function TeacherMyContentsPage() {
     if (type === "path") setPaths((prev) => prev.filter((p) => p.id !== id));
     if (type === "game") setGames((prev) => prev.filter((g) => g.id !== id));
 
-    setActionNotice("Đã xóa nội dung thành công!");
-    setTimeout(() => setActionNotice(null), 3000);
+    toast.success(`Đã xóa "${item.title}" thành công!`, "Quản Lý Học Liệu");
+    setDeleteConfirmItem(null);
+  };
+
+  const handleUpdateVisibility = async (
+    type: "course" | "path" | "game",
+    id: string,
+    newVisibility: "private" | "public" | "free_to_share" | "free_to_use"
+  ) => {
+    const collectionName =
+      type === "course"
+        ? "courses"
+        : type === "path"
+        ? "learning_path"
+        : "game_info";
+    try {
+      await updateDoc(doc(db, collectionName, id), { visibility: newVisibility });
+    } catch {}
+
+    if (type === "course")
+      setCourses((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, visibility: newVisibility } : c))
+      );
+    if (type === "path")
+      setPaths((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, visibility: newVisibility } : p))
+      );
+    if (type === "game")
+      setGames((prev) =>
+        prev.map((g) => (g.id === id ? { ...g, visibility: newVisibility } : g))
+      );
+
+    const labels: Record<string, string> = {
+      private: "Private (Riêng tư - Chỉ bản thân & Admin)",
+      public: "Public (Công khai - Học sinh xem & học/chơi)",
+      free_to_share: "Free to Share (Cho phép giáo viên khác tích hợp)",
+      free_to_use: "Free to Use (Tự do tải xuống)",
+    };
+    toast.success(`Đã cập nhật mức cấp phép: ${labels[newVisibility]}`, "Cấp Phép Học Liệu");
   };
 
   return (
@@ -337,12 +384,6 @@ export default function TeacherMyContentsPage() {
           </button>
         </Link>
       </div>
-
-      {actionNotice && (
-        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
-          {actionNotice}
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-zinc-200 pb-3 overflow-x-auto">
@@ -434,16 +475,41 @@ export default function TeacherMyContentsPage() {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-600 font-medium">
-                    <span className="text-red-600 font-bold">
-                      {course.pairsCount} Cặp Câu Hỏi
-                    </span>
+                  <div className="pt-3 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-zinc-600 font-medium">
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-600 font-bold">
+                        {course.pairsCount} Cặp Câu Hỏi
+                      </span>
+                      <span className="text-zinc-300">•</span>
+                      <select
+                        value={course.visibility || "public"}
+                        onChange={(e) =>
+                          handleUpdateVisibility(
+                            "course",
+                            course.id,
+                            e.target.value as any
+                          )
+                        }
+                        className="px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] font-bold focus:outline-none focus:border-red-600 cursor-pointer"
+                        title="Thay đổi quyền cấp phép & hiển thị"
+                      >
+                        <option value="private">🔒 Private</option>
+                        <option value="public">🌐 Public</option>
+                        <option value="free_to_share">🔄 Free to Share</option>
+                        <option value="free_to_use">📥 Free to Use</option>
+                      </select>
+                    </div>
 
                     <button
                       onClick={() =>
-                        handleDeleteItem("course", course.id, course.authorId)
+                        setDeleteConfirmItem({
+                          type: "course",
+                          id: course.id,
+                          title: course.title,
+                          authorId: course.authorId,
+                        })
                       }
-                      className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold"
+                      className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold self-end sm:self-auto"
                     >
                       <Trash2 className="w-4 h-4" /> Xóa
                     </button>
@@ -509,16 +575,41 @@ export default function TeacherMyContentsPage() {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-600 font-medium">
-                    <span className="text-red-600 font-bold">
-                      {path.coursesCount} Khóa Học Trong Lộ Trình
-                    </span>
+                  <div className="pt-3 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-zinc-600 font-medium">
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-600 font-bold">
+                        {path.coursesCount} Khóa Học
+                      </span>
+                      <span className="text-zinc-300">•</span>
+                      <select
+                        value={path.visibility || "public"}
+                        onChange={(e) =>
+                          handleUpdateVisibility(
+                            "path",
+                            path.id,
+                            e.target.value as any
+                          )
+                        }
+                        className="px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] font-bold focus:outline-none focus:border-red-600 cursor-pointer"
+                        title="Thay đổi quyền cấp phép & hiển thị"
+                      >
+                        <option value="private">🔒 Private</option>
+                        <option value="public">🌐 Public</option>
+                        <option value="free_to_share">🔄 Free to Share</option>
+                        <option value="free_to_use">📥 Free to Use</option>
+                      </select>
+                    </div>
 
                     <button
                       onClick={() =>
-                        handleDeleteItem("path", path.id, path.authorId)
+                        setDeleteConfirmItem({
+                          type: "path",
+                          id: path.id,
+                          title: path.title,
+                          authorId: path.authorId,
+                        })
                       }
-                      className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold"
+                      className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold self-end sm:self-auto"
                     >
                       <Trash2 className="w-4 h-4" /> Xóa
                     </button>
@@ -584,12 +675,32 @@ export default function TeacherMyContentsPage() {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-600">
-                    <span className="text-red-600 font-bold">
-                      {game.playsCount} Lượt Học Sinh Chơi
-                    </span>
-
+                  <div className="pt-3 border-t border-zinc-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-zinc-600">
                     <div className="flex items-center gap-2">
+                      <span className="text-red-600 font-bold">
+                        {game.playsCount} Lượt Chơi
+                      </span>
+                      <span className="text-zinc-300">•</span>
+                      <select
+                        value={game.visibility || "public"}
+                        onChange={(e) =>
+                          handleUpdateVisibility(
+                            "game",
+                            game.id,
+                            e.target.value as any
+                          )
+                        }
+                        className="px-2 py-0.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-800 text-[11px] font-bold focus:outline-none focus:border-red-600 cursor-pointer"
+                        title="Thay đổi quyền cấp phép & hiển thị"
+                      >
+                        <option value="private">🔒 Private</option>
+                        <option value="public">🌐 Public</option>
+                        <option value="free_to_share">🔄 Free to Share</option>
+                        <option value="free_to_use">📥 Free to Use</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
                       <Link
                         href={`/student/play/${game.id}/${courses[0]?.id || "crs_coding_basics"}`}
                       >
@@ -600,7 +711,12 @@ export default function TeacherMyContentsPage() {
 
                       <button
                         onClick={() =>
-                          handleDeleteItem("game", game.id, game.authorId)
+                          setDeleteConfirmItem({
+                            type: "game",
+                            id: game.id,
+                            title: game.title,
+                            authorId: game.authorId,
+                          })
                         }
                         className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold"
                       >
@@ -613,6 +729,40 @@ export default function TeacherMyContentsPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* MODAL XÁC NHẬN XÓA NỘI DUNG */}
+      {deleteConfirmItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <div className="w-full max-w-md rounded-2xl bg-white border-2 border-red-600 p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              <h3 className="text-base font-bold text-zinc-900">
+                Xác Nhận Xóa Nội Dung
+              </h3>
+            </div>
+            <p className="text-xs text-zinc-600 leading-relaxed">
+              Thầy/Cô có chắc chắn muốn xóa{" "}
+              <strong>&ldquo;{deleteConfirmItem.title}&rdquo;</strong> không? Hành động này sẽ loại bỏ học liệu này khỏi hệ thống và không thể khôi phục.
+            </p>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmItem(null)}
+                className="px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition cursor-pointer"
+              >
+                Hủy Bỏ
+              </button>
+              <button
+                type="button"
+                onClick={() => executeDeleteItem(deleteConfirmItem)}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition cursor-pointer shadow-sm"
+              >
+                Xác Nhận Xóa
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
