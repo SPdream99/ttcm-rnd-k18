@@ -141,14 +141,21 @@ export default function StudentClassDetailPage({
         try {
           const membersSnap = await getDocs(collection(db, "class_members"));
           const memberList: MemberItem[] = [];
+          const seenKeys = new Set<string>();
+
           membersSnap.docs.forEach((d) => {
             const m = d.data();
-            memberList.push({
-              id: m.student_id || d.id,
-              name: m.student_name || "Thành viên lớp",
-              role: m.role || "Student",
-              email: m.student_email || "member@eve.edu.vn",
-            });
+            const memberId = m.student_id || d.id;
+            const uniqueKey = `${m.class_id || ""}_${memberId}`;
+            if (!seenKeys.has(memberId)) {
+              seenKeys.add(memberId);
+              memberList.push({
+                id: memberId,
+                name: m.student_name || "Thành viên lớp",
+                role: m.role || "Student",
+                email: m.student_email || "member@eve.edu.vn",
+              });
+            }
           });
           setMembers(memberList);
         } catch {
@@ -478,11 +485,11 @@ export default function StudentClassDetailPage({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {members.map((m) => {
+          {members.map((m, idx) => {
             const isTeacher = m.role === "Teacher";
             return (
               <div
-                key={m.id}
+                key={`${m.id}_${idx}`}
                 className={`p-5 rounded-2xl border flex items-center justify-between gap-3 shadow-sm transition-all ${
                   isTeacher
                     ? "bg-red-50/60 border-red-200"
