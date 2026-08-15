@@ -13,26 +13,29 @@ import {
 } from "lucide-react";
 
 interface LearningPathMapProps {
-  courses: string[];
+  courses?: string[];
   completedCourses?: string[];
   currentCourseId?: string;
   onSelectCourse?: (courseId: string) => void;
 }
 
 export default function LearningPathMap({
-  courses,
+  courses = [],
   completedCourses = [],
   currentCourseId,
   onSelectCourse,
 }: LearningPathMapProps) {
   const router = useRouter();
 
+  const safeCourses = Array.isArray(courses) ? courses : [];
+  const safeCompletedCourses = Array.isArray(completedCourses) ? completedCourses : [];
+
   const getCourseStatus = (courseId: string, index: number) => {
-    const isCompleted = completedCourses.includes(courseId);
+    const isCompleted = safeCompletedCourses.includes(courseId);
     if (isCompleted) return "completed";
     if (
       currentCourseId === courseId ||
-      (!currentCourseId && index === completedCourses.length)
+      (!currentCourseId && index === safeCompletedCourses.length)
     ) {
       return "current";
     }
@@ -47,6 +50,18 @@ export default function LearningPathMap({
       router.push(`/student/courses/${courseId}`);
     }
   };
+
+  if (safeCourses.length === 0) {
+    return (
+      <div className="w-full rounded-2xl border-2 border-zinc-200 bg-white p-6 md:p-8 shadow-sm text-center py-12 space-y-3">
+        <BookOpen className="w-8 h-8 text-zinc-400 mx-auto" />
+        <h3 className="font-bold text-base text-zinc-900">Lộ trình học tập chưa có khóa học</h3>
+        <p className="text-xs text-zinc-500 max-w-md mx-auto">
+          Giảng viên đang cập nhật danh sách các bài học cho lộ trình này. Vui lòng quay lại sau!
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -70,7 +85,7 @@ export default function LearningPathMap({
             <div>
               <span className="text-[11px] text-zinc-500 block font-medium">Tiến độ chặng:</span>
               <span className="font-bold text-zinc-900 text-sm">
-                {completedCourses.length} / {courses.length} Khóa hoàn thành
+                {safeCompletedCourses.length} / {safeCourses.length} Khóa hoàn thành
               </span>
             </div>
           </div>
@@ -78,13 +93,13 @@ export default function LearningPathMap({
 
         {/* Bản Đồ Tương Tác */}
         <div className="relative max-w-2xl mx-auto py-2">
-          {courses.map((courseId, index) => {
+          {safeCourses.map((courseId, index) => {
             const status = getCourseStatus(courseId, index);
             const isLeft = index % 2 === 0;
             const isCompleted = status === "completed";
             const isCurrent = status === "current";
             const isLocked = status === "locked";
-            const nextCourse = index < courses.length - 1;
+            const nextCourse = index < safeCourses.length - 1;
 
             const cleanName = courseId
               .replace(/^crs_/, "")
@@ -100,97 +115,94 @@ export default function LearningPathMap({
                       isCompleted
                         ? "border-red-600"
                         : isCurrent
-                        ? "border-red-400"
-                        : "border-zinc-300"
-                    } ${
-                      isLeft
-                        ? "left-[32%] top-20 h-36 w-[42%] border-r-2 border-t-2 rounded-tr-2xl"
-                        : "right-[32%] top-20 h-36 w-[42%] border-l-2 border-t-2 rounded-tl-2xl"
+                        ? "border-red-300"
+                        : "border-zinc-200"
                     }`}
+                    style={{
+                      left: isLeft ? "25%" : "auto",
+                      right: isLeft ? "auto" : "25%",
+                      top: "50%",
+                      width: "50%",
+                      height: "100%",
+                      borderLeftWidth: isLeft ? "3px" : "0",
+                      borderRightWidth: isLeft ? "0" : "3px",
+                      borderBottomWidth: "3px",
+                      borderBottomLeftRadius: isLeft ? "2rem" : "0",
+                      borderBottomRightRadius: isLeft ? "0" : "2rem",
+                    }}
                   />
                 )}
 
-                {/* Node Khóa Học */}
+                {/* Card Chặng Học */}
                 <div
-                  className={`relative z-10 flex min-h-[130px] items-center ${
-                    isLeft ? "justify-start md:pl-4" : "justify-end md:pr-4"
-                  }`}
+                  className={`relative z-10 flex items-center gap-4 p-5 rounded-2xl border-2 transition-all ${
+                    isCompleted
+                      ? "bg-red-50/40 border-red-500"
+                      : isCurrent
+                      ? "bg-white border-red-600 shadow-md ring-4 ring-red-100"
+                      : "bg-zinc-50/80 border-zinc-200 opacity-60"
+                  } ${isLocked ? "cursor-not-allowed" : "cursor-pointer hover:scale-[1.01]"}`}
+                  onClick={() => handleCourseClick(courseId, isLocked)}
                 >
+                  {/* Trạm Node Tròn */}
                   <div
-                    onClick={() => handleCourseClick(courseId, isLocked)}
-                    className={`group w-full max-w-[320px] p-4 rounded-xl border-2 transition-all duration-200 ${
-                      isLocked
-                        ? "cursor-not-allowed bg-zinc-50 border-zinc-200 opacity-60"
-                        : isCompleted
-                        ? "cursor-pointer bg-white border-red-600 shadow-sm hover:border-red-700 hover:-translate-y-0.5"
-                        : "cursor-pointer bg-red-50/40 border-red-600 shadow-sm hover:border-red-700 hover:-translate-y-0.5"
+                    className={`w-12 h-12 rounded-xl shrink-0 flex items-center justify-center font-bold text-base transition-colors ${
+                      isCompleted
+                        ? "bg-red-600 text-white"
+                        : isCurrent
+                        ? "bg-red-600 text-white animate-bounce"
+                        : "bg-zinc-200 text-zinc-500"
                     }`}
                   >
-                    {/* Badge trạng thái */}
-                    <div className="flex items-center justify-between pb-2.5 border-b border-zinc-200">
-                      <span className="text-[11px] font-bold text-zinc-600 flex items-center gap-1">
-                        <BookOpen className="w-3.5 h-3.5 text-red-600" />
+                    {isCompleted ? (
+                      <Check className="w-6 h-6 stroke-[3]" />
+                    ) : isCurrent ? (
+                      <Play className="w-5 h-5 fill-white ml-0.5" />
+                    ) : (
+                      <Lock className="w-5 h-5 text-zinc-400" />
+                    )}
+                  </div>
+
+                  {/* Thông Tin Chặng */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-red-600">
                         Chặng {index + 1}
                       </span>
-
-                      <span
-                        className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full ${
-                          isCompleted
-                            ? "bg-red-600 text-white"
-                            : isCurrent
-                            ? "bg-red-100 text-red-700 border border-red-300"
-                            : "bg-zinc-200 text-zinc-500"
-                        }`}
-                      >
-                        {isCompleted ? "Đã xong " : isCurrent ? "Đang học" : "Chưa mở"}
-                      </span>
-                    </div>
-
-                    {/* Nội dung Node */}
-                    <div className="py-3 flex items-center gap-3">
-                      <div
-                        className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 font-bold ${
-                          isCompleted
-                            ? "bg-red-600 text-white"
-                            : isCurrent
-                            ? "bg-red-600 text-white"
-                            : "bg-zinc-200 text-zinc-400"
-                        }`}
-                      >
-                        {isCompleted ? (
-                          <Check className="w-6 h-6 stroke-[3]" />
-                        ) : isCurrent ? (
-                          <Play className="w-5 h-5 fill-white ml-0.5" />
-                        ) : (
-                          <Lock className="w-4 h-4" />
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-bold text-zinc-900 group-hover:text-red-600 transition-colors line-clamp-1">
-                          {cleanName}
-                        </h4>
-                        <p className="text-xs text-zinc-500 mt-0.5 line-clamp-1">
-                          {isCompleted
-                            ? "Đã hoàn thành toàn bộ thử thách"
-                            : isCurrent
-                            ? "Bấm để mở danh sách minigame"
-                            : "Hoàn thành chặng trước để mở"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Footer Thao Tác */}
-                    {!isLocked && (
-                      <div className="pt-2.5 border-t border-zinc-200 flex items-center justify-between text-xs">
-                        <span className="text-zinc-600 flex items-center gap-1 font-medium">
-                          <Gamepad2 className="w-3.5 h-3.5 text-red-600" /> Minigame tương thích
+                      {isCompleted && (
+                        <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold">
+                          Đã Hoàn Thành
                         </span>
-                        <span className="font-bold text-red-600 flex items-center gap-0.5">
-                          Xem chi tiết <ChevronRight className="w-3.5 h-3.5" />
+                      )}
+                      {isCurrent && (
+                        <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                          Đang Học
                         </span>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                    <h3 className="font-bold text-sm md:text-base text-zinc-900 truncate">
+                      {cleanName}
+                    </h3>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      {isCompleted
+                        ? "Đã nắm vững toàn bộ kiến thức và thử thách."
+                        : isCurrent
+                        ? "Chặng học hiện tại — bấm vào để tiếp tục học ngay."
+                        : "Khóa học bị khóa — cần hoàn thành các chặng trước."}
+                    </p>
+                  </div>
+
+                  {/* Nút Điều Hướng */}
+                  <div className="shrink-0 flex items-center gap-2">
+                    <div
+                      className={`p-2 rounded-xl border ${
+                        isLocked
+                          ? "bg-zinc-100 border-zinc-200 text-zinc-400"
+                          : "bg-red-50 border-red-200 text-red-600 group-hover:bg-red-600 group-hover:text-white"
+                      }`}
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </div>
                   </div>
                 </div>
               </div>

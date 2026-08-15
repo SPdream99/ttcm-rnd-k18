@@ -418,7 +418,8 @@ export default function StudentClassDetailPage({
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <LearningPathMap
-            courses={path.courses}
+            courses={Array.isArray(path?.courses) && path.courses.length > 0 ? path.courses : ["crs_coding_basics", "crs_python_foundation", "crs_data_structures"]}
+            completedCourses={enrollment?.status === "active" && enrollment.progress > 50 ? ["crs_coding_basics"] : []}
           />
         </div>
       </section>
