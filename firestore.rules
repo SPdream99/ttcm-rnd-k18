@@ -45,16 +45,9 @@ service cloud.firestore {
     // 1. USERS COLLECTION
     // =========================================================================
     match /users/{userId} {
-      // Cho phép đọc thông tin người dùng (phục vụ hiển thị Bảng xếp hạng, danh sách bạn cùng lớp, thông tin giáo viên)
       allow read: if true;
-      
-      // Đăng ký tài khoản mới
       allow create: if isSignedIn() || request.resource.data.email != null;
-      
-      // Người dùng được cập nhật thông tin cá nhân của mình (profile, avatar, trang bị, coins) hoặc Admin quản trị
       allow update: if isOwner(userId) || isAdmin() || isSignedIn();
-      
-      // Chỉ Admin được xóa vĩnh viễn tài khoản
       allow delete: if isAdmin();
     }
 
@@ -109,7 +102,7 @@ service cloud.firestore {
     match /submissions/{submissionId} {
       allow read: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn(); // Cho phép học sinh cập nhật bài nộp hoặc giáo viên chấm điểm
+      allow update: if isSignedIn();
       allow delete: if isAdmin();
     }
 
@@ -131,7 +124,7 @@ service cloud.firestore {
 
     match /game_results/{resultId} {
       allow read: if true;
-      allow create, update: if true; // Ghi nhận kết quả phiên chơi game từ E-V-E Game SDK
+      allow create, update: if true;
       allow delete: if isAdmin();
     }
 
