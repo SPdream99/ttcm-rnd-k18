@@ -84,8 +84,14 @@ export default function StudentClassPage() {
         .filter((item) => item.learning_path_id);
 
       const classList: ClassItem[] = [];
+      const seenPathIds = new Set<string>();
 
       for (const enrollment of enrollments) {
+        if (seenPathIds.has(enrollment.learning_path_id)) {
+          continue;
+        }
+        seenPathIds.add(enrollment.learning_path_id);
+
         const pathQuery = query(
           collection(db, "learning_path"),
           where("__name__", "==", enrollment.learning_path_id)
@@ -307,9 +313,9 @@ export default function StudentClassPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClasses.map((cls) => (
+          {filteredClasses.map((cls, idx) => (
             <div
-              key={cls.id}
+              key={`${cls.enrollmentDocId || cls.id}_${idx}`}
               className={`group flex flex-col justify-between rounded-2xl bg-white border p-6 shadow-sm transition-all duration-200 ${
                 cls.status === "paused"
                   ? "border-amber-300 bg-amber-50/10"

@@ -56,9 +56,19 @@ export default function StudentDashboardPage() {
             );
 
             const classesData: any[] = [];
+            const seenPathIds = new Set<string>();
+
             for (const docItem of enrollSnap.docs) {
               const eData = docItem.data();
+              // Lớp học đang tạm dừng/bảo lưu thì KHÔNG hiển thị ở Dashboard
+              if (eData.status === "paused") {
+                continue;
+              }
               const pathId = eData.learning_path_id;
+              if (seenPathIds.has(pathId)) {
+                continue;
+              }
+              seenPathIds.add(pathId);
 
               const pathDoc = await getDoc(doc(db, "learning_path", pathId));
               if (pathDoc.exists()) {
@@ -75,8 +85,8 @@ export default function StudentDashboardPage() {
                 });
               }
             }
-            if (classesData.length === 0) {
-              // Fallback fetch all active learning paths if student not yet in collection
+            if (classesData.length === 0 && enrollSnap.empty) {
+              // Fallback fetch all active learning paths ONLY if student has zero enrollments
               const allPathsSnap = await getDocs(collection(db, "learning_path"));
               allPathsSnap.docs.forEach((d) => {
                 const pData = d.data();
@@ -304,9 +314,9 @@ export default function StudentDashboardPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {enrolledClasses.map((cls) => (
+            {enrolledClasses.map((cls, idx) => (
               <div
-                key={cls.id}
+                key={`${cls.id}_${idx}`}
                 className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm space-y-4 hover:border-red-600 transition-all flex flex-col justify-between"
               >
                 <div className="space-y-2">
