@@ -141,19 +141,6 @@ const GAME_METADATA: Record<string, { title: string; subtitle: string; category:
       "Hoàn thành toàn bộ câu hỏi để qua bài.",
     ],
   },
-  game_hardware_3d_lab: {
-    title: "Phòng Thí Nghiệm Lắp Ráp Máy Tính 3D",
-    subtitle: "Mô Phỏng Kiến Trúc Phần Cứng Trực Quan",
-    category: "3D Hardware Assembly",
-    description: "Khám phá cấu tạo máy tính: Chọn linh kiện (CPU, RAM, GPU, SSD, PSU) và lắp ráp chuẩn xác vào bo mạch chủ.",
-    author: "ThS. Phạm Hoàng Nam",
-    controls: "Nhấp chuột chọn linh kiện và ấn 'Lắp Vào Bo Mạch'.",
-    instructions: [
-      "Chọn linh kiện từ danh sách bên trái.",
-      "Bấm 'Lắp Vào Bo Mạch' để đưa linh kiện vào đúng khe cắm.",
-      "Lắp đủ 5 linh kiện và bấm 'Kích Hoạt Nguồn & Khởi Động'.",
-    ],
-  },
   game_card_match_vr: {
     title: "Ghép Cặp Thẻ Bài Thuật Toán (Memory Match)",
     subtitle: "Luyện Trí Nhớ & Khắc Sâu Định Nghĩa",

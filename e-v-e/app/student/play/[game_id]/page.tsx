@@ -29,17 +29,6 @@ const GAME_CATALOG: Record<string, { title: string; subtitle: string; category: 
       { id: "crs_ai_robotics", title: "Bài 4: Khám Phá Trí Tuệ Nhân Tạo AI", difficulty: "Nâng Cao" },
     ],
   },
-  game_hardware_3d_lab: {
-    title: "Phòng Thí Nghiệm Lắp Ráp Máy Tính 3D",
-    subtitle: "Mô Phỏng Kiến Trúc Phần Cứng Trực Quan",
-    category: "3D Hardware Assembly",
-    description: "Khám phá cấu tạo bên trong thùng máy PC: Chọn các linh kiện quan trọng (CPU, RAM, GPU, SSD) và lắp ráp chuẩn xác vào bo mạch chủ.",
-    author: "ThS. Phạm Hoàng Nam",
-    defaultCourseId: "crs_computer_hardware",
-    compatibleCourses: [
-      { id: "crs_computer_hardware", title: "Bài 2: Khám Phá Phần Cứng Máy Tính 3D", difficulty: "Thực Hành" },
-    ],
-  },
   game_card_match_vr: {
     title: "Ghép Cặp Thẻ Bài Thuật Toán (Memory Match)",
     subtitle: "Luyện Trí Nhớ & Khắc Sâu Định Nghĩa",

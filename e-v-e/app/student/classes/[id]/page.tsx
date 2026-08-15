@@ -73,6 +73,7 @@ export default function StudentClassDetailPage({
 
   const [path, setPath] = useState<LearningPath | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
+  const [coursePlayCounts, setCoursePlayCounts] = useState<Record<string, number>>({});
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -165,6 +166,24 @@ export default function StudentClassDetailPage({
               email: "dat@gmail.com",
             },
           ]);
+        }
+
+        // 4. Lấy dữ liệu lượt chơi (game_results) để mở khóa tuần tự từng chặng
+        try {
+          const resultsSnap = await getDocs(
+            query(collection(db, "game_results"), where("user_id", "==", user.uid))
+          );
+          const counts: Record<string, number> = {};
+          resultsSnap.docs.forEach((d) => {
+            const resData = d.data();
+            const crs = resData.course_id || resData.courseId;
+            if (crs) {
+              counts[crs] = (counts[crs] || 0) + 1;
+            }
+          });
+          setCoursePlayCounts(counts);
+        } catch (resErr) {
+          console.warn("Could not load game_results:", resErr);
         }
       } catch (err) {
         console.error("Error loading class detail:", err);
@@ -280,43 +299,49 @@ export default function StudentClassDetailPage({
   const isPaused = enrollment?.status === "paused";
 
   return (
-    <div className="space-y-8 pb-12 font-sans">
-      {/* ── HEADER BANNER ── */}
-      <section className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 shadow-sm">
-        <div className="flex items-center justify-between gap-4 mb-6">
+    <div className="space-y-8 font-sans pb-12">
+      {/* ── TOP BREADCRUMB & ACTIONS ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <Link
             href="/student/classes"
-            className="inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-red-600 transition"
+            className="p-2.5 rounded-xl bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300 shadow-xs transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Quay lại Lớp Học Của Tôi
+            <ArrowLeft className="w-5 h-5" />
           </Link>
-
-          {/* Dừng Học / Tiếp Tục Học Button */}
-          {isPaused ? (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
-            >
-              <PlayCircle className="w-4 h-4" /> Tiếp Tục Học Lớp Này
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-zinc-100 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 border border-zinc-200 text-zinc-700 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer"
-            >
-              <PauseCircle className="w-4 h-4 text-amber-600" /> Dừng Học & Bảo Lưu
-            </button>
-          )}
+          <div>
+            <div className="text-xs text-zinc-500 font-medium">Lớp Học Trực Tuyến</div>
+            <h2 className="text-lg font-bold text-zinc-900 line-clamp-1">{path.title}</h2>
+          </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          {/* Main Info */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="px-3 py-1 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
-                {path.category}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            {isPaused ? (
+              <>
+                <PlayCircle className="w-4 h-4 text-emerald-600" /> Kích Hoạt Lại Lớp
+              </>
+            ) : (
+              <>
+                <PauseCircle className="w-4 h-4 text-amber-600" /> Tạm Dừng / Bảo Lưu
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* ── BANNER HERO ── */}
+      <section className="rounded-3xl border-2 border-zinc-200 bg-white p-6 md:p-8 shadow-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+          <div className="lg:col-span-2">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="px-2.5 py-0.5 rounded-md bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-1">
+                <GraduationCap className="w-3.5 h-3.5" /> {path.category}
               </span>
-              <span className="px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-600 text-xs font-medium">
+              <span className="px-2.5 py-0.5 rounded-md bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-bold">
                 {path.difficulty}
               </span>
               {isPaused && (
@@ -342,7 +367,7 @@ export default function StudentClassDetailPage({
 
               <span className="flex items-center gap-1.5 font-medium">
                 <BookOpen className="w-4 h-4 text-zinc-400" />
-                {path.courses.length} Khóa học (Courses)
+                {safePathCourses.length} Khóa học (Courses)
               </span>
 
               {path.estimated_hours > 0 && (
@@ -362,7 +387,7 @@ export default function StudentClassDetailPage({
               <div className="flex justify-between items-center text-xs mb-2">
                 <span className="font-bold text-zinc-700 uppercase tracking-wider">Tiến Độ Lớp Học</span>
                 <span className={`text-base font-black ${isPaused ? "text-amber-600" : "text-red-600"}`}>
-                  {progress}%
+                  {displayProgress}%
                 </span>
               </div>
 
@@ -371,23 +396,23 @@ export default function StudentClassDetailPage({
                   className={`h-full rounded-full transition-all duration-500 ${
                     isPaused ? "bg-amber-500" : "bg-red-600"
                   }`}
-                  style={{ width: `${progress}%` }}
+                  style={{ width: `${displayProgress}%` }}
                 />
               </div>
 
               <p className="mt-3 text-xs text-zinc-600">
                 {isPaused
                   ? "Lớp học đang ở trạng thái bảo lưu. Bạn có thể kích hoạt lại bất kỳ lúc nào."
-                  : progress >= 100
+                  : displayProgress >= 100
                   ? "Bạn đã hoàn thành toàn bộ lộ trình!"
-                  : "Hoàn thành các minigame để nâng cao tiến độ học tập."}
+                  : `Đã hoàn thành ${completedCoursesList.length}/${safePathCourses.length} chặng bài học.`}
               </p>
             </div>
 
             <Link
               href={
-                path.courses && path.courses.length > 0
-                  ? `/student/play/game_card_match_vr/${path.courses[0]}`
+                safePathCourses.length > 0
+                  ? `/student/play/game_card_match_vr/${safePathCourses[Math.min(completedCoursesList.length, safePathCourses.length - 1)]}`
                   : `/student/play/game_card_match_vr/crs_coding_basics`
               }
               className={`mt-4 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold text-white shadow-sm transition-all ${
@@ -396,7 +421,7 @@ export default function StudentClassDetailPage({
                   : "bg-red-600 hover:bg-red-700"
               }`}
             >
-              <span>{isPaused ? "Chơi Game Thực Hành" : "Tiếp Tục Bài Học"}</span>
+              <span>{isPaused ? "Chơi Game Thực Hành" : "Tiếp Tục Chặng Hiện Tại"}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -418,8 +443,10 @@ export default function StudentClassDetailPage({
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <LearningPathMap
-            courses={Array.isArray(path?.courses) && path.courses.length > 0 ? path.courses : ["crs_coding_basics", "crs_python_foundation", "crs_data_structures"]}
-            completedCourses={enrollment?.status === "active" && enrollment.progress > 50 ? ["crs_coding_basics"] : []}
+            courses={safePathCourses}
+            completedCourses={completedCoursesList}
+            coursePlayCounts={coursePlayCounts}
+            requiredPlaysPerStage={1}
           />
         </div>
       </section>

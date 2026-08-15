@@ -326,33 +326,6 @@ export default function CourseDetailPage() {
               <Play className="w-3.5 h-3.5 fill-red-600" />
             </div>
           </Link>
-
-          {/* Game 3: 3D Hardware Assembly */}
-          <Link
-            href={`/student/play/game_hardware_3d_lab/${courseId}`}
-            className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 hover:shadow-md transition group flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-xs font-bold border border-zinc-200">
-                  3D Simulation
-                </span>
-                <span className="text-xs text-amber-600 font-extrabold flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> +150 Coins
-                </span>
-              </div>
-              <h3 className="font-extrabold text-base text-zinc-900 group-hover:text-red-600 transition">
-                Phòng Thí Nghiệm Lắp Ráp Máy Tính 3D
-              </h3>
-              <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
-                Chọn linh kiện và lắp ráp chuẩn xác vào bo mạch chủ để hoàn thành bài thực hành.
-              </p>
-            </div>
-            <div className="mt-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-bold text-red-600">
-              <span>Bắt đầu chơi</span>
-              <Play className="w-3.5 h-3.5 fill-red-600" />
-            </div>
-          </Link>
         </div>
       </section>
 
