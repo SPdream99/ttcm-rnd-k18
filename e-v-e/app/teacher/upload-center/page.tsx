@@ -202,7 +202,7 @@ export default function TeacherUploadCenterPage() {
           setGameTitle(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
         }
       } else {
-        alert("Vui lòng tải lên file định dạng nén (.zip, .rar, .tar.gz).");
+        toast.error("Vui lòng tải lên file định dạng nén (.zip, .rar, .tar.gz).", "Định Dạng File");
       }
     }
   };
@@ -210,7 +210,7 @@ export default function TeacherUploadCenterPage() {
   const handleSubmitCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!courseTitle || pairs.length === 0) {
-      alert("Vui lòng nhập tên bài học và ít nhất 1 cặp câu hỏi.");
+      toast.warning("Vui lòng nhập tên bài học và ít nhất 1 cặp câu hỏi.", "Thiếu Thông Tin");
       return;
     }
 
@@ -240,7 +240,7 @@ export default function TeacherUploadCenterPage() {
   const handleSubmitPath = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pathTitle || selectedCourses.length === 0) {
-      alert("Vui lòng nhập tiêu đề lộ trình và chọn ít nhất 1 bài học.");
+      toast.warning("Vui lòng nhập tiêu đề lộ trình và chọn ít nhất 1 bài học.", "Thiếu Thông Tin");
       return;
     }
 
@@ -268,12 +268,12 @@ export default function TeacherUploadCenterPage() {
     e.preventDefault();
 
     if (todayGameUploads >= DAILY_GAME_LIMIT) {
-      alert(`Mỗi giáo viên chỉ có thể đăng tối đa ${DAILY_GAME_LIMIT} Game/ngày. Bạn đã tải lên ${todayGameUploads}/${DAILY_GAME_LIMIT} game hôm nay.`);
+      toast.error(`Mỗi giáo viên chỉ có thể đăng tối đa ${DAILY_GAME_LIMIT} Game/ngày. Bạn đã tải lên ${todayGameUploads}/${DAILY_GAME_LIMIT} game hôm nay.`, "Giới Hạn Tải Lên");
       return;
     }
 
     if (!gameTitle.trim()) {
-      alert("Vui lòng nhập tiêu đề Game.");
+      toast.warning("Vui lòng nhập tiêu đề Game.", "Thiếu Tiêu Đề");
       return;
     }
 

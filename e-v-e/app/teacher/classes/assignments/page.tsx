@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useTeacherAdapter } from "@/hooks/useTeacherAdapter";
+import { useToast } from "@/components/Toast";
 import {
   FileCheck,
   Plus,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 
 export default function TeacherAssignmentManagementPage() {
+  const toast = useToast();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newClassName, setNewClassName] = useState("10A1 - Vật Lý");
@@ -122,8 +124,8 @@ export default function TeacherAssignmentManagementPage() {
                   <FileCheck className="w-3.5 h-3.5" /> Duyệt & Chấm Bài
                 </button>
                 <button
-                  onClick={() => alert(`Chỉnh sửa bài tập: ${item.title}`)}
-                  className="p-2 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-red-300 transition-colors"
+                  onClick={() => toast.info(`Mở giao diện chỉnh sửa bài tập: "${item.title}"`, "Chỉnh Sửa Bài Tập")}
+                  className="p-2 rounded-xl bg-zinc-100 border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-red-300 transition-colors cursor-pointer"
                   title="Chỉnh sửa bài tập"
                 >
                   <Edit className="w-4 h-4" />
@@ -267,10 +269,10 @@ export default function TeacherAssignmentManagementPage() {
               </button>
               <button
                 onClick={() => {
-                  alert("Đã kích hoạt chế độ tự động chấm theo barem!");
+                  toast.success("Đã kích hoạt chế độ tự động chấm theo barem!", "Chấm Điểm Tự Động");
                   setGradingModalItem(null);
                 }}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm"
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" /> Chấm Theo Barem
               </button>

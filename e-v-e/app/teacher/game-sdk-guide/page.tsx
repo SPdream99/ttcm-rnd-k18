@@ -11,7 +11,6 @@ import {
   Check,
   BookOpen,
   ArrowRight,
-  Terminal,
   FileCode,
   Sparkles,
   Maximize2,
@@ -28,8 +27,7 @@ import {
 
 export default function TeacherGameSdkGuidePage() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [sandboxOutput, setSandboxOutput] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "pairs" | "api" | "steps" | "sandbox" | "packaging">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "pairs" | "api" | "steps" | "packaging">("overview");
 
   const handleCopy = (text: string, index: number) => {
     navigator.clipboard.writeText(text);
@@ -120,25 +118,6 @@ async function onGameComplete(isWon, finalScore, correctAnswersCount) {
     console.log("Coins thưởng nhận được:", result.rewardCoins);
   }
 }`;
-
-  const runLiveTest = (type: string) => {
-    if (type === "init") {
-      setSandboxOutput(`> [EveSDK.initSession] Đang kết nối máy chủ E-V-E...
-> Khởi tạo thành công! Khóa học: "Lập trình Python Cơ Bản"
-> Nhận thành công: 5 Cặp câu hỏi trắc nghiệm & Giải thích chi tiết.`);
-    } else if (type === "correct") {
-      setSandboxOutput(`> [EveSDK.playSound] Phát âm thanh: "correct" 
-> [EveSDK.updateProgress] Điểm số: 80 | Chuỗi đúng: 4 | Tiến độ: 80%`);
-    } else if (type === "wrong") {
-      setSandboxOutput(`> [EveSDK.playSound] Phát âm thanh: "wrong" 
-> [EveSDK.updateProgress] Hiển thị giải thích chi tiết cho học sinh: "Hằng số Planck h = 6.626 x 10^-34..."`);
-    } else if (type === "finish") {
-      setSandboxOutput(`> [EveSDK.finishGame] Nộp kết quả trận đấu: 100 Điểm (Chiến thắng)
-> Chữ ký Anti-Cheat: VERIFIED 
-> Trao thưởng học sinh: +15 Coins E-V-E!
-> Mở khóa bài học kế tiếp: Thành công!`);
-    }
-  };
 
   return (
     <div className="space-y-8 font-sans pb-16">
@@ -264,8 +243,7 @@ async function onGameComplete(isWon, finalScore, correctAnswersCount) {
           { id: "pairs", label: " 2. Cấu Trúc Câu Hỏi", icon: Layers },
           { id: "api", label: " 3. Tra Cứu API SDK", icon: Zap },
           { id: "steps", label: " 4. Các Bước Viết Code", icon: FileCode },
-          { id: "sandbox", label: " 5. Trình Thử Nghiệm Sandbox", icon: Terminal },
-          { id: "packaging", label: " 6. Đóng Gói .ZIP", icon: FolderArchive },
+          { id: "packaging", label: " 5. Đóng Gói .ZIP", icon: FolderArchive },
         ].map((tab) => {
           const active = activeTab === tab.id;
           return (
@@ -454,53 +432,7 @@ async function onGameComplete(isWon, finalScore, correctAnswersCount) {
         </div>
       )}
 
-      {/* TAB CONTENT 5: SANDBOX */}
-      {activeTab === "sandbox" && (
-        <div className="p-6 rounded-2xl bg-white border-2 border-red-600 shadow-sm space-y-4">
-          <div>
-            <h3 className="text-lg font-bold text-zinc-900">Trình Thử Nghiệm Sandbox</h3>
-            <p className="text-xs text-zinc-500">
-              Nhấp vào các nút bên dưới để xem phản hồi thực tế của các hàm SDK.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => runLiveTest("init")}
-              className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs cursor-pointer shadow-sm"
-            >
-              1. Khởi tạo initSession()
-            </button>
-
-            <button
-              onClick={() => runLiveTest("correct")}
-              className="px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xs cursor-pointer border border-zinc-200"
-            >
-              2. Trả lời Đúng + SFX
-            </button>
-
-            <button
-              onClick={() => runLiveTest("wrong")}
-              className="px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xs cursor-pointer border border-zinc-200"
-            >
-              3. Trả lời Sai + SFX
-            </button>
-
-            <button
-              onClick={() => runLiveTest("finish")}
-              className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs cursor-pointer shadow-sm"
-            >
-              4. Hoàn thành finishGame()
-            </button>
-          </div>
-
-          <div className="p-4 rounded-xl bg-zinc-900 font-mono text-xs text-emerald-400 min-h-[100px] whitespace-pre-line leading-relaxed">
-            {sandboxOutput || "> Sẵn sàng chạy mô phỏng. Hãy nhấp vào một trong các nút kiểm tra ở trên..."}
-          </div>
-        </div>
-      )}
-
-      {/* TAB CONTENT 6: PACKAGING */}
+      {/* TAB CONTENT 5: PACKAGING */}
       {activeTab === "packaging" && (
         <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">
           <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">

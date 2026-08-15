@@ -31,6 +31,12 @@ export default function TeacherMyContentsPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [paths, setPaths] = useState<any[]>([]);
   const [games, setGames] = useState<any[]>([]);
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState<{
+    type: "course" | "path" | "game";
+    id: string;
+    title: string;
+    authorId: string;
+  } | null>(null);
 
   const loadOwnContent = async () => {
     if (!teacherUid && !teacherEmail) {
@@ -268,13 +274,13 @@ export default function TeacherMyContentsPage() {
     }
   }, [teacherUid, teacherEmail]);
 
-  const handleDeleteItem = async (
-    type: "course" | "path" | "game",
-    id: string,
-    authorId: string
-  ) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa nội dung này của mình không?"))
-      return;
+  const executeDeleteItem = async (item: {
+    type: "course" | "path" | "game";
+    id: string;
+    title: string;
+    authorId: string;
+  }) => {
+    const { type, id } = item;
 
     try {
       const collectionName =
@@ -315,7 +321,8 @@ export default function TeacherMyContentsPage() {
     if (type === "path") setPaths((prev) => prev.filter((p) => p.id !== id));
     if (type === "game") setGames((prev) => prev.filter((g) => g.id !== id));
 
-    toast.success("Đã xóa nội dung thành công!", "Quản Lý Học Liệu");
+    toast.success(`Đã xóa "${item.title}" thành công!`, "Quản Lý Học Liệu");
+    setDeleteConfirmItem(null);
   };
 
   return (
@@ -435,7 +442,12 @@ export default function TeacherMyContentsPage() {
 
                     <button
                       onClick={() =>
-                        handleDeleteItem("course", course.id, course.authorId)
+                        setDeleteConfirmItem({
+                          type: "course",
+                          id: course.id,
+                          title: course.title,
+                          authorId: course.authorId,
+                        })
                       }
                       className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold"
                     >
@@ -510,7 +522,12 @@ export default function TeacherMyContentsPage() {
 
                     <button
                       onClick={() =>
-                        handleDeleteItem("path", path.id, path.authorId)
+                        setDeleteConfirmItem({
+                          type: "path",
+                          id: path.id,
+                          title: path.title,
+                          authorId: path.authorId,
+                        })
                       }
                       className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold"
                     >
@@ -594,7 +611,12 @@ export default function TeacherMyContentsPage() {
 
                       <button
                         onClick={() =>
-                          handleDeleteItem("game", game.id, game.authorId)
+                          setDeleteConfirmItem({
+                            type: "game",
+                            id: game.id,
+                            title: game.title,
+                            authorId: game.authorId,
+                          })
                         }
                         className="text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer p-1 rounded hover:bg-red-50 font-bold"
                       >
@@ -607,6 +629,38 @@ export default function TeacherMyContentsPage() {
             </div>
           )}
         </>
+      {/* MODAL XÁC NHẬN XÓA NỘI DUNG */}
+      {deleteConfirmItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <div className="w-full max-w-md rounded-2xl bg-white border-2 border-red-600 p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              <h3 className="text-base font-bold text-zinc-900">
+                Xác Nhận Xóa Nội Dung
+              </h3>
+            </div>
+            <p className="text-xs text-zinc-600 leading-relaxed">
+              Thầy/Cô có chắc chắn muốn xóa{" "}
+              <strong>&ldquo;{deleteConfirmItem.title}&rdquo;</strong> không? Hành động này sẽ loại bỏ học liệu này khỏi hệ thống và không thể khôi phục.
+            </p>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmItem(null)}
+                className="px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition cursor-pointer"
+              >
+                Hủy Bỏ
+              </button>
+              <button
+                type="button"
+                onClick={() => executeDeleteItem(deleteConfirmItem)}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition cursor-pointer shadow-sm"
+              >
+                Xác Nhận Xóa
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

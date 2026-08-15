@@ -48,6 +48,12 @@ export default function TeacherProfilePage() {
   const [demoOtpHint, setDemoOtpHint] = useState<string | null>(null);
 
   const [stats, setStats] = useState({ courses: 0, games: 0, plays: 0 });
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    desc: string;
+    confirmText?: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   useEffect(() => {
     const configured = hasAIKey();
@@ -103,37 +109,51 @@ export default function TeacherProfilePage() {
   };
 
   const handleRemoveAIKey = () => {
-    if (!confirm("Thầy/Cô có chắc chắn muốn xóa khóa API khỏi trình duyệt này không?")) return;
-    removeAIKey();
-    setIsKeyConfigured(false);
-    setMaskedKeyDisplay("");
-    toast.info("Đã xóa khóa API.", "API Key");
+    setConfirmModal({
+      title: "Xóa Khóa API Key",
+      desc: "Thầy/Cô có chắc chắn muốn xóa khóa Google Gemini API khỏi trình duyệt này không? Tính năng Trợ Lý AI sẽ tạm ngưng cho đến khi nhập lại khóa mới.",
+      confirmText: "Xác Nhận Xóa",
+      onConfirm: () => {
+        removeAIKey();
+        setIsKeyConfigured(false);
+        setMaskedKeyDisplay("");
+        toast.info("Đã xóa khóa API.", "API Key");
+        setConfirmModal(null);
+      },
+    });
   };
 
   const handleInitiate2FAToggle = async () => {
     if (is2FAEnabled) {
-      if (!confirm("Thầy/Cô có chắc chắn muốn tắt tính năng Bảo Mật 2 Lớp (2FA qua Email) không?")) return;
-      setIsVerifying2FA(true);
-      try {
-        const res = await fetch("/api/auth/2fa/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: displayEmail,
-            otp: "DISABLE_2FA",
-            purpose: "disable",
-          }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          setIs2FAEnabled(false);
-          toast.info("Đã tắt tính năng 2FA thành công.", "Bảo Mật");
-        }
-      } catch {
-        toast.error("Lỗi khi tắt 2FA.", "Bảo Mật");
-      } finally {
-        setIsVerifying2FA(false);
-      }
+      setConfirmModal({
+        title: "Tắt Xác Thực 2 Lớp (2FA)",
+        desc: "Thầy/Cô có chắc chắn muốn tắt tính năng Bảo Mật 2 Lớp (2FA qua Email) không? Tài khoản sẽ giảm mức độ bảo vệ khi đăng nhập.",
+        confirmText: "Tắt 2FA",
+        onConfirm: async () => {
+          setConfirmModal(null);
+          setIsVerifying2FA(true);
+          try {
+            const res = await fetch("/api/auth/2fa/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: displayEmail,
+                otp: "DISABLE_2FA",
+                purpose: "disable",
+              }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              setIs2FAEnabled(false);
+              toast.info("Đã tắt tính năng 2FA thành công.", "Bảo Mật");
+            }
+          } catch {
+            toast.error("Lỗi khi tắt 2FA.", "Bảo Mật");
+          } finally {
+            setIsVerifying2FA(false);
+          }
+        },
+      });
       return;
     }
 
@@ -460,6 +480,32 @@ export default function TeacherProfilePage() {
           </form>
         )}
       </div>
+
+      {/* MODAL XÁC NHẬN HÀNH ĐỘNG */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <div className="w-full max-w-md rounded-2xl bg-white border-2 border-red-600 p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+            <h3 className="text-base font-bold text-zinc-900">{confirmModal.title}</h3>
+            <p className="text-xs text-zinc-600 leading-relaxed">{confirmModal.desc}</p>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition cursor-pointer"
+              >
+                Hủy Bỏ
+              </button>
+              <button
+                type="button"
+                onClick={confirmModal.onConfirm}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition cursor-pointer shadow-sm"
+              >
+                {confirmModal.confirmText || "Xác Nhận"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useToast } from "@/components/Toast";
 
 interface ConfirmModalData {
   title: string;
@@ -30,6 +31,7 @@ interface ConfirmModalData {
 }
 
 export default function AdminDashboardPage() {
+  const toast = useToast();
   const [stats, setStats] = useState({
     totalUsers: 0,
     studentsCount: 0,
@@ -208,10 +210,11 @@ export default function AdminDashboardPage() {
       }
 
       setFeedbackMsg(`Đã phê duyệt thành công tài khoản giáo viên: ${teacher.name || teacher.email}!`);
+      toast.success(`Đã phê duyệt tài khoản: ${teacher.name || teacher.email}!`, "Phê Duyệt");
       await loadStats();
       setTimeout(() => setFeedbackMsg(null), 4000);
     } catch {
-      alert("Lỗi khi duyệt tài khoản.");
+      toast.error("Lỗi khi duyệt tài khoản giáo viên.", "Lỗi Xử Lý");
     } finally {
       setApprovingId(null);
     }
