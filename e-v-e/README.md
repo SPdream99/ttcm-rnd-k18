@@ -50,6 +50,15 @@ npm run start
 
 ---
 
+## Ứng dụng Trí Tuệ Nhân Tạo (AI Integration)
+
+Ứng dụng tích hợp **Google Gemini AI** với cơ chế bảo mật khóa cục bộ (Local Storage):
+- **AI Tutor Học Sinh:** Giải đáp thắc mắc bài học, hỗ trợ giải toán & lập trình 24/7, định dạng in đậm và code snippet trực quan.
+- **Trợ Giảng Giáo Viên:** Tự động sinh câu hỏi trắc nghiệm, cấu trúc lộ trình và hướng dẫn tích hợp Game SDK.
+- **Bảo Mật:** Khóa API Key được mã hóa và chỉ lưu trữ trên thiết bị cục bộ của người dùng, không lưu trữ trên máy chủ backend.
+
+---
+
 ## Sơ Đồ Cơ Sở Dữ Liệu (Firestore Database Schema / ERD)
 
 ![Sơ Đồ Cơ Sở Dữ Liệu Firestore E-V-E](/docs/firestore_database_schema.png)
@@ -57,4 +66,5 @@ npm run start
 ---
 
 Chi tiết tài liệu đồ án và thông tin nhóm xem tại [README.md gốc](../README.md).
+
 
