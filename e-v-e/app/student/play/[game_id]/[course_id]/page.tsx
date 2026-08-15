@@ -168,15 +168,6 @@ interface MemoryCardItem {
   isMatched: boolean;
 }
 
-interface HardwareComponent {
-  id: string;
-  name: string;
-  type: "cpu" | "gpu" | "ram" | "ssd" | "psu";
-  specs: string;
-  desc: string;
-  isInstalled: boolean;
-}
-
 interface LeaderboardRecord {
   id?: string;
   rank: number;
@@ -224,7 +215,6 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const [activeTab, setActiveTab] = useState<"game" | "leaderboard" | "guide">("game");
 
   const isCardMatchingEngine = gameId.includes("card") || gameId.includes("matrix") || gameId.includes("match");
-  const is3DHardwareLabEngine = gameId.includes("hardware") || gameId.includes("computer") || gameId.includes("3d_lab") || courseId.includes("computer");
 
   // Memory Match state
   const [cards, setCards] = useState<MemoryCardItem[]>([]);
@@ -232,18 +222,6 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const [movesCount, setMovesCount] = useState(0);
   const [previewTimer, setPreviewTimer] = useState(0);
   const [matchedPairsCount, setMatchedPairsCount] = useState(0);
-
-  // Hardware state
-  const [hardwareParts, setHardwareParts] = useState<HardwareComponent[]>([
-    { id: "p_cpu", name: "CPU Vi Xử Lý Trung Tâm", type: "cpu", specs: "16 Cores, 32 Threads", desc: "Bộ não thực thi mọi phép toán của hệ thống", isInstalled: false },
-    { id: "p_ram", name: "RAM 32GB Bộ Nhớ Đệm", type: "ram", specs: "Dual Channel DDR5", desc: "Bộ nhớ lưu trữ tạm tốc độ cao", isInstalled: false },
-    { id: "p_gpu", name: "GPU Xử Lý Đồ Họa", type: "gpu", specs: "16384 CUDA Cores", desc: "Xử lý đồ họa 3D & tính toán", isInstalled: false },
-    { id: "p_ssd", name: "SSD 2TB Ổ Lưu Trữ", type: "ssd", specs: "PCIe 4.0 NVMe", desc: "Lưu trữ hệ điều hành và dữ liệu vĩnh cửu", isInstalled: false },
-    { id: "p_psu", name: "Bộ Nguồn PSU 850W", type: "psu", specs: "80 Plus Gold", desc: "Cung cấp điện áp ổn định cho toàn bộ máy", isInstalled: false },
-  ]);
-  const [selectedHardware, setSelectedHardware] = useState<HardwareComponent | null>(hardwareParts[0]);
-  const [systemPowerOn, setSystemPowerOn] = useState(false);
-  const [bootingProgress, setBootingProgress] = useState(0);
 
   // Quiz state
   const [currentPairIdx, setCurrentPairIdx] = useState(0);
@@ -530,38 +508,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     }
   };
 
-  const handleInstallPart = (part: HardwareComponent) => {
-    if (part.isInstalled) return;
-
-    setHardwareParts((prev) =>
-      prev.map((p) => (p.id === part.id ? { ...p, isInstalled: true } : p))
-    );
-    setScore((s) => s + 20);
-
-    const nextUninstalled = hardwareParts.find((p) => !p.isInstalled && p.id !== part.id);
-    if (nextUninstalled) {
-      setSelectedHardware(nextUninstalled);
-    }
-  };
-
-  const handlePowerOn = () => {
-    const allInstalled = hardwareParts.every((p) => p.isInstalled);
-    if (!allInstalled) return;
-
-    setSystemPowerOn(true);
-    let prog = 0;
-    const interval = setInterval(() => {
-      prog += 20;
-      setBootingProgress(prog);
-      if (prog >= 100) {
-        clearInterval(interval);
-        handleGameWin(100);
-      }
-    }, 400);
-  };
-
   useEffect(() => {
-    if (!isCardMatchingEngine && !is3DHardwareLabEngine && pairs.length > 0) {
+    if (!isCardMatchingEngine && pairs.length > 0) {
       const current = pairs[currentPairIdx];
       if (current) {
         const correct = current.description || (current as any).rightAnswer || "Đáp án đúng";
@@ -572,7 +520,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         setIsCorrect(null);
       }
     }
-  }, [pairs, currentPairIdx, isCardMatchingEngine, is3DHardwareLabEngine]);
+  }, [pairs, currentPairIdx, isCardMatchingEngine]);
 
   const handleSelectQuizAnswer = (option: string) => {
     if (selectedAnswer !== null) return;
@@ -1070,90 +1018,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                     })}
                   </div>
                 </div>
-              ) : is3DHardwareLabEngine ? (
-                /* Engine 2: 3D Hardware Assembly */
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-                    <div className="space-y-2.5">
-                      <div className="text-xs text-red-600 uppercase font-bold">Khay Linh Kiện ({hardwareParts.filter((p) => p.isInstalled).length}/5)</div>
-                      {hardwareParts.map((part) => (
-                        <button
-                          key={part.id}
-                          onClick={() => setSelectedHardware(part)}
-                          className={`w-full p-3 rounded-xl text-left text-xs transition-colors flex items-center justify-between border cursor-pointer ${
-                            selectedHardware?.id === part.id
-                              ? "bg-red-50 border-red-600 text-red-700 font-bold shadow-sm"
-                              : part.isInstalled
-                              ? "bg-zinc-50 border-zinc-200 text-zinc-500"
-                              : "bg-white border-zinc-200 text-zinc-700 hover:border-zinc-300"
-                          }`}
-                        >
-                          <div className="truncate font-bold">{part.name}</div>
-                          {part.isInstalled ? <Check className="w-4 h-4 text-red-600 shrink-0" /> : <Layers className="w-4 h-4 text-zinc-400 shrink-0" />}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="md:col-span-2 p-6 rounded-2xl bg-zinc-50 border border-zinc-200 shadow-sm text-center space-y-4">
-                      <div className="text-xs text-zinc-500 font-bold">
-                        Bo Mạch Chủ Motherboard
-                      </div>
-
-                      <div className="p-6 rounded-xl bg-white border border-zinc-200 grid grid-cols-3 gap-3 min-h-[180px] items-center">
-                        <div className={`p-3 rounded-xl border text-xs font-bold ${hardwareParts.find((p) => p.id === "p_cpu")?.isInstalled ? "bg-red-50 border-red-600 text-red-700" : "border-dashed border-zinc-300 text-zinc-400"}`}>
-                          [Socket CPU] {hardwareParts.find((p) => p.id === "p_cpu")?.isInstalled ? " Đã Lắp CPU" : "Trống"}
-                        </div>
-                        <div className={`p-3 rounded-xl border text-xs font-bold ${hardwareParts.find((p) => p.id === "p_ram")?.isInstalled ? "bg-red-50 border-red-600 text-red-700" : "border-dashed border-zinc-300 text-zinc-400"}`}>
-                          [Khe RAM] {hardwareParts.find((p) => p.id === "p_ram")?.isInstalled ? " Đã Lắp RAM" : "Trống"}
-                        </div>
-                        <div className={`p-3 rounded-xl border text-xs font-bold ${hardwareParts.find((p) => p.id === "p_ssd")?.isInstalled ? "bg-red-50 border-red-600 text-red-700" : "border-dashed border-zinc-300 text-zinc-400"}`}>
-                          [Khe SSD] {hardwareParts.find((p) => p.id === "p_ssd")?.isInstalled ? " Đã Lắp SSD" : "Trống"}
-                        </div>
-                        <div className={`col-span-2 p-3 rounded-xl border text-xs font-bold ${hardwareParts.find((p) => p.id === "p_gpu")?.isInstalled ? "bg-red-50 border-red-600 text-red-700" : "border-dashed border-zinc-300 text-zinc-400"}`}>
-                          [Khe GPU] {hardwareParts.find((p) => p.id === "p_gpu")?.isInstalled ? " Đã Lắp Card Đồ Họa" : "Trống"}
-                        </div>
-                        <div className={`p-3 rounded-xl border text-xs font-bold ${hardwareParts.find((p) => p.id === "p_psu")?.isInstalled ? "bg-red-50 border-red-600 text-red-700" : "border-dashed border-zinc-300 text-zinc-400"}`}>
-                          [Cấp Nguồn PSU] {hardwareParts.find((p) => p.id === "p_psu")?.isInstalled ? " Đã Cắm PSU" : "Trống"}
-                        </div>
-                      </div>
-
-                      {selectedHardware && !selectedHardware.isInstalled && (
-                        <div className="p-4 rounded-xl bg-white border border-zinc-200 flex items-center justify-between gap-3 shadow-sm">
-                          <div className="text-left">
-                            <div className="font-bold text-xs text-zinc-900">{selectedHardware.name}</div>
-                            <div className="text-[11px] text-zinc-500">{selectedHardware.desc}</div>
-                          </div>
-                          <button
-                            onClick={() => handleInstallPart(selectedHardware)}
-                            className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors cursor-pointer shrink-0 shadow-sm"
-                          >
-                            + Lắp Vào Bo Mạch
-                          </button>
-                        </div>
-                      )}
-
-                      {hardwareParts.every((p) => p.isInstalled) && !systemPowerOn && (
-                        <button
-                          onClick={handlePowerOn}
-                          className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-2"
-                        >
-                          <Power className="w-5 h-5" /> KÍCH HOẠT NGUỒN & KHỞI ĐỘNG
-                        </button>
-                      )}
-
-                      {systemPowerOn && (
-                        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 space-y-2 font-bold text-xs">
-                          <div>Đang khởi động hệ thống... ({bootingProgress}%)</div>
-                          <div className="w-full bg-zinc-200 rounded-full h-2 overflow-hidden">
-                            <div className="bg-red-600 h-full transition-all duration-300" style={{ width: `${bootingProgress}%` }} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
               ) : (
-                /* Engine 3: Quiz Runner */
+                /* Engine 2: Quiz Runner */
                 <div className="max-w-2xl mx-auto space-y-6">
                   <div className="flex items-center justify-between text-xs text-zinc-500 font-bold">
                     <span>Câu hỏi: <strong className="text-zinc-900">{currentPairIdx + 1}</strong> / {pairs.length}</span>

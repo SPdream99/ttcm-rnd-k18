@@ -549,8 +549,7 @@ else:
 3. **GPU (Card đồ họa):** Xử lý hình ảnh, dựng mô hình 3D và đồ họa trò chơi mượt mà.
 4. **SSD (Ổ cứng thể rắn):** Nơi lưu trữ vĩnh viễn hệ điều hành, game và tài liệu với tốc độ đọc ghi siêu tốc.
 5. **Mainboard (Bo mạch chủ):** "Xương sống" kết nối tất cả các linh kiện trên với nhau.
-
- Bạn có thể vào phòng thí nghiệm **3D Hardware Assembly Lab** trong Lộ trình để tự tay lắp ráp các linh kiện này!`;
+\n💡 Bạn có thể chơi trò **Lật Thẻ Trí Nhớ Thuật Toán** để ôn luyện và củng cố kiến thức phần cứng này!`;
   }
 
   if (role === "teacher" || q.includes("soạn") || q.includes("json pair") || q.includes("đề thi")) {
