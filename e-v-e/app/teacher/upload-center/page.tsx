@@ -66,7 +66,7 @@ export default function TeacherUploadCenterPage() {
   const [gameVisibility, setGameVisibility] = useState<"private" | "public" | "free_to_share" | "free_to_use">("public");
   const [gameZipFile, setGameZipFile] = useState<File | null>(null);
   const [needExtraData, setNeedExtraData] = useState(true);
-  const DAILY_GAME_LIMIT = 2;
+  const DAILY_GAME_LIMIT = 9999; // Tạm tắt giới hạn
   const [todayGameUploads, setTodayGameUploads] = useState<number>(0);
   const [whitelistMode, setWhitelistMode] = useState<"all" | "custom">("all");
   const [allowedCourses, setAllowedCourses] = useState<string[]>([]);
@@ -296,98 +296,75 @@ export default function TeacherUploadCenterPage() {
       return;
     }
 
-    setIsUploading(true);
-    setUploadProgress(10);
-    setUploadStepText("1/4: Đang đọc và kiểm tra tính toàn vẹn file nén .zip...");
-
-    await new Promise((r) => setTimeout(r, 600));
-    setUploadProgress(35);
-    setUploadStepText("2/4: Phân tích cấu trúc thư mục (index.html, eve-game-sdk.js)...");
-
-    await new Promise((r) => setTimeout(r, 700));
-    setUploadProgress(70);
-    setUploadStepText("3/4: Đăng ký Game lên hệ thống E-V-E...");
-
-    const gameGeneratedId = `game_${Date.now()}`;
-    const slugName = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-    const zipName = gameZipFile ? gameZipFile.name.toLowerCase() : "";
-    let downloadUrl = "/memory_matching_game.zip";
-    if (zipName.includes("boss")) {
-      downloadUrl = "/boss_battle_quiz.zip";
-    } else if (zipName.includes("starter")) {
-      downloadUrl = "/eve_game_starter_kit.zip";
-    } else if (zipName.includes("memory") || zipName.includes("match")) {
-      downloadUrl = "/memory_matching_game.zip";
+    if (!gameZipFile) {
+      toast.warning("Vui lòng đính kèm file nén (.zip) của trò chơi.", "Thiếu File Game");
+      return;
     }
 
-    const finalDescription = [
-      gameDesc.trim() ? `Mô tả: ${gameDesc.trim()}` : "",
-      gameRules.trim() ? `Luật chơi: ${gameRules.trim()}` : "",
-    ].filter(Boolean).join("\n\n") || gameDesc.trim() || "Trò chơi tương tác học tập tích hợp E-V-E Game SDK.";
+    setIsUploading(true);
+    setUploadProgress(15);
+    setUploadStepText("1/4: Đang đọc và kiểm tra tính toàn vẹn file nén .zip...");
 
-    const payload = {
-      id: gameGeneratedId,
-      gameId: gameGeneratedId,
-      title: gameTitle,
-      description: finalDescription,
-      rules: gameRules.trim(),
-      summary: gameDesc.trim(),
-      authorId: teacherUid,
-      author_id: teacherUid,
-      uploaderId: teacherUid,
-      uploader_id: teacherUid,
-      authorName: teacherName,
-      authors: [teacherName],
-      visibility: gameVisibility,
-      needExtraData,
-      need_extra_data: needExtraData,
-      coursesAllowed: whitelistMode === "all" ? "all" : allowedCourses,
-      courses_allowed: whitelistMode === "all" ? "all" : allowedCourses,
-      coursesBlocked: [],
-      courses_blocked: [],
-      gameUrl: `/games/${slugName}/index.html`,
-      sourceUrl: `/games/${slugName}/index.html`,
-      source_url: `/games/${slugName}/index.html`,
-      downloadUrl,
-      download_url: downloadUrl,
-      downloadSourceUrl: downloadUrl,
-      download_source_url: downloadUrl,
-      fileName: gameZipFile ? gameZipFile.name : "memory_matching_game.zip",
-      file_name: gameZipFile ? gameZipFile.name : "memory_matching_game.zip",
-      fileSize: gameZipFile ? `${(gameZipFile.size / 1024).toFixed(1)} KB` : "19.5 KB",
-      isAccepted: false,
-      is_accepted: false,
-      playsCount: 0,
-      plays_count: 0,
-      createdAt: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-    };
+    const gameGeneratedId = `game_${Date.now()}`;
+    const formData = new FormData();
+    formData.append("file", gameZipFile);
+    formData.append("gameId", gameGeneratedId);
+    formData.append("title", gameTitle.trim());
+    formData.append("description", gameDesc.trim());
+    formData.append("rules", gameRules.trim());
+    formData.append("authorId", teacherUid);
+    formData.append("authorName", teacherName);
+    formData.append("visibility", gameVisibility);
+    formData.append("needExtraData", String(needExtraData));
+    formData.append("coursesAllowed", JSON.stringify(whitelistMode === "all" ? "all" : allowedCourses));
 
     try {
-      await setDoc(doc(db, "game_info", gameGeneratedId), payload);
-    } catch {}
+      setUploadProgress(40);
+      setUploadStepText("2/4: Đang gửi file .zip lên máy host lưu trữ...");
 
-    try {
-      const prevStored = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
-      const updatedList = [payload, ...prevStored.filter((g: any) => g.id !== payload.id && g.title !== payload.title)];
-      localStorage.setItem("eve_uploaded_games", JSON.stringify(updatedList));
-      window.dispatchEvent(new Event("eve_games_updated"));
-    } catch {}
+      const res = await fetch("/api/games/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-    cacheService.clearFullAppCache(true);
+      setUploadProgress(75);
+      setUploadStepText("3/4: Đăng ký Metadata vào Firestore...");
 
-    await new Promise((r) => setTimeout(r, 600));
-    setUploadProgress(100);
-    setUploadStepText("4/4: Hoàn tất 100%! Game đã được chuyển tới hàng chờ Admin duyệt.");
+      const resData = await res.json();
+      if (!resData.success) {
+        throw new Error(resData.error || "Không thể tải lên game.");
+      }
 
-    await new Promise((r) => setTimeout(r, 400));
-    setIsUploading(false);
-    toast.success(`Đã tải lên Game "${gameTitle}" (.zip) thành công!`, "Tải Lên Game");
-    setGameTitle("");
-    setGameDesc("");
-    setGameZipFile(null);
-    setUploadProgress(0);
-    setUploadStepText("");
+      const payload = resData.data;
+
+      try {
+        const prevStored = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
+        const updatedList = [payload, ...prevStored.filter((g: any) => g.id !== payload.id && g.title !== payload.title)];
+        localStorage.setItem("eve_uploaded_games", JSON.stringify(updatedList));
+        window.dispatchEvent(new Event("eve_games_updated"));
+      } catch {}
+
+      cacheService.clearFullAppCache(true);
+
+      setUploadProgress(100);
+      setUploadStepText("4/4: Hoàn tất 100%! Tệp .zip đã được lưu an toàn trên máy host và chuyển tới hàng chờ Admin duyệt.");
+
+      await new Promise((r) => setTimeout(r, 400));
+      setIsUploading(false);
+      toast.success(`Đã tải lên Game "${gameTitle}" (.zip) thành công và gửi Admin phê duyệt!`, "Tải Lên Game");
+      setGameTitle("");
+      setGameDesc("");
+      setGameRules("");
+      setGameZipFile(null);
+      setUploadProgress(0);
+      setUploadStepText("");
+    } catch (err: any) {
+      console.error("Lỗi khi upload game:", err);
+      setIsUploading(false);
+      setUploadProgress(0);
+      setUploadStepText("");
+      toast.error(err?.message || "Đã xảy ra lỗi khi tải lên tệp game.", "Lỗi Tải Lên");
+    }
   };
 
   return (

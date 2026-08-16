@@ -300,28 +300,32 @@ export default function AdminApprovalsPage() {
   const executeApproveGame = async (gameId: string, isAccepted: boolean) => {
     setConfirmPrompt(null);
     try {
-      await updateDoc(doc(db, "game_info", gameId), {
-        isAccepted,
-        is_accepted: isAccepted,
+      const res = await fetch("/api/admin/approve-game", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId, isAccepted, userId: auth.currentUser?.uid }),
       });
-    } catch {}
+      const data = await res.json();
 
-    try {
-      if (typeof window !== "undefined") {
-        const local = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
-        const updated = local.map((g: any) =>
-          g.id === gameId || g.gameId === gameId ? { ...g, isAccepted, is_accepted: isAccepted } : g
-        );
-        localStorage.setItem("eve_uploaded_games", JSON.stringify(updated));
-        window.dispatchEvent(new Event("eve_games_updated"));
+      if (!data.success) {
+        toast.error(data.error || "Không thể phê duyệt game.", "Lỗi Duyệt Game");
+        return;
       }
-    } catch {}
 
-    setGames((prev) =>
-      prev.map((g) => (g.id === gameId || g.gameId === gameId ? { ...g, isAccepted } : g))
-    );
-    cacheService.clearFullAppCache(true);
-    toast.success(`Đã ${isAccepted ? "DUYỆT" : "HỦY DUYỆT"} Game Engine thành công!`, "Kiểm Duyệt Game");
+      setGames((prev) =>
+        prev.map((g) => (g.id === gameId || g.gameId === gameId ? { ...g, isAccepted, gameUrl: data.data?.gameUrl || g.gameUrl } : g))
+      );
+      cacheService.clearFullAppCache(true);
+      toast.success(
+        isAccepted
+          ? `Đã DUYỆT & GIẢI NÉN Game "${gameId}" thành công lên máy host!`
+          : `Đã HỦY DUYỆT Game "${gameId}".`,
+        "Kiểm Duyệt Game"
+      );
+    } catch (err) {
+      console.error("Lỗi khi gọi API duyệt game:", err);
+      toast.error("Lỗi kết nối khi gửi yêu cầu duyệt game.", "Lỗi");
+    }
   };
 
   const handlePromptDeleteGame = (game: Game) => {

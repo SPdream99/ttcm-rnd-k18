@@ -216,7 +216,11 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const [rankingList, setRankingList] = useState<LeaderboardRecord[]>([]);
   const [activeTab, setActiveTab] = useState<"game" | "leaderboard" | "guide">("game");
 
-  const isCardMatchingEngine = gameId.includes("card") || gameId.includes("matrix") || gameId.includes("match");
+  const [customGameUrl, setCustomGameUrl] = useState<string | null>(null);
+  const [customGameTitle, setCustomGameTitle] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  const isCardMatchingEngine = !customGameUrl && (gameId.includes("card") || gameId.includes("matrix") || gameId.includes("match"));
 
   // Memory Match state
   const [cards, setCards] = useState<MemoryCardItem[]>([]);
@@ -349,7 +353,23 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           }
         }
 
-        // 4. Nếu sau mọi bước mà Extra Data vẫn trống -> Báo lỗi
+        // 4. Lấy thông tin Game Engine từ Firestore (Kiểm tra xem là Game HTML5 giải nén hay Game Native)
+        try {
+          const gSnap = await getDoc(doc(db, "game_info", gameId));
+          if (gSnap.exists()) {
+            const gData = gSnap.data();
+            if (gData.gameUrl) {
+              setCustomGameUrl(gData.gameUrl);
+            }
+            if (gData.title) {
+              setCustomGameTitle(gData.title);
+            }
+          }
+        } catch (gErr) {
+          console.warn("Lỗi khi tải thông tin game:", gErr);
+        }
+
+        // 5. Nếu sau mọi bước mà Extra Data vẫn trống -> Báo lỗi
         if (loadedPairs.length === 0) {
           setDataStatus("error");
           setLoadErrorDetails("Khóa học này chưa có dữ liệu câu hỏi / học liệu (Extra Data trống). Không thể nạp và khởi chạy trò chơi!");
@@ -1055,6 +1075,47 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                     >
                       Chơi Lại Ngay
                     </button>
+                  </div>
+                </div>
+              ) : customGameUrl ? (
+                /* STATE 3C: PLAYING CUSTOM UPLOADED HTML5 / SDK GAME IN IFRAME */
+                <div className="w-full space-y-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs bg-zinc-50 p-3 rounded-xl border border-zinc-200">
+                    <div className="flex items-center gap-2 font-bold text-zinc-800">
+                      <Gamepad2 className="w-4 h-4 text-red-600" />
+                      <span>{customGameTitle || currentGameMeta.title} (HTML5 Custom SDK Engine)</span>
+                    </div>
+                    <div className="text-zinc-500 text-[11px]">
+                      Tự động nạp Extra Data bài học ({pairs.length} câu hỏi) & Kết nối SDK
+                    </div>
+                  </div>
+
+                  <div className="w-full h-[650px] md:h-[720px] rounded-2xl overflow-hidden border-2 border-zinc-300 shadow-xl bg-black relative">
+                    <iframe
+                      ref={iframeRef}
+                      src={`${customGameUrl}?gameId=${encodeURIComponent(gameId)}&courseId=${encodeURIComponent(courseId)}&userId=${encodeURIComponent(uid || "student")}&sessionToken=${encodeURIComponent(sessionToken || "")}&apiBase=${encodeURIComponent("/api/games")}`}
+                      className="w-full h-full border-0"
+                      allow="autoplay; fullscreen; accelerometer; gyroscope"
+                      onLoad={() => {
+                        if (iframeRef.current && iframeRef.current.contentWindow) {
+                          iframeRef.current.contentWindow.postMessage(
+                            {
+                              type: "EVE_INIT_DATA",
+                              payload: {
+                                gameId,
+                                courseId,
+                                courseTitle,
+                                pairs,
+                                sessionToken,
+                                userId: uid,
+                                userName: studentName,
+                              },
+                            },
+                            "*"
+                          );
+                        }
+                      }}
+                    />
                   </div>
                 </div>
               ) : isCardMatchingEngine ? (
