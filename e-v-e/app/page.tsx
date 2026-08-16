@@ -540,7 +540,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {/* Student Card */}
             <div className="p-6 rounded-2xl bg-white border-2 border-zinc-200 hover:border-red-600 transition-all flex flex-col justify-between space-y-6 shadow-sm">
               <div className="space-y-4">
@@ -603,39 +603,6 @@ export default function Home() {
               <Link href="/register" className="w-full">
                 <button className="w-full py-3 rounded-xl bg-zinc-900 hover:bg-black text-white font-mono text-xs uppercase font-bold tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-2">
                   Cổng Giáo Viên <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </Link>
-            </div>
-
-            {/* Admin Card */}
-            <div className="p-6 rounded-2xl bg-white border-2 border-zinc-200 hover:border-red-600 transition-all flex flex-col justify-between space-y-6 shadow-sm">
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-zinc-100 text-zinc-800 flex items-center justify-center font-bold">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-wider block">Dành Cho</span>
-                  <h3 className="text-xl font-black text-zinc-950 uppercase">Quản Trị (Admin)</h3>
-                </div>
-                <ul className="space-y-2.5 text-xs text-zinc-600 font-medium">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-zinc-800 shrink-0" />
-                    <span>Phê duyệt tài khoản giáo viên đăng ký</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-zinc-800 shrink-0" />
-                    <span>Kiểm duyệt bài học, lộ trình và Minigame</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-zinc-800 shrink-0" />
-                    <span>Toàn quyền quản trị nội dung & bảo mật</span>
-                  </li>
-                </ul>
-              </div>
-
-              <Link href="/login" className="w-full">
-                <button className="w-full py-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border border-zinc-300 font-mono text-xs uppercase font-bold tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-2">
-                  Cổng Quản Trị <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </Link>
             </div>
