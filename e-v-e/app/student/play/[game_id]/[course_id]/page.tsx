@@ -32,6 +32,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, getDocs, query, collection, where } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { CourseContentPair } from "@/core/entities/Course";
+import { ProfileHoverCard } from "@/components/ProfileHoverCard";
 
 interface PlayPageProps {
   params: Promise<{
@@ -1294,22 +1295,34 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
               <div className="space-y-2 text-xs">
                 {rankingList.slice(0, 4).map((rec, idx) => (
-                  <div
+                  <ProfileHoverCard
                     key={rec.id || idx}
-                    className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
-                      idx === 0
-                        ? "bg-red-50 border-red-200 text-red-700 font-bold"
-                        : "bg-zinc-50 border-zinc-200 text-zinc-700"
-                    }`}
+                    user={{
+                      id: rec.userId,
+                      name: rec.name,
+                      rank: idx + 1,
+                      score: rec.score,
+                      accuracy: rec.accuracy,
+                      isMe: rec.userId === uid,
+                    }}
+                    className="w-full"
                   >
-                    <div className="flex items-center gap-2 truncate">
-                      <span className="font-bold w-4 text-center">
-                        {idx === 0 ? "#1" : idx === 1 ? "#2" : idx === 2 ? "#3" : `#${idx + 1}`}
-                      </span>
-                      <span className="truncate">{rec.name}</span>
+                    <div
+                      className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 hover:border-red-500 hover:shadow-xs transition-all ${
+                        idx === 0
+                          ? "bg-red-50 border-red-200 text-red-700 font-bold"
+                          : "bg-zinc-50 border-zinc-200 text-zinc-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="font-bold w-4 text-center">
+                          {idx === 0 ? "#1" : idx === 1 ? "#2" : idx === 2 ? "#3" : `#${idx + 1}`}
+                        </span>
+                        <span className="truncate font-semibold">{rec.name}</span>
+                      </div>
+                      <span className="font-bold text-zinc-900 shrink-0 font-mono">{rec.score} pts</span>
                     </div>
-                    <span className="font-bold text-zinc-900 shrink-0 font-mono">{rec.score} pts</span>
-                  </div>
+                  </ProfileHoverCard>
                 ))}
               </div>
             </div>
@@ -1368,20 +1381,21 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                         {index === 0 ? "Hạng 1" : index === 1 ? "Hạng 2" : index === 2 ? "Hạng 3" : `#${index + 1}`}
                       </td>
                       <td className="py-3 px-4 font-semibold text-zinc-900">
-                        <div className="relative group/user inline-flex items-center gap-2 cursor-pointer">
-                          <User className="w-3.5 h-3.5 text-red-600" />
-                          <span>{record.name}{isMe ? " (Bạn)" : ""}</span>
-                          {/* Hover Profile Tooltip */}
-                          <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/user:block w-52 p-3 rounded-xl bg-white border border-zinc-200 shadow-xl text-left">
-                            <div className="text-[11px] text-zinc-500 font-normal">Hồ sơ học viên</div>
-                            <div className="text-xs font-bold text-zinc-900 mt-0.5">{record.name}</div>
-                            <div className="text-[10px] text-zinc-400 font-mono mt-0.5">ID: {record.userId?.slice(-8) || "--"}</div>
-                            <div className="mt-2 pt-2 border-t border-zinc-100 text-[11px] text-zinc-600 font-normal space-y-0.5">
-                              <div>Điểm cao nhất: <span className="font-bold text-red-600">{record.score} pts</span></div>
-                              <div>Độ chính xác: <span className="font-bold text-emerald-600">{record.accuracy}%</span></div>
-                            </div>
+                        <ProfileHoverCard
+                          user={{
+                            id: record.userId,
+                            name: record.name,
+                            rank: index + 1,
+                            score: record.score,
+                            accuracy: record.accuracy,
+                            isMe,
+                          }}
+                        >
+                          <div className="inline-flex items-center gap-2 cursor-pointer hover:text-red-600 transition-colors">
+                            <User className="w-3.5 h-3.5 text-red-600" />
+                            <span>{record.name}{isMe ? " (Bạn)" : ""}</span>
                           </div>
-                        </div>
+                        </ProfileHoverCard>
                       </td>
                       <td className="py-3 px-4 text-center font-bold font-mono text-zinc-900">
                         {record.score} pts

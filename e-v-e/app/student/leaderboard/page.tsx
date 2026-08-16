@@ -15,6 +15,7 @@ import {
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { cacheService } from "@/lib/cacheService";
+import { ProfileHoverCard } from "@/components/ProfileHoverCard";
 
 interface StudentRank {
   rank: number;
@@ -257,7 +258,20 @@ export default function StudentLeaderboardPage() {
                   #{st.rank}
                 </div>
 
-                <h3 className="text-lg font-black text-zinc-900">{st.name}</h3>
+                <ProfileHoverCard
+                  user={{
+                    id: st.id,
+                    name: st.name,
+                    rank: st.rank,
+                    score: st.score,
+                    coins: st.coins,
+                    title: st.title,
+                    gamesWon: st.gamesWon,
+                    streakDays: st.streakDays,
+                  }}
+                >
+                  <h3 className="text-lg font-black text-zinc-900 hover:text-red-600 transition-colors">{st.name}</h3>
+                </ProfileHoverCard>
                 <span className="px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-xs font-bold mt-1.5 mb-4">
                   {st.badge}
                 </span>
@@ -314,7 +328,24 @@ export default function StudentLeaderboardPage() {
                           #{st.rank}
                         </span>
                       </td>
-                      <td className="py-4 px-6 font-bold text-zinc-900">{st.name}</td>
+                      <td className="py-4 px-6 font-bold text-zinc-900">
+                        <ProfileHoverCard
+                          user={{
+                            id: st.id,
+                            name: st.name,
+                            rank: st.rank,
+                            score: st.score,
+                            coins: st.coins,
+                            title: st.title,
+                            gamesWon: st.gamesWon,
+                            streakDays: st.streakDays,
+                          }}
+                        >
+                          <span className="cursor-pointer hover:text-red-600 transition-colors">
+                            {st.name}
+                          </span>
+                        </ProfileHoverCard>
+                      </td>
                       <td className="py-4 px-6">
                         <span className="text-xs text-zinc-600 font-medium px-2.5 py-1 rounded-md bg-zinc-100 border border-zinc-200">
                           {st.title}
@@ -354,7 +385,20 @@ export default function StudentLeaderboardPage() {
               </div>
 
               <div>
-                <h3 className="font-black text-lg text-zinc-900">{tc.name}</h3>
+                <ProfileHoverCard
+                  user={{
+                    id: tc.id,
+                    name: tc.name,
+                    rank: tc.rank,
+                    role: "teacher",
+                    title: tc.title,
+                    score: tc.playsCount,
+                  }}
+                >
+                  <h3 className="font-black text-lg text-zinc-900 cursor-pointer hover:text-red-600 transition-colors">
+                    {tc.name}
+                  </h3>
+                </ProfileHoverCard>
                 <p className="text-xs text-zinc-500 mt-0.5">{tc.title}</p>
               </div>
 

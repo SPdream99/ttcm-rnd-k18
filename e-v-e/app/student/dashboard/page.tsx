@@ -30,6 +30,7 @@ import { useToast } from "@/components/Toast";
 import { collection, getDocs, query, where, doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { cacheService } from "@/lib/cacheService";
+import { ProfileHoverCard } from "@/components/ProfileHoverCard";
 
 export interface DashboardCourseItem {
   id: string;
@@ -552,25 +553,25 @@ export default function StudentDashboardPage() {
                     {user.rank}
                   </div>
                   <div>
-                    <div className="relative group/user inline-flex items-center gap-1.5 cursor-pointer">
-                      <span className="text-xs font-bold text-zinc-900 group-hover/user:text-red-600 transition-colors">
-                        {user.name}
-                      </span>
-                      {user.isMe && (
-                        <span className="text-[10px] text-red-600 font-black">(Bạn)</span>
-                      )}
-
-                      {/* Tooltip Hồ sơ học viên khi hover */}
-                      <div className="absolute left-0 bottom-full mb-1.5 z-50 hidden group-hover/user:block w-48 p-2.5 rounded-xl bg-zinc-900 text-white shadow-xl text-left border border-zinc-700">
-                        <div className="text-[10px] text-zinc-400 font-normal uppercase tracking-wider">Hồ sơ học viên</div>
-                        <div className="text-xs font-bold text-white mt-0.5">{user.name}</div>
-                        <div className="text-[10px] text-zinc-400 font-mono mt-0.5">ID: {user.id ? user.id.slice(-8) : "--"}</div>
-                        <div className="mt-1.5 pt-1.5 border-t border-zinc-800 text-[10px] text-zinc-300 font-normal flex justify-between">
-                          <span>Điểm: <strong className="text-amber-400">{user.score}</strong></span>
-                          <span>{user.level}</span>
-                        </div>
+                    <ProfileHoverCard
+                      user={{
+                        id: user.id,
+                        name: user.name,
+                        rank: user.rank,
+                        score: user.score,
+                        level: user.level,
+                        isMe: user.isMe,
+                      }}
+                    >
+                      <div className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <span className="text-xs font-bold text-zinc-900 hover:text-red-600 transition-colors">
+                          {user.name}
+                        </span>
+                        {user.isMe && (
+                          <span className="text-[10px] text-red-600 font-black">(Bạn)</span>
+                        )}
                       </div>
-                    </div>
+                    </ProfileHoverCard>
                     <div className="text-[10px] text-zinc-400 font-medium">{user.level}</div>
                   </div>
                 </div>
