@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect, ReactNode } from "react";
+import React, { useState, useRef, useEffect, ReactNode, MouseEvent } from "react";
 import { createPortal } from "react-dom";
-import { User, Trophy, Coins, Flame, Award, Sparkles, CheckCircle2, ShieldCheck, Gamepad2, GraduationCap } from "lucide-react";
+import { Coins, Sparkles, CheckCircle2, Gamepad2, Trophy, Flame } from "lucide-react";
 
 export interface ProfileCardData {
   id?: string;
@@ -25,6 +25,7 @@ interface ProfileHoverCardProps {
   children: ReactNode;
   align?: "top" | "bottom" | "auto";
   className?: string;
+  asTableRow?: boolean;
 }
 
 export function ProfileHoverCard({
@@ -52,45 +53,55 @@ export function ProfileHoverCard({
     };
   }, []);
 
-  const updatePosition = () => {
+  const calculatePosition = (clientX?: number) => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const cardWidth = 260;
-    const cardHeight = 180;
-    const padding = 12;
+    const cardWidth = 270;
+    const cardHeight = 190;
+    const padding = 16;
 
-    // Calculate horizontal position (center aligned, constrained to viewport)
-    let left = rect.left + rect.width / 2 - cardWidth / 2;
+    // Anchor horizontally near the mouse position or centered on the element
+    let targetX = clientX !== undefined ? clientX : rect.left + rect.width / 2;
+    let left = targetX - cardWidth / 2;
+
     if (left < padding) left = padding;
     if (left + cardWidth > window.innerWidth - padding) {
       left = window.innerWidth - padding - cardWidth;
     }
 
-    // Calculate vertical position
+    // Determine whether to place above or below
     let position: "top" | "bottom" = "top";
-    let top = rect.top - cardHeight - 8;
+    let top = rect.top - cardHeight - 10;
 
-    if (align === "bottom" || (align === "auto" && rect.top < cardHeight + padding)) {
+    if (align === "bottom" || (align === "auto" && rect.top < cardHeight + padding + 10)) {
       position = "bottom";
-      top = rect.bottom + 8;
+      top = rect.bottom + 10;
     }
 
     setCoords({ top, left, position });
   };
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = (e?: MouseEvent) => {
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = null;
     }
-    updatePosition();
+    calculatePosition(e?.clientX);
     setIsOpen(true);
   };
 
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isOpen) {
+      calculatePosition(e.clientX);
+      setIsOpen(true);
+    }
+  };
+
   const handleMouseLeave = () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
     closeTimeoutRef.current = setTimeout(() => {
       setIsOpen(false);
-    }, 180);
+    }, 150);
   };
 
   const initial = (user.name || "U").charAt(0).toUpperCase();
@@ -100,8 +111,9 @@ export function ProfileHoverCard({
     <div
       ref={triggerRef}
       onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className={`inline-block relative cursor-pointer ${className}`}
+      className={`relative cursor-pointer transition-all duration-150 ${className}`}
     >
       {children}
 
@@ -110,20 +122,33 @@ export function ProfileHoverCard({
         createPortal(
           <div
             ref={cardRef}
-            onMouseEnter={handleMouseEnter}
+            onMouseEnter={() => {
+              if (closeTimeoutRef.current) {
+                clearTimeout(closeTimeoutRef.current);
+                closeTimeoutRef.current = null;
+              }
+              setIsOpen(true);
+            }}
             onMouseLeave={handleMouseLeave}
             style={{
               position: "fixed",
               top: `${coords.top}px`,
               left: `${coords.left}px`,
-              zIndex: 99999,
+              zIndex: 999999,
             }}
-            className="w-64 p-3.5 rounded-2xl bg-white text-zinc-900 border-2 border-red-500 shadow-2xl shadow-red-950/20 animate-in fade-in zoom-in-95 duration-150 select-none font-sans"
+            className="w-[270px] p-4 rounded-2xl bg-white/98 backdrop-blur-md text-zinc-900 border-2 border-red-500 shadow-2xl shadow-red-950/25 animate-in fade-in zoom-in-95 duration-150 select-none font-sans pointer-events-auto"
           >
+            {/* Transparent Bridge to prevent mouse loss */}
+            <div
+              className={`absolute left-0 right-0 h-4 ${
+                coords.position === "top" ? "-bottom-4" : "-top-4"
+              }`}
+            />
+
             {/* Header with Avatar & Details */}
-            <div className="flex items-start gap-2.5 pb-2.5 border-b border-zinc-100">
+            <div className="flex items-start gap-3 pb-3 border-b border-zinc-100">
               <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm text-white shadow-sm shrink-0 ${
+                className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-base text-white shadow-md shrink-0 ${
                   user.rank === 1
                     ? "bg-gradient-to-tr from-amber-500 to-yellow-400 ring-2 ring-amber-200"
                     : user.rank === 2
@@ -140,7 +165,7 @@ export function ProfileHoverCard({
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 justify-between">
-                  <h4 className="text-xs font-bold text-zinc-900 truncate leading-tight">
+                  <h4 className="text-sm font-bold text-zinc-900 truncate leading-tight">
                     {user.name}
                   </h4>
                   {user.rank && (
@@ -165,13 +190,13 @@ export function ProfileHoverCard({
                     ID: {user.id ? user.id.slice(-6).toUpperCase() : "STUDENT"}
                   </span>
                   {user.isMe && (
-                    <span className="px-1 py-0.2 rounded bg-red-100 text-red-700 font-black text-[9px]">
+                    <span className="px-1.5 py-0.2 rounded bg-red-100 text-red-700 font-black text-[9px]">
                       BẠN
                     </span>
                   )}
                 </div>
 
-                <div className="text-[10px] font-semibold text-red-600 mt-0.5 truncate">
+                <div className="text-[11px] font-semibold text-red-600 mt-0.5 truncate">
                   {user.title || user.level || (isTeacher ? "Giảng Viên E-V-E" : "Học Viên Tích Cực")}
                 </div>
               </div>
@@ -213,9 +238,9 @@ export function ProfileHoverCard({
             </div>
 
             {/* Footer Badge */}
-            <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center justify-between text-[10px] text-zinc-500">
+            <div className="mt-2.5 pt-2 border-t border-zinc-100 flex items-center justify-between text-[10px] text-zinc-500">
               <span className="flex items-center gap-1 font-medium">
-                <Sparkles className="w-3 h-3 text-red-500" /> Hệ Sinh Thái E-V-E
+                <Sparkles className="w-3 h-3 text-red-500" /> Hồ sơ E-V-E
               </span>
               <span className="font-bold text-emerald-600 flex items-center gap-0.5">
                 <CheckCircle2 className="w-2.5 h-2.5" /> Đã xác thực

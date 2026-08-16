@@ -530,54 +530,55 @@ export default function StudentDashboardPage() {
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs space-y-3">
             {topRankings.map((user) => (
-              <div
+              <ProfileHoverCard
                 key={user.rank}
-                className={`p-3 rounded-xl flex items-center justify-between gap-3 transition-colors ${
-                  user.isMe
-                    ? "bg-red-50/80 border border-red-200"
-                    : "bg-zinc-50 hover:bg-zinc-100"
-                }`}
+                user={{
+                  id: user.id,
+                  name: user.name,
+                  rank: user.rank,
+                  score: user.score,
+                  level: user.level,
+                  isMe: user.isMe,
+                }}
+                className="w-full block"
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
-                      user.rank === 1
-                        ? "bg-amber-400 text-white"
-                        : user.rank === 2
-                        ? "bg-zinc-400 text-white"
-                        : user.rank === 3
-                        ? "bg-amber-700 text-white"
-                        : "bg-zinc-200 text-zinc-700"
-                    }`}
-                  >
-                    {user.rank}
-                  </div>
-                  <div>
-                    <ProfileHoverCard
-                      user={{
-                        id: user.id,
-                        name: user.name,
-                        rank: user.rank,
-                        score: user.score,
-                        level: user.level,
-                        isMe: user.isMe,
-                      }}
+                <div
+                  className={`p-3 rounded-xl flex items-center justify-between gap-3 transition-all hover:scale-[1.01] hover:shadow-xs ${
+                    user.isMe
+                      ? "bg-red-50/80 border border-red-200"
+                      : "bg-zinc-50 hover:bg-zinc-100/90"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
+                        user.rank === 1
+                          ? "bg-amber-400 text-white"
+                          : user.rank === 2
+                          ? "bg-zinc-400 text-white"
+                          : user.rank === 3
+                          ? "bg-amber-700 text-white"
+                          : "bg-zinc-200 text-zinc-700"
+                      }`}
                     >
+                      {user.rank}
+                    </div>
+                    <div>
                       <div className="inline-flex items-center gap-1.5 cursor-pointer">
-                        <span className="text-xs font-bold text-zinc-900 hover:text-red-600 transition-colors">
+                        <span className="text-xs font-bold text-zinc-900 group-hover:text-red-600 transition-colors">
                           {user.name}
                         </span>
                         {user.isMe && (
                           <span className="text-[10px] text-red-600 font-black">(Bạn)</span>
                         )}
                       </div>
-                    </ProfileHoverCard>
-                    <div className="text-[10px] text-zinc-400 font-medium">{user.level}</div>
+                      <div className="text-[10px] text-zinc-400 font-medium">{user.level}</div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="text-xs font-bold text-red-600 font-mono">{user.score}</div>
-              </div>
+                  <div className="text-xs font-bold text-red-600 font-mono">{user.score}</div>
+                </div>
+              </ProfileHoverCard>
             ))}
 
             <Link href="/student/leaderboard" className="block pt-2">

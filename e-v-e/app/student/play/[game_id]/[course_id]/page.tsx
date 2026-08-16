@@ -1369,7 +1369,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                   return (
                     <tr
                       key={record.id || index}
-                      className={`transition-colors ${
+                      className={`transition-colors group/row ${
                         isMe
                           ? "bg-red-50/80 border-l-2 border-red-600 font-bold"
                           : index === 0
@@ -1378,7 +1378,19 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                       }`}
                     >
                       <td className="py-3 px-4 font-bold">
-                        {index === 0 ? "Hạng 1" : index === 1 ? "Hạng 2" : index === 2 ? "Hạng 3" : `#${index + 1}`}
+                        <ProfileHoverCard
+                          user={{
+                            id: record.userId,
+                            name: record.name,
+                            rank: index + 1,
+                            score: record.score,
+                            accuracy: record.accuracy,
+                            isMe,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{index === 0 ? "Hạng 1" : index === 1 ? "Hạng 2" : index === 2 ? "Hạng 3" : `#${index + 1}`}</span>
+                        </ProfileHoverCard>
                       </td>
                       <td className="py-3 px-4 font-semibold text-zinc-900">
                         <ProfileHoverCard
@@ -1390,6 +1402,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                             accuracy: record.accuracy,
                             isMe,
                           }}
+                          className="w-full block"
                         >
                           <div className="inline-flex items-center gap-2 cursor-pointer hover:text-red-600 transition-colors">
                             <User className="w-3.5 h-3.5 text-red-600" />
@@ -1398,16 +1411,64 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                         </ProfileHoverCard>
                       </td>
                       <td className="py-3 px-4 text-center font-bold font-mono text-zinc-900">
-                        {record.score} pts
+                        <ProfileHoverCard
+                          user={{
+                            id: record.userId,
+                            name: record.name,
+                            rank: index + 1,
+                            score: record.score,
+                            accuracy: record.accuracy,
+                            isMe,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{record.score} pts</span>
+                        </ProfileHoverCard>
                       </td>
                       <td className="py-3 px-4 text-center text-zinc-500">
-                        {record.playTime}
+                        <ProfileHoverCard
+                          user={{
+                            id: record.userId,
+                            name: record.name,
+                            rank: index + 1,
+                            score: record.score,
+                            accuracy: record.accuracy,
+                            isMe,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{record.playTime}</span>
+                        </ProfileHoverCard>
                       </td>
                       <td className="py-3 px-4 text-center text-emerald-700 font-bold">
-                        {record.accuracy}%
+                        <ProfileHoverCard
+                          user={{
+                            id: record.userId,
+                            name: record.name,
+                            rank: index + 1,
+                            score: record.score,
+                            accuracy: record.accuracy,
+                            isMe,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{record.accuracy}%</span>
+                        </ProfileHoverCard>
                       </td>
                       <td className="py-3 px-4 text-right text-zinc-500">
-                        {record.date}
+                        <ProfileHoverCard
+                          user={{
+                            id: record.userId,
+                            name: record.name,
+                            rank: index + 1,
+                            score: record.score,
+                            accuracy: record.accuracy,
+                            isMe,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{record.date}</span>
+                        </ProfileHoverCard>
                       </td>
                     </tr>
                   );
