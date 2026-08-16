@@ -176,13 +176,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-70 pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          {/* Top Status Capsule */}
-          <div className="flex items-center justify-between flex-wrap gap-3 pb-8 border-b border-zinc-200 mb-8 md:mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600 text-white text-[11px] font-mono uppercase tracking-wider font-bold shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <span>E-V-E PLATFORM v2.4 • LIVE LEARNING ECOSYSTEM</span>
-            </div>
-          </div>
+
 
           {/* Main Hero Split Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
