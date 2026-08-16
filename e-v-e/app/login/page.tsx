@@ -264,7 +264,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="bg-zinc-50 text-zinc-900 min-h-screen flex flex-col items-center justify-center p-4 md:p-8 font-sans">
+    <div className="bg-zinc-50 text-zinc-900 min-h-screen flex flex-col items-center justify-center p-4 md:p-8 font-sans relative">
+      {/* Back to Home floating action */}
+      <div className="w-full max-w-md mb-2 flex items-center justify-between">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-zinc-200 text-xs font-bold text-zinc-600 hover:text-red-600 hover:border-red-300 transition-all shadow-2xs cursor-pointer"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Quay lại trang chủ</span>
+        </Link>
+      </div>
+
       <main className="w-full max-w-md my-auto">
         {/* Brand Header */}
         <div className="text-center mb-6">
