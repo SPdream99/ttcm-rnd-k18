@@ -20,6 +20,7 @@ import {
   Users,
   Shield,
   MessageSquare,
+  Lock,
 } from "lucide-react";
 import {
   collection,
@@ -78,6 +79,8 @@ export default function StudentClassDetailPage({
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockReason, setLockReason] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -109,13 +112,22 @@ export default function StudentClassDetailPage({
           });
         }
 
-        // 2. Learning Path
-        const pathQuery = query(
-          collection(db, "learning_path"),
-          where("__name__", "==", pathId)
-        );
+        // 2. Learning Path & Course Approval Checking
+        const [pathSnapshot, coursesSnapshot] = await Promise.all([
+          getDocs(query(collection(db, "learning_path"), where("__name__", "==", pathId))),
+          getDocs(collection(db, "courses")),
+        ]);
 
-        const pathSnapshot = await getDocs(pathQuery);
+        const acceptedCourseIds = new Set<string>();
+        coursesSnapshot.docs.forEach((d) => {
+          const cd = d.data();
+          if (cd.isAccepted ?? cd.is_accepted) {
+            acceptedCourseIds.add(d.id);
+          }
+        });
+
+        let pDocData: any = null;
+        let pDocId = "";
 
         if (pathSnapshot.empty) {
           const fallbackQ = query(
@@ -128,14 +140,25 @@ export default function StudentClassDetailPage({
             setLoading(false);
             return;
           }
-          const pDoc = fallbackSnap.docs[0];
-          const data = pDoc.data();
-          await setPathState(pDoc.id, data);
+          pDocData = fallbackSnap.docs[0].data();
+          pDocId = fallbackSnap.docs[0].id;
         } else {
-          const pDoc = pathSnapshot.docs[0];
-          const data = pDoc.data();
-          await setPathState(pDoc.id, data);
+          pDocData = pathSnapshot.docs[0].data();
+          pDocId = pathSnapshot.docs[0].id;
         }
+
+        const isPathAccepted = Boolean(pDocData.is_accepted ?? pDocData.isAccepted);
+        const pathCourses: string[] = Array.isArray(pDocData.courses) ? pDocData.courses : [];
+        const allCoursesApproved = pathCourses.length > 0 && pathCourses.every((cId: any) => acceptedCourseIds.has(typeof cId === "string" ? cId : cId.id));
+
+        if (!isPathAccepted || !allCoursesApproved) {
+          setIsLocked(true);
+          setLockReason("Lớp học này hiện đang bị tạm khóa do có 1 hoặc nhiều bài học trong lộ trình chưa được Quản trị viên phê duyệt.");
+          setLoading(false);
+          return;
+        }
+
+        await setPathState(pDocId, pDocData);
 
         // 3. Class Members
         try {
@@ -283,6 +306,29 @@ export default function StudentClassDetailPage({
       <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
         <div className="w-10 h-10 rounded-full border-4 border-zinc-200 border-t-red-600 animate-spin" />
         <p className="text-red-600 font-medium text-sm">Đang tải thông tin lớp học...</p>
+      </div>
+    );
+  }
+
+  if (isLocked) {
+    return (
+      <div className="min-h-[65vh] flex flex-col items-center justify-center p-6 text-center font-sans max-w-lg mx-auto">
+        <div className="w-16 h-16 rounded-2xl bg-zinc-100 border-2 border-zinc-300 text-zinc-600 flex items-center justify-center mb-4 shadow-sm">
+          <Lock className="w-8 h-8 text-zinc-600" />
+        </div>
+        <span className="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold uppercase tracking-wider mb-2">
+          Lộ Trình Tạm Khóa
+        </span>
+        <h1 className="text-xl font-black text-zinc-900 mb-2">Lớp Học Chưa Được Phê Duyệt Hoàn Tất</h1>
+        <p className="text-xs text-zinc-600 leading-relaxed mb-6">
+          {lockReason || "Lớp học này hiện đang bị tạm khóa do có 1 hoặc nhiều bài học trong lộ trình chưa được Quản trị viên phê duyệt. Bạn không thể truy cập nội dung bài học lúc này."}
+        </p>
+        <Link
+          href="/student/classes"
+          className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách lớp học
+        </Link>
       </div>
     );
   }

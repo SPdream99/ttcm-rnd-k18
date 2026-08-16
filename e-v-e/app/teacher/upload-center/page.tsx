@@ -87,12 +87,13 @@ export default function TeacherUploadCenterPage() {
         const data = d.data();
         const docAuthor = data.authorId || data.author_id || data.instructorId || data.instructor_id;
         const isOwn = docAuthor === teacherUid;
-        const isShareable = data.visibility === "free_to_share" || data.visibility === "free_to_use";
+        const isCourseAccepted = Boolean(data.isAccepted ?? data.is_accepted ?? false);
+        const isShareable = (data.visibility === "free_to_share" || data.visibility === "free_to_use" || data.visibility === "public") && isCourseAccepted;
         if (isOwn || isShareable) {
           myCourses.push({
             id: d.id,
             title: isOwn
-              ? `${data.title || "Khóa học"} (Của bạn)`
+              ? `${data.title || "Khóa học"} (Của bạn${!isCourseAccepted ? " - Chờ duyệt" : ""})`
               : `${data.title || "Khóa học"} (Chia sẻ từ ${data.authorName || "GV khác"})`,
           });
         }

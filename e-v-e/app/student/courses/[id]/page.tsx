@@ -200,6 +200,13 @@ export default function CourseDetailPage() {
         const snap = await getDoc(docRef);
         if (snap.exists()) {
           const data = snap.data();
+          const isCourseAccepted = Boolean(data.isAccepted ?? data.is_accepted ?? false);
+          if (!isCourseAccepted) {
+            setCourse(null);
+            setLoading(false);
+            return;
+          }
+
           setCourse({
             title: data.title || courseId,
             description: data.description || "",
@@ -216,9 +223,12 @@ export default function CourseDetailPage() {
         // ignore permission error and fallback smoothly
       }
 
-      // 3. Fallback to predefined catalogue
-      const fallback = DEFAULT_COURSES[courseId] || DEFAULT_COURSES.crs_coding_basics;
-      setCourse(fallback);
+      // 3. Fallback to predefined catalogue only for built-in IDs
+      if (DEFAULT_COURSES[courseId]) {
+        setCourse(DEFAULT_COURSES[courseId]);
+      } else {
+        setCourse(null);
+      }
       setLoading(false);
     }
 

@@ -105,13 +105,33 @@ export default function LearningPathDetailPage({
             }
           }
 
+          // Kiểm tra điều kiện một chiều: Tất cả khóa học con phải được duyệt
+          const coursesSnap = await getDocs(collection(db, "courses"));
+          const acceptedCourseIds = new Set<string>();
+          coursesSnap.docs.forEach((d) => {
+            const cd = d.data();
+            if (cd.isAccepted ?? cd.is_accepted) {
+              acceptedCourseIds.add(d.id);
+            }
+          });
+
+          const isPathAccepted = Boolean(data.is_accepted ?? data.isAccepted);
+          const pathCourses: string[] = Array.isArray(data.courses) ? data.courses : [];
+          const allCoursesApproved = pathCourses.length > 0 && pathCourses.every((cId: any) => acceptedCourseIds.has(typeof cId === "string" ? cId : cId.id));
+
+          if (!isPathAccepted || !allCoursesApproved) {
+            setPath(null);
+            setLoading(false);
+            return;
+          }
+
           const learningPath: LearningPath = {
             id: documentId,
             title: data.title || "Untitled Learning Path",
             description: data.description || "",
             author_id: data.author_id || "",
-            courses: Array.isArray(data.courses) ? data.courses : [],
-            is_accepted: data.is_accepted ?? false,
+            courses: pathCourses,
+            is_accepted: isPathAccepted,
             thumbnail: data.thumbnail || "",
             difficulty: data.difficulty || "Beginner",
             category: data.category || "General",
