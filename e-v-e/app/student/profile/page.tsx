@@ -28,7 +28,7 @@ import {
   getMaskedAIKey,
 } from "@/lib/secureKeyStorage";
 
-import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/components/Toast";
 import { cacheService } from "@/lib/cacheService";
@@ -41,8 +41,9 @@ export default function StudentProfilePage() {
   const displayCoins = currentUser?.coins ?? profile?.coins ?? 250;
   const userUid = currentUser?.uid || profile?.uid || "usr_student";
 
-  const [activeFrame, setActiveFrame] = useState("frame_supernova_gold");
-  const [activeBadge, setActiveBadge] = useState("badge_cosmic_legend");
+  const [activeFrame, setActiveFrame] = useState("frame_default");
+  const [activeBadge, setActiveBadge] = useState("badge_default");
+  const [userDecorations, setUserDecorations] = useState<string[]>([]);
 
   // Courses Progress State
   const [activeCoursesList, setActiveCoursesList] = useState<any[]>([]);
@@ -75,12 +76,31 @@ export default function StudentProfilePage() {
       setIs2FAEnabled(currentUser.twoFactorEnabled !== false);
     }
 
-    // Fetch user courses progress
-    async function loadStudentCourses() {
+    // Fetch user decorations & courses progress from database
+    async function loadUserData() {
       try {
         setLoadingCourses(true);
         const user = auth.currentUser;
         if (user) {
+          // 1. Fetch user profile data from Firestore
+          const uSnap = await getDoc(doc(db, "users", user.uid));
+          if (uSnap.exists()) {
+            const uData = uSnap.data();
+            const decs: string[] =
+              uData.profile_decorations ||
+              uData.profileDecorations ||
+              uData.inventory ||
+              [];
+            setUserDecorations(decs);
+            if (uData.equippedFrame) {
+              setActiveFrame(uData.equippedFrame);
+            }
+            if (uData.equippedBadge) {
+              setActiveBadge(uData.equippedBadge);
+            }
+          }
+
+          // 2. Fetch enrollments
           const enrollSnap = await getDocs(
             query(collection(db, "student_learning_path"), where("student_id", "==", user.uid))
           );
@@ -114,26 +134,36 @@ export default function StudentProfilePage() {
           setCompletedCoursesList(done);
         }
       } catch (err) {
-        console.error("Error loading profile courses:", err);
+        console.error("Error loading profile data:", err);
       } finally {
         setLoadingCourses(false);
       }
     }
 
-    loadStudentCourses();
+    loadUserData();
   }, [currentUser]);
 
-  const ownedFrames = [
-    { id: "frame_supernova_gold", name: "Khung Đỏ Danh Dự", ringClass: "ring-4 ring-red-600 shadow-sm" },
-    { id: "frame_nebula_violet", name: "Khung Bạc Tinh Tế", ringClass: "ring-4 ring-zinc-400 shadow-sm" },
-    { id: "frame_cyber_matrix", name: "Khung Đen Sang Trọng", ringClass: "ring-4 ring-zinc-800 shadow-sm" },
+  // Toàn bộ danh mục Khung Avatar & Huy hiệu trong hệ thống
+  const ALL_AVATAR_FRAMES = [
+    { id: "frame_default", name: "Khung Mặc Định", ringClass: "ring-2 ring-zinc-300 shadow-xs", isDefault: true },
+    { id: "frame_supernova_gold", name: "Khung Avatar Đỏ Danh Dự", ringClass: "ring-4 ring-red-600 shadow-sm" },
+    { id: "frame_quantum_neon", name: "Khung Avatar Đen Sang Trọng", ringClass: "ring-4 ring-zinc-900 shadow-sm" },
   ];
 
-  const ownedBadges = [
-    { id: "badge_cosmic_legend", name: "#1 Học Viên Tiêu Biểu" },
-    { id: "badge_master_coder", name: " Chuyên Gia Lập Trình" },
-    { id: "badge_quantum_quizzer", name: " Vua Giải Đố Minigame" },
+  const ALL_BADGES = [
+    { id: "badge_default", name: "Học Viên E-V-E", isDefault: true },
+    { id: "badge_cosmic_legend", name: "Huy Hiệu Thủ Khoa Xuất Sắc" },
+    { id: "badge_flame_streak", name: "Huy Hiệu Chuyên Cần & Bứt Phá" },
   ];
+
+  // Chỉ hiển thị các khung và huy hiệu mà người dùng ĐÃ SỞ HỮU (hoặc mặc định)
+  const ownedFrames = ALL_AVATAR_FRAMES.filter(
+    (f) => f.isDefault || userDecorations.includes(f.id)
+  );
+
+  const ownedBadges = ALL_BADGES.filter(
+    (b) => b.isDefault || userDecorations.includes(b.id)
+  );
 
   const handleSaveAIKey = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,8 +183,20 @@ export default function StudentProfilePage() {
     toast.info("Đã xóa khóa API.", "API Key");
   };
 
-  const handleSaveEquipment = () => {
-    toast.success("Đã lưu thiết lập danh hiệu & khung trang trí thành công!", "Trang Bị");
+  const handleSaveEquipment = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        await updateDoc(doc(db, "users", user.uid), {
+          equippedFrame: activeFrame,
+          equippedBadge: activeBadge,
+        });
+      }
+      toast.success("Đã lưu thiết lập danh hiệu & khung trang trí thành công!", "Trang Bị");
+    } catch (err) {
+      console.error("Lỗi khi lưu trang bị:", err);
+      toast.error("Không thể lưu thiết lập. Vui lòng thử lại!", "Trang Bị");
+    }
   };
 
   // 2FA Handlers
@@ -657,6 +699,15 @@ export default function StudentProfilePage() {
                 {activeFrame === frame.id && <CheckCircle2 className="w-4 h-4 text-red-600" />}
               </label>
             ))}
+
+            {ownedFrames.length <= 1 && (
+              <div className="p-3 rounded-xl bg-zinc-50 border border-dashed border-zinc-300 text-center space-y-1.5 mt-2">
+                <p className="text-[11px] text-zinc-500">Chưa mua khung avatar nào từ Cửa Hàng.</p>
+                <Link href="/student/shop" className="text-xs text-red-600 font-bold hover:underline block">
+                  Đổi Khung Avatar Mới Tại Shop →
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
@@ -681,6 +732,15 @@ export default function StudentProfilePage() {
                 {activeBadge === b.id && <CheckCircle2 className="w-4 h-4 text-red-600" />}
               </label>
             ))}
+
+            {ownedBadges.length <= 1 && (
+              <div className="p-3 rounded-xl bg-zinc-50 border border-dashed border-zinc-300 text-center space-y-1.5 mt-2">
+                <p className="text-[11px] text-zinc-500">Chưa mua huy hiệu nào từ Cửa Hàng.</p>
+                <Link href="/student/shop" className="text-xs text-red-600 font-bold hover:underline block">
+                  Đổi Huy Hiệu Danh Giá Tại Shop →
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

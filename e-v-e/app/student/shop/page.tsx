@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ShoppingBag,
   Coins,
@@ -12,18 +12,16 @@ import {
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { useToast } from "@/components/Toast";
-import { doc, updateDoc, arrayUnion } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { doc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 
 export default function StudentShopPage() {
   const { toast } = useToast();
   const { currentUser, profile } = useAuthAdapter();
-  const uid = currentUser?.uid || profile?.uid || "usr_student";
-  const [coins, setCoins] = useState(currentUser?.coins ?? profile?.coins ?? 250);
-  const [ownedItems, setOwnedItems] = useState<string[]>([
-    "frame_supernova_gold",
-    "badge_cosmic_legend",
-  ]);
+  const uid = auth.currentUser?.uid || currentUser?.uid || profile?.uid;
+  const [coins, setCoins] = useState(currentUser?.coins ?? profile?.coins ?? 0);
+  const [ownedItems, setOwnedItems] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const shopItems = [
     {
@@ -60,7 +58,48 @@ export default function StudentShopPage() {
     },
   ];
 
+  useEffect(() => {
+    async function loadUserInventory() {
+      if (!uid) {
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        const uSnap = await getDoc(doc(db, "users", uid));
+        if (uSnap.exists()) {
+          const data = uSnap.data();
+          if (data.coins !== undefined) {
+            setCoins(Number(data.coins) || 0);
+          }
+          const decs: string[] =
+            data.profile_decorations ||
+            data.profileDecorations ||
+            data.inventory ||
+            [];
+          setOwnedItems(decs);
+        }
+      } catch (err) {
+        console.warn("Could not load user inventory:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadUserInventory();
+  }, [uid]);
+
   const handleBuy = async (item: typeof shopItems[0]) => {
+    if (!uid) {
+      toast.error("Vui lòng đăng nhập để thực hiện đổi thưởng!", "Cửa Hàng");
+      return;
+    }
+
+    if (ownedItems.includes(item.id)) {
+      toast.error("Bạn đã sở hữu vật phẩm này rồi, không thể mua lại!", "Cửa Hàng");
+      return;
+    }
+
     if (coins < item.price) {
       toast.error("Bạn không đủ Coins để đổi vật phẩm này. Hãy hoàn thành thêm các bài học!", "Cửa Hàng");
       return;
@@ -71,15 +110,17 @@ export default function StudentShopPage() {
     setOwnedItems((prev) => [...prev, item.id]);
 
     try {
-      if (uid) {
-        await updateDoc(doc(db, "users", uid), {
-          coins: newCoins,
-          profileDecorations: arrayUnion(item.id),
-        });
-      }
-    } catch {}
-
-    toast.success(`Chúc mừng! Bạn đã đổi thành công "${item.name}". Hãy vào trang Hồ Sơ để trang bị!`, "Cửa Hàng");
+      await updateDoc(doc(db, "users", uid), {
+        coins: newCoins,
+        profile_decorations: arrayUnion(item.id),
+        profileDecorations: arrayUnion(item.id),
+        inventory: arrayUnion(item.id),
+      });
+      toast.success(`Chúc mừng! Bạn đã đổi thành công "${item.name}". Hãy vào trang Hồ Sơ để trang bị!`, "Cửa Hàng");
+    } catch (err) {
+      console.error("Lỗi khi cập nhật mua vật phẩm:", err);
+      toast.error("Không thể hoàn tất giao dịch. Vui lòng thử lại!", "Cửa Hàng");
+    }
   };
 
   return (
@@ -95,9 +136,9 @@ export default function StudentShopPage() {
           </p>
         </div>
 
-        <div className="px-4 py-2 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2">
+        <div className="px-4 py-2 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2 self-start sm:self-auto">
           <Coins className="w-5 h-5 text-red-600" />
-          <span className="font-mono font-bold text-base text-red-700">{coins} Coins</span>
+          <span className="font-mono font-bold text-base text-red-700">{coins.toLocaleString()} Coins</span>
         </div>
       </div>
 
@@ -110,16 +151,27 @@ export default function StudentShopPage() {
           return (
             <div
               key={item.id}
-              className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 transition-all flex flex-col justify-between space-y-5 shadow-sm"
+              className={`p-6 rounded-2xl bg-white border transition-all flex flex-col justify-between space-y-5 shadow-xs ${
+                isOwned
+                  ? "border-zinc-200 opacity-80"
+                  : "border-zinc-200 hover:border-red-600 hover:shadow-md"
+              }`}
             >
               <div className="flex items-start gap-4">
-                <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 shrink-0">
+                <div className={`p-4 rounded-xl shrink-0 ${isOwned ? "bg-zinc-100 text-zinc-500" : "bg-red-50 border border-red-200 text-red-600"}`}>
                   <Icon className="w-7 h-7" />
                 </div>
                 <div>
-                  <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-700 text-xs font-bold border border-zinc-200">
-                    {item.category}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-700 text-xs font-bold border border-zinc-200">
+                      {item.category}
+                    </span>
+                    {isOwned && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Đã Mua
+                      </span>
+                    )}
+                  </div>
                   <h3 className="font-bold text-lg text-zinc-900 mt-2">{item.name}</h3>
                   <p className="text-xs text-zinc-600 mt-1 leading-relaxed">{item.description}</p>
                 </div>
@@ -131,9 +183,12 @@ export default function StudentShopPage() {
                 </div>
 
                 {isOwned ? (
-                  <span className="px-4 py-2 rounded-xl bg-zinc-100 text-zinc-600 text-xs font-bold flex items-center gap-1.5 border border-zinc-200">
+                  <button
+                    disabled
+                    className="px-4 py-2 rounded-xl bg-zinc-100 text-zinc-500 text-xs font-bold flex items-center gap-1.5 border border-zinc-200 cursor-not-allowed"
+                  >
                     <Check className="w-4 h-4 text-emerald-600" /> Đã Sở Hữu
-                  </span>
+                  </button>
                 ) : (
                   <button
                     onClick={() => handleBuy(item)}
