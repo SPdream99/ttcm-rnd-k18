@@ -45,8 +45,7 @@ npm run start
 - `core/`: Định nghĩa Domain Entities, Ports và Use Cases theo Clean Architecture.
 - `infrastructure/`: Adapter kết nối Firestore và Mock Database.
 - `lib/`: Tiện ích bảo mật, mã hóa, xác thực 2FA OTP, Game Token validator.
-- `public/`: Tài nguyên tĩnh, âm thanh và các gói game đóng gói sẵn (`eve-game-sdk.js`, minigames).
-- `scripts/`: Script khởi tạo cơ sở dữ liệu mẫu (`initDatabase.mjs`).
+- `scripts/`: Bộ 3 scripts quản trị Firestore Database (`reset_firestore.mjs`, `initDatabase.mjs`, `fill_data.mjs`).
 
 ---
 

@@ -12,7 +12,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "cleanup:users": "node scripts/cleanup_orphan_users.js"
+    "db:reset": "node scripts/reset_firestore.mjs",
+    "db:init": "node scripts/initDatabase.mjs",
+    "db:fill": "node scripts/fill_data.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.17.0",

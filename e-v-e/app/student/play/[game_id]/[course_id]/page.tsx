@@ -200,7 +200,11 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const [courseTitle, setCourseTitle] = useState("Đang tải bài học...");
   const [pairs, setPairs] = useState<CourseContentPair[]>([]);
   const [score, setScore] = useState(0);
+  // scoreRef: tracks live score synchronously to avoid stale closure in setTimeout
+  const scoreRef = useRef(0);
   const [streak, setStreak] = useState(0);
+  const streakRef = useRef(0);
+  const livesRef = useRef(5);
   const [lives, setLives] = useState(5);
   const [isGameOver, setIsGameOver] = useState(false);
   const [earnedCoins, setEarnedCoins] = useState(0);
@@ -530,8 +534,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
             )
           );
           setSelectedCards([]);
-          setScore((s) => s + 35);
-          setStreak((st) => st + 1);
+          setScore((s) => { const n = s + 35; scoreRef.current = n; return n; });
+          setStreak((st) => { const n = st + 1; streakRef.current = n; return n; });
           setMatchedPairsCount((m) => {
             const nextCount = m + 1;
             const totalPairsCount = cards.length / 2;
@@ -539,7 +543,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
               const actualTime = Math.max(1, elapsedSeconds);
               const moves = movesCount + 1;
               const accuracy = moves > 0 ? Math.min(100, Math.max(15, Math.round((totalPairsCount / moves) * 100))) : 100;
-              const finalScore = score + 35 + (lives * 15) + Math.max(0, 100 - actualTime * 2);
+              // Use scoreRef.current (synchronous) instead of stale `score` state
+              const finalScore = scoreRef.current + (livesRef.current * 15) + Math.max(0, 100 - actualTime * 2);
               handleGameWin(finalScore, accuracy, actualTime);
             }
             return nextCount;
@@ -553,8 +558,10 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           );
           setSelectedCards([]);
           setStreak(0);
+          streakRef.current = 0;
           setLives((l) => {
             const nextLives = Math.max(0, l - 1);
+            livesRef.current = nextLives;
             if (nextLives === 0) {
               // Game Over
               setIsGameOver(true);
@@ -595,10 +602,14 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     setQuizCorrects(newCorrects);
 
     if (correctBool) {
-      setScore((s) => s + 30 + streak * 5);
-      setStreak((st) => st + 1);
+      const gained = 30 + streakRef.current * 5;
+      // Update scoreRef FIRST (synchronous), then schedule React state update
+      scoreRef.current += gained;
+      setScore(scoreRef.current);
+      setStreak((st) => { const n = st + 1; streakRef.current = n; return n; });
     } else {
       setStreak(0);
+      streakRef.current = 0;
     }
 
     setTimeout(() => {
@@ -607,8 +618,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
       } else {
         const actualTime = Math.max(1, elapsedSeconds);
         const accuracy = newAttempts > 0 ? Math.min(100, Math.max(10, Math.round((newCorrects / newAttempts) * 100))) : 100;
-        const finalScore = score + (correctBool ? 30 : 0) + (correctBool ? 20 : 0);
-        handleGameWin(finalScore, accuracy, actualTime);
+        // Use scoreRef.current — the accurate live score — not stale `score` state
+        handleGameWin(scoreRef.current, accuracy, actualTime);
       }
     }, 1500);
   };
@@ -660,12 +671,18 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     setGameState("menu");
     setIsGameOver(false);
     setScore(0);
+    scoreRef.current = 0;
     setStreak(0);
+    streakRef.current = 0;
     setLives(5);
+    livesRef.current = 5;
     setCurrentPairIdx(0);
     setSelectedAnswer(null);
     setIsCorrect(null);
     setMovesCount(0);
+    setMatchedPairsCount(0);
+    setQuizAttempts(0);
+    setQuizCorrects(0);
   };
 
   const currentPair = pairs[currentPairIdx];

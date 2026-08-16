@@ -105,12 +105,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    // 1. Xóa cookie và localStorage trước
+    // 1. Xóa auth cookie và toàn bộ dữ liệu người dùng tại localStorage & sessionStorage
     removeAuthCookie();
     if (typeof window !== "undefined") {
-      localStorage.removeItem("eve_remember_me");
-      localStorage.removeItem("eve_remembered_email");
-      localStorage.removeItem("eve_user");
+      try {
+        // Danh sách các khóa lưu trữ thông tin người dùng, khóa API, lịch sử chat và cache
+        const userKeys = [
+          "eve_user",
+          "eve_auth_user",
+          "eve_remember_me",
+          "eve_remembered_email",
+          "eve_user_encrypted_ai_key",
+          "eve_gemini_api_key",
+          "eve_tutor_chat_history",
+          "eve_tutor_memory_enabled",
+          "eve_2fa_pending_secret",
+          "eve_2fa_verified",
+          "eve_uploaded_courses",
+          "eve_uploaded_games",
+        ];
+
+        userKeys.forEach((k) => localStorage.removeItem(k));
+
+        // Quét sạch toàn bộ các key bắt đầu bằng tiền tố eve_ hoặc cache_
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith("eve_") || key.startsWith("cache_"))) {
+            localStorage.removeItem(key);
+          }
+        }
+
+        sessionStorage.clear();
+      } catch (err) {
+        console.warn("Lỗi khi xóa dữ liệu local storage lúc đăng xuất:", err);
+      }
     }
 
     // 2. Clear state trước để các listener ngừng đọc Firestore

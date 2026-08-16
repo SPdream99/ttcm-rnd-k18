@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import {
   Bot,
   User,
@@ -12,17 +13,33 @@ import {
   Lightbulb,
   Mic,
   ShieldCheck,
+  ExternalLink,
+  BrainCircuit,
+  RotateCcw,
+  Trash2,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
-
-interface ChatMessage {
-  id: string;
-  sender: "user" | "ai";
-  text: string;
-  timestamp: string;
-}
+import {
+  saveEncryptedAIKey,
+  getDecryptedAIKey,
+  removeAIKey,
+  hasAIKey,
+  getMaskedAIKey,
+} from "@/lib/secureKeyStorage";
+import {
+  ChatMessage,
+  getChatHistory,
+  saveChatHistory,
+  clearChatHistory,
+  isMemoryEnabled,
+  setMemoryEnabled,
+  CHAT_UPDATED_EVENT,
+} from "@/lib/aiChatStorage";
+import { getCurrentLivePageContext } from "@/lib/pageContextService";
+import { useToast } from "@/components/Toast";
 
 export default function StudentAITutorPage() {
+  const toast = useToast();
   const { currentUser, profile } = useAuthAdapter();
   const studentName = currentUser?.name || currentUser?.displayName || profile?.fullName || "bạn";
 
@@ -34,44 +51,80 @@ export default function StudentAITutorPage() {
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [hasApiKeyActive, setHasApiKeyActive] = useState(false);
+  const [maskedKey, setMaskedKey] = useState("");
+
+  const [memoryActive, setMemoryActive] = useState(true);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedKey = localStorage.getItem("eve_gemini_api_key") || "";
-      if (storedKey) {
-        setApiKeyInput(storedKey);
-        setHasApiKeyActive(true);
-      }
+  // Sync key state from secureKeyStorage (shared with Profile page)
+  const refreshKeyState = () => {
+    const active = hasAIKey();
+    setHasApiKeyActive(active);
+    setMaskedKey(active ? getMaskedAIKey() : "");
+    if (active) {
+      const decrypted = getDecryptedAIKey();
+      setApiKeyInput(decrypted || "");
+    } else {
+      setApiKeyInput("");
     }
+  };
 
-    const storedKey = typeof window !== "undefined" ? localStorage.getItem("eve_gemini_api_key") || "" : "";
-    const keyNote = !storedKey
-      ? `\n\n *Lưu ý: Bạn chưa cài đặt API Key. Hãy **mở cài đặt key ở góc phải lên** hoặc **cài đặt key trong profile** để bắt đầu trò chuyện nhé!*`
-      : "";
+  // Load chat history & memory setting from storage, listen to synchronization events
+  useEffect(() => {
+    refreshKeyState();
+    const hasKey = hasAIKey();
+    setMessages(getChatHistory(studentName, hasKey));
+    setMemoryActive(isMemoryEnabled());
 
-    setMessages([
-      {
-        id: "msg-welcome",
-        sender: "ai",
-        text: `Chào ${studentName}! Mình là **Gia Sư Trực Tuyến E-V-E**, đồng hành học tập cùng bạn hôm nay.\n\nBạn có thể hỏi mình mọi thứ về:\n- **Lập trình Python, Scratch & Cấu trúc thuật toán**\n- **Tra cứu bài học, kho minigame & bản đồ lộ trình**\n- **Kiến thức phần cứng & máy tính**\n- **Giải bài tập và tư duy logic**\n\nBạn muốn khám phá chủ đề nào trước?${keyNote}`,
-        timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-      },
-    ]);
-  }, [currentUser, profile]);
+    const handleChatUpdate = () => {
+      setMessages(getChatHistory(studentName, hasAIKey()));
+      setMemoryActive(isMemoryEnabled());
+    };
+
+    window.addEventListener(CHAT_UPDATED_EVENT, handleChatUpdate);
+    window.addEventListener("storage", handleChatUpdate);
+
+    return () => {
+      window.removeEventListener(CHAT_UPDATED_EVENT, handleChatUpdate);
+      window.removeEventListener("storage", handleChatUpdate);
+    };
+  }, [studentName]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isSending]);
 
+  const handleToggleMemory = () => {
+    const nextState = !memoryActive;
+    setMemoryActive(nextState);
+    setMemoryEnabled(nextState);
+    if (nextState) {
+      toast.success("Đã BẬT tính năng Trí Nhớ: Gia sư sẽ nhớ ngữ cảnh các câu hỏi trước.", "Trí Nhớ AI");
+    } else {
+      toast.info("Đã TẮT Trí Nhớ: Gia sư chỉ phản hồi câu hỏi hiện tại độc lập.", "Trí Nhớ AI");
+    }
+  };
+
+  const handleClearMemory = () => {
+    const hasKey = hasAIKey();
+    const fresh = clearChatHistory(studentName, hasKey);
+    setMessages(fresh);
+    setShowClearConfirm(false);
+    toast.success("Đã xóa sạch toàn bộ lịch sử trò chuyện & làm mới trí nhớ của Gia sư!", "Xóa Trí Nhớ");
+  };
+
   const handleSaveApiKey = (e: React.FormEvent) => {
     e.preventDefault();
-    if (typeof window !== "undefined") {
-      localStorage.setItem("eve_gemini_api_key", apiKeyInput.trim());
-      setHasApiKeyActive(Boolean(apiKeyInput.trim()));
-      setShowKeyModal(false);
+    const trimmed = apiKeyInput.trim();
+    if (trimmed) {
+      saveEncryptedAIKey(trimmed);
+    } else {
+      removeAIKey();
     }
+    refreshKeyState();
+    setShowKeyModal(false);
   };
 
   const handleSendMessage = async (textToSend?: string) => {
@@ -86,62 +139,62 @@ export default function StudentAITutorPage() {
       timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
+    saveChatHistory(nextMessages);
     if (!textToSend) setInputMessage("");
     setIsSending(true);
 
     try {
-      const storedKey =
-        typeof window !== "undefined"
-          ? localStorage.getItem("eve_gemini_api_key") || ""
-          : "";
+      const storedKey = getDecryptedAIKey();
+      const liveContext = getCurrentLivePageContext("student");
 
-      if (!storedKey) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `ai-nokey-${Date.now()}`,
-            sender: "ai",
-            text: " Bạn chưa cài đặt Google Gemini API Key. Vui lòng **mở cài đặt key ở góc phải lên** hoặc **cài đặt key trong profile** để bắt đầu trò chuyện cùng Gia sư AI nhé!",
-            timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-          },
-        ]);
-        setIsSending(false);
-        return;
-      }
+      // Chuẩn bị lịch sử hội thoại nếu tính năng Trí nhớ đang BẬT
+      const conversationHistory = memoryActive
+        ? messages
+            .filter((m) => m.id !== "msg-welcome-default")
+            .slice(-12)
+            .map((m) => ({
+              role: m.sender === "user" ? "user" : "model",
+              text: m.text,
+            }))
+        : [];
 
       const res = await fetch("/api/tutor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt,
-          apiKey: storedKey,
-          context: { role: "student" },
+          apiKey: storedKey || undefined,
+          role: "student",
+          history: conversationHistory,
+          pageContext: liveContext,
         }),
       });
 
       const data = await res.json();
       const reply = data.reply || "Xin lỗi, hiện tại tôi chưa nhận được phản hồi. Bạn thử lại nhé!";
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `ai-${Date.now()}`,
-          sender: "ai",
-          text: reply,
-          timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-        },
-      ]);
+      const aiMsg: ChatMessage = {
+        id: `ai-${Date.now()}`,
+        sender: "ai",
+        text: reply,
+        timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+      };
+
+      const finalMessages = [...nextMessages, aiMsg];
+      setMessages(finalMessages);
+      saveChatHistory(finalMessages);
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `ai-${Date.now()}`,
-          sender: "ai",
-          text: "Đã xảy ra lỗi kết nối. Vui lòng thử lại sau.",
-          timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-        },
-      ]);
+      const errorMsg: ChatMessage = {
+        id: `ai-${Date.now()}`,
+        sender: "ai",
+        text: "Đã xảy ra lỗi kết nối. Vui lòng thử lại sau.",
+        timestamp: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+      };
+      const finalMessages = [...nextMessages, errorMsg];
+      setMessages(finalMessages);
+      saveChatHistory(finalMessages);
     } finally {
       setIsSending(false);
     }
@@ -211,10 +264,11 @@ export default function StudentAITutorPage() {
   return (
     <div className="h-[calc(100vh-6.5rem)] flex flex-col font-sans bg-white rounded-2xl border-2 border-zinc-200 overflow-hidden relative shadow-sm">
       {/* Header (Red & White) */}
-      <header className="p-4 bg-white border-b-2 border-zinc-200 flex items-center justify-between shrink-0">
+      <header className="p-4 bg-white border-b-2 border-zinc-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold relative">
             <Bot className="w-5 h-5" />
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
           </div>
           <div>
             <h1 className="font-bold text-base text-zinc-900 flex items-center gap-2">
@@ -226,19 +280,73 @@ export default function StudentAITutorPage() {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowKeyModal(true)}
-          className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-            hasApiKeyActive
-              ? "bg-red-50 text-red-700 border-red-200"
-              : "bg-zinc-100 text-zinc-600 border-zinc-200 hover:text-zinc-900"
-          }`}
-        >
-          <Key className="w-3.5 h-3.5 text-red-600" />
-          <span>{hasApiKeyActive ? "Gemini Key " : "Cài đặt Key"}</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Nút Bật/Tắt Trí Nhớ */}
+          <button
+            type="button"
+            onClick={handleToggleMemory}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+              memoryActive
+                ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                : "bg-zinc-100 text-zinc-500 border-zinc-200 hover:text-zinc-800"
+            }`}
+            title={memoryActive ? "Trí nhớ AI: ĐANG BẬT (Gia sư nhớ ngữ cảnh các câu trước). Bấm để Tắt" : "Trí nhớ AI: ĐANG TẮT. Bấm để Bật"}
+          >
+            <BrainCircuit className="w-3.5 h-3.5 text-purple-600" />
+            <span>{memoryActive ? "Trí Nhớ: BẬT" : "Trí Nhớ: TẮT"}</span>
+          </button>
+
+          {/* Nút Xóa Toàn Bộ Trí Nhớ */}
+          <button
+            type="button"
+            onClick={() => setShowClearConfirm(true)}
+            className="px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-red-50 text-zinc-600 hover:text-red-700 border border-zinc-200 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+            title="Xóa toàn bộ lịch sử trò chuyện & làm mới trí nhớ"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Xóa Trí Nhớ</span>
+          </button>
+
+          {/* Nút Cài Đặt Key */}
+          <button
+            type="button"
+            onClick={() => setShowKeyModal(true)}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+              hasApiKeyActive
+                ? "bg-red-50 text-red-700 border-red-200"
+                : "bg-zinc-100 text-zinc-600 border-zinc-200 hover:text-zinc-900"
+            }`}
+          >
+            <Key className="w-3.5 h-3.5 text-red-600" />
+            <span>{hasApiKeyActive ? "Gemini Key" : "Cài đặt Key"}</span>
+          </button>
+        </div>
       </header>
+
+      {/* Modal Xác Nhận Xóa Trí Nhớ */}
+      {showClearConfirm && (
+        <div className="p-3 bg-red-50 border-b border-red-200 text-xs text-red-900 flex items-center justify-between gap-3 shrink-0 animate-in fade-in">
+          <span className="font-semibold">
+            Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện và làm mới trí nhớ của Gia sư?
+          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleClearMemory}
+              className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold cursor-pointer"
+            >
+              Xác Nhận Xóa
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowClearConfirm(false)}
+              className="px-3 py-1 rounded-lg bg-zinc-200 hover:bg-zinc-300 text-zinc-800 font-bold cursor-pointer"
+            >
+              Hủy
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Message Stream */}
       <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-5 bg-zinc-50/50">
@@ -365,20 +473,43 @@ export default function StudentAITutorPage() {
               </h3>
               <button
                 onClick={() => setShowKeyModal(false)}
-                className="text-zinc-400 hover:text-zinc-900"
+                className="text-zinc-400 hover:text-zinc-900 text-sm font-bold p-1 cursor-pointer"
               >
-                
+                ✕
               </button>
             </div>
 
+            {hasApiKeyActive && maskedKey && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <span className="text-[11px] text-emerald-800 font-bold block flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" /> Đã liên kết với Hồ sơ cá nhân
+                  </span>
+                  <span className="font-mono text-xs text-zinc-900 font-bold tracking-wider">{maskedKey}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    removeAIKey();
+                    refreshKeyState();
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg bg-zinc-200 hover:bg-red-50 text-zinc-700 hover:text-red-700 text-[11px] font-bold transition-colors cursor-pointer"
+                >
+                  Xóa Key
+                </button>
+              </div>
+            )}
+
             <p className="text-xs text-zinc-600 leading-relaxed">
-              Nhập Google Gemini API Key để gia sư trực tiếp trả lời mọi câu hỏi:
+              {hasApiKeyActive
+                ? "Nhập mã mới bên dưới để thay đổi API Key (tự động cập nhật vào Hồ sơ cá nhân):"
+                : "Nhập Google Gemini API Key để gia sư trực tiếp trả lời mọi câu hỏi (dùng chung với Hồ sơ cá nhân):"}
             </p>
 
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-zinc-700 flex items-start gap-2">
               <ShieldCheck className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
               <span className="leading-relaxed text-[11px]">
-                <strong className="text-red-700">Lưu ý:</strong> Khóa API Key được <strong>lưu cục bộ trên thiết bị của bạn</strong> (Local Storage), hoàn toàn không được gửi hay lưu trữ trên máy chủ.
+                <strong className="text-red-700">Lưu ý bảo mật:</strong> Khóa API Key được <strong>mã hóa an toàn và lưu cục bộ trên trình duyệt</strong> (Local Storage), đồng bộ tự động giữa <strong>Gia Sư AI</strong> và <strong>Hồ Sơ Cá Nhân</strong>.
               </span>
             </div>
 
@@ -388,25 +519,36 @@ export default function StudentAITutorPage() {
                   type="password"
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
-                  placeholder="Dán mã API Key của bạn vào đây"
+                  placeholder="Dán mã Google Gemini API Key (VD: AIzaSy...)"
                   className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2.5 text-xs text-zinc-900 focus:outline-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
+              <div className="flex items-center justify-between pt-1">
+                <Link
+                  href="/student/profile"
                   onClick={() => setShowKeyModal(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-100 text-zinc-700 text-xs font-bold hover:bg-zinc-200 cursor-pointer"
+                  className="text-xs text-red-600 hover:underline font-bold flex items-center gap-1"
                 >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer"
-                >
-                  Lưu & Kích Hoạt
-                </button>
+                  <span>Hồ Sơ Cá Nhân</span>
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowKeyModal(false)}
+                    className="px-4 py-2 rounded-xl bg-zinc-100 text-zinc-700 text-xs font-bold hover:bg-zinc-200 cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-sm"
+                  >
+                    Lưu & Kích Hoạt
+                  </button>
+                </div>
               </div>
             </form>
           </div>

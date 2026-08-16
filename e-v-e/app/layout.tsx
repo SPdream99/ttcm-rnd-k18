@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
@@ -17,6 +17,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "E-V-E — Educational Virtual Ecosystem",
   description: "Nền Tảng Giáo Dục Trực Tuyến Tương Tác & Game-Based Learning",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
@@ -46,7 +54,7 @@ export default function RootLayout({
         />
       </head>
 
-      <body className="font-sans antialiased overflow-x-hidden selection:bg-red-100 selection:text-red-700">
+      <body className="font-sans antialiased overflow-x-hidden selection:bg-red-100 selection:text-red-700 min-h-screen">
         <AuthProvider>
           <ToastProvider>
             {children}

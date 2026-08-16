@@ -3,6 +3,139 @@ import { adminDb } from "@/infrastructure/firebase/firebaseAdmin";
 import { generateGameSessionToken } from "@/lib/antiCheat";
 
 const FALLBACK_PAIRS: Record<string, any> = {
+  // ── Standard course IDs (fill_data.mjs) ──────────────────────────────────
+  crs_coding_basics: {
+    title: "Bài 1: Nhập Môn Tư Duy Lập Trình & Thuật Toán",
+    pairs: [
+      {
+        id: "cb1",
+        title: "Biến số (Variable) trong lập trình dùng để làm gì?",
+        description: "Dùng để lưu trữ giá trị dữ liệu và có thể thay đổi trong quá trình chạy chương trình.",
+        explanation: "Biến số là ô nhớ trong bộ nhớ RAM được đặt tên để lưu trữ các giá trị (số, chuỗi, boolean) và có thể tái sử dụng hoặc cập nhật giá trị trong suốt quá trình thực thi.",
+        distractions: ["Dùng để tắt máy tính", "Dùng để in ra giấy", "Dùng để xóa mã nguồn"],
+      },
+      {
+        id: "cb2",
+        title: "Cấu trúc điều kiện IF - ELSE có chức năng gì?",
+        description: "Kiểm tra điều kiện đúng/sai để quyết định luồng rẽ nhánh thực thi của thuật toán.",
+        explanation: "Cấu trúc rẽ nhánh IF - ELSE cho phép chương trình đưa ra quyết định thực thi khối lệnh A nếu điều kiện thỏa mãn (True), ngược lại thực thi khối lệnh B (False).",
+        distractions: ["Lặp lại vô tận câu lệnh", "Khai báo hàm mới", "Lưu trữ dữ liệu vào ổ cứng"],
+      },
+      {
+        id: "cb3",
+        title: "Vòng lặp (Loop) sinh ra để giải quyết bài toán nào?",
+        description: "Tự động hóa việc lặp đi lặp lại một khối lệnh nhiều lần mà không cần viết lại mã.",
+        explanation: "Vòng lặp (For, While) giúp tối ưu mã nguồn, giảm trùng lặp bằng cách tự động thực hiện lại một nhóm lệnh cho đến khi thỏa mãn điều kiện dừng.",
+        distractions: ["Thay đổi độ phân giải màn hình", "Nâng cấp phần cứng", "Tăng tốc độ mạng"],
+      },
+      {
+        id: "cb4",
+        title: "Thuật toán (Algorithm) là gì?",
+        description: "Tập hợp các bước chỉ dẫn tuần tự, rõ ràng nhằm giải quyết một vấn đề cụ thể.",
+        explanation: "Thuật toán là quy trình hữu hạn các bước logic, có đầu vào (Input) và đầu ra (Output) xác định nhằm giải quyết một bài toán cụ thể.",
+        distractions: ["Tên của một loại máy tính", "Bộ nhớ tạm thời RAM", "Trình duyệt web"],
+      },
+    ],
+  },
+  crs_computer_hardware: {
+    title: "Bài 2: Khám Phá Phần Cứng & Kiến Trúc Máy Tính 3D",
+    pairs: [
+      {
+        id: "hw1",
+        title: "CPU (Central Processing Unit)",
+        description: "Bộ vi xử lý trung tâm, đóng vai trò bộ não thực thi các lệnh và tính toán số học/logic của hệ thống.",
+        explanation: "CPU là linh kiện quan trọng nhất của máy tính, điều khiển mọi hoạt động, giải mã lệnh và thực hiện các phép toán số học ALU.",
+        distractions: ["Bộ nhớ tạm thời RAM", "Card hiển thị đồ họa GPU", "Khối nguồn PSU"],
+      },
+      {
+        id: "hw2",
+        title: "GPU (Graphics Processing Unit)",
+        description: "Bộ xử lý đồ họa chuyên dụng với hàng ngàn lõi song song để kết xuất hình ảnh 3D và tính toán AI.",
+        explanation: "GPU được thiết kế kiến trúc song song khổng lồ, chuyên dụng cho việc xử lý ma trận điểm ảnh 3D, dựng hình đồ họa và huấn luyện mô hình AI.",
+        distractions: ["Ổ cứng thể rắn SSD", "Bo mạch chủ Motherboard", "Quạt tản nhiệt"],
+      },
+      {
+        id: "hw3",
+        title: "RAM (Random Access Memory)",
+        description: "Bộ nhớ truy xuất ngẫu nhiên tốc độ cao, lưu trữ dữ liệu tạm thời khi các ứng dụng đang chạy.",
+        explanation: "RAM là bộ nhớ bay hơi (volatile memory) có tốc độ truy xuất cực nhanh, chứa dữ liệu làm việc của hệ điều hành và phần mềm đang mở.",
+        distractions: ["Lưu trữ vĩnh viễn ROM", "Cổng kết nối USB", "Chipset bán cầu nam"],
+      },
+      {
+        id: "hw4",
+        title: "SSD M.2 NVMe",
+        description: "Ổ lưu trữ thể rắn chuẩn giao tiếp PCIe siêu tốc, lưu trữ hệ điều hành và file dữ liệu không bị mất khi tắt nguồn.",
+        explanation: "SSD sử dụng chip nhớ flash NAND non-volatile với giao thức NVMe qua làn PCIe, cho tốc độ đọc ghi lên tới hàng nghìn MB/s.",
+        distractions: ["Bộ nhớ đệm L3 Cache", "Thanh RAM DDR5", "Khối nguồn PSU"],
+      },
+    ],
+  },
+  crs_python_foundation: {
+    title: "Bài 3: Lập Trình Python Căn Bản & Cấu Trúc Dữ Liệu",
+    pairs: [
+      {
+        id: "py1",
+        title: "Hàm print() trong Python có tác dụng gì?",
+        description: "Xuất dữ liệu hoặc chuỗi thông báo ra màn hình console.",
+        explanation: "Hàm print() là hàm tích hợp sẵn trong Python dùng để in các đối tượng, chuỗi văn bản ra luồng xuất chuẩn stdout.",
+        distractions: ["Nhập dữ liệu từ bàn phím", "Xóa biến số", "Đóng chương trình"],
+      },
+      {
+        id: "py2",
+        title: "Kiểu dữ liệu Boolean trong Python nhận những giá trị nào?",
+        description: "True hoặc False",
+        explanation: "Kiểu Boolean (bool) trong Python là kiểu logic chỉ có 2 giá trị phân biệt được viết hoa chữ cái đầu là True và False.",
+        distractions: ["1 hoặc 0", "Yes hoặc No", "Chuỗi văn bản"],
+      },
+      {
+        id: "py3",
+        title: "Danh sách (List) trong Python là gì?",
+        description: "Cấu trúc dữ liệu có thứ tự, có thể thay đổi và chứa nhiều kiểu phần tử.",
+        explanation: "List trong Python được định nghĩa bằng cặp ngoặc vuông [] và cho phép lập chỉ mục từ 0.",
+        distractions: ["Hằng số bất biến", "Hàm gọi đệ quy", "File lưu trữ ổ cứng"],
+      },
+    ],
+  },
+  crs_data_structure_algorithms: {
+    title: "Bài 4: Cấu Trúc Dữ Liệu & Giải Thuật Thực Chiến",
+    pairs: [
+      {
+        id: "dsa1",
+        title: "Độ phức tạp O(1) nghĩa là gì?",
+        description: "Thời gian thực thi không phụ thuộc vào kích thước dữ liệu đầu vào.",
+        explanation: "Thuật toán có độ phức tạp thời gian O(1) thực hiện số phép toán không đổi bất kể kích thước mảng là 1 hay 1 triệu phần tử.",
+        distractions: ["Chạy chậm nhất khi dữ liệu lớn", "Luôn tốn 1 byte bộ nhớ", "Phải lặp qua toàn bộ mảng"],
+      },
+      {
+        id: "dsa2",
+        title: "Cấu trúc ngăn xếp Stack hoạt động theo nguyên lý nào?",
+        description: "LIFO (Last In, First Out) - Vào sau ra trước.",
+        explanation: "Phần tử được thêm vào cuối cùng trong Stack sẽ là phần tử đầu tiên được lấy ra khi gọi thao tác Pop.",
+        distractions: ["FIFO (Vào trước ra trước)", "Ngẫu nhiên", "Sắp xếp theo thứ tự số"],
+      },
+    ],
+  },
+  crs_generative_ai_projects: {
+    title: "Bài 5: Thiết Kế Ứng Dụng Trí Tuệ Nhân Tạo Với LLMs",
+    pairs: [
+      {
+        id: "ai1",
+        title: "Prompt Engineering trong Generative AI đóng vai trò gì?",
+        description: "Tối ưu hóa câu lệnh đầu vào để hướng dẫn mô hình AI sinh ra kết quả chính xác nhất.",
+        explanation: "Prompt Engineering là kỹ thuật thiết kế, tinh chỉnh chỉ thị đầu vào giúp mô hình ngôn ngữ lớn hiểu rõ bối cảnh và trả về kết quả mong muốn.",
+        distractions: ["Cài đặt phần cứng GPU", "Giải mã mạng LAN", "Sửa lỗi syntax code"],
+      },
+      {
+        id: "ai2",
+        title: "AI Agent khác gì so với mô hình Chatbot truyền thống?",
+        description: "Có khả năng tự lên kế hoạch, sử dụng Tools và thực thi hành động tự chủ để đạt mục tiêu.",
+        explanation: "AI Agents vượt trội hơn chatbot nhờ khả năng suy luận nhiều bước, gọi API / Tools bên ngoài và tự kiểm tra kết quả thực thi.",
+        distractions: ["Chỉ trả lời theo kịch bản sẵn", "Không thể kết nối Internet", "Chỉ chạy trên điện thoại"],
+      },
+    ],
+  },
+
+  // ── Legacy / Demo course IDs ──────────────────────────────────────────────
   crs_quantum_101: {
     title: "Vật Lý Lượng Tử Cơ Bản (Quantum 101)",
     pairs: [
@@ -12,7 +145,6 @@ const FALLBACK_PAIRS: Record<string, any> = {
         description: "Tính chất hạt (Photon)",
         distractions: ["Tính chất sóng", "Tính chất phản xạ", "Tính chất tán sắc"],
         explanation: "Hiện tượng quang điện (Einstein giải thích năm 1905) chứng minh ánh sáng truyền đi dưới dạng các gói năng lượng rời rạc gọi là photon.",
-        image_url: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600",
       },
       {
         id: "p2",
@@ -20,13 +152,6 @@ const FALLBACK_PAIRS: Record<string, any> = {
         description: "Erwin Schrödinger",
         explanation: "Nhà vật lý học người Áo Erwin Schrödinger đã đề xuất phương trình vi phân hàm sóng Psi mô tả xác suất tìm thấy hạt lượng tử.",
         distractions: ["Albert Einstein", "Niels Bohr", "Isaac Newton"],
-      },
-      {
-        id: "p3",
-        title: "Hằng số Planck có ký hiệu là gì?",
-        description: "h",
-        explanation: "Hằng số Planck (h = 6.626 x 10^-34 J.s) do Max Planck khám phá, là hằng số nền tảng của vật lý lượng tử.",
-        distractions: ["c", "e", "k"],
       },
     ],
   },
@@ -42,26 +167,8 @@ const FALLBACK_PAIRS: Record<string, any> = {
       },
     ],
   },
-  crs_coding_basics: {
-    title: "Nhập Môn Tư Duy Lập Trình & Thuật Toán",
-    pairs: [
-      {
-        id: "p1",
-        title: "Trong lập trình, cấu trúc điều kiện nào dùng để rẽ nhánh khi đúng hoặc sai?",
-        description: "Cấu trúc IF - ELSE",
-        explanation: "Cấu trúc IF - ELSE cho phép chương trình kiểm tra biểu thức điều kiện Logic (Boolean). Nếu biểu thức trả về True thì thực thi khối lệnh IF, ngược lại thực thi khối lệnh ELSE.",
-        distractions: ["Vòng lặp For", "Vòng lặp While", "Hàm Function"],
-      },
-      {
-        id: "p2",
-        title: "Linh kiện nào được coi là 'Bộ Não' xử lý trung tâm của máy tính?",
-        description: "CPU (Central Processing Unit)",
-        explanation: "CPU là bộ vi xử lý trung tâm, chịu trách nhiệm nhận, giải mã và thực thi các chỉ lệnh của chương trình máy tính bằng các khối ALU và Control Unit.",
-        distractions: ["RAM", "Ổ cứng SSD", "Bộ nguồn PSU"],
-      },
-    ],
-  },
 };
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -141,9 +248,20 @@ export async function POST(req: NextRequest) {
       if (cDoc.exists) {
         const cData = cDoc.data()!;
         title = cData.title || title;
-        pairs = Array.isArray(cData.contentData)
-          ? cData.contentData
-          : cData.contentData?.pairs || cData.content_data?.pairs || [];
+        // Support multiple field name conventions:
+        // 1. `pairs` (used in fill_data.mjs — primary)
+        // 2. `contentData` array (legacy flat format)
+        // 3. `contentData.pairs` / `content_data.pairs` (legacy nested format)
+        if (Array.isArray(cData.pairs) && cData.pairs.length > 0) {
+          pairs = cData.pairs;
+        } else if (Array.isArray(cData.contentData) && cData.contentData.length > 0) {
+          pairs = cData.contentData;
+        } else {
+          pairs =
+            cData.contentData?.pairs ||
+            cData.content_data?.pairs ||
+            [];
+        }
       }
     } catch {
       // Fallback
@@ -170,7 +288,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate Anti-Cheat signed session token
-    const maxScore = Math.max(100, pairs.length * 25);
+    // maxScore must cover the highest possible legitimate score for each game mode:
+    // - Memory Match: pairs×35 (match pts) + 5×15 (full lives bonus) + 100 (time bonus) = pairs×35 + 175
+    // - Quiz/Boss: pairs×50 (max 30 + streak bonus up to 20) = pairs×50
+    // Add 20% buffer to avoid false positives on edge cases
+    const memoryMatchMax = pairs.length * 35 + 5 * 15 + 100; // 4 pairs → 315
+    const quizMax = pairs.length * 50;                        // 4 pairs → 200
+    const maxScore = Math.ceil(Math.max(memoryMatchMax, quizMax) * 1.2);
     const { sessionToken, sessionId } = generateGameSessionToken({
       gameId: gameId || "eve_game_engine",
       courseId,
