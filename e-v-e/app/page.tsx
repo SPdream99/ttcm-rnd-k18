@@ -182,14 +182,6 @@ export default function Home() {
               <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
               <span>E-V-E PLATFORM v2.4 • LIVE LEARNING ECOSYSTEM</span>
             </div>
-
-            <div className="hidden sm:flex items-center gap-6 text-[12px] font-mono text-zinc-500 uppercase">
-              <span>RBAC SECURED</span>
-              <span>•</span>
-              <span>GAME SDK COMPLIANT</span>
-              <span>•</span>
-              <span>AI POWERED</span>
-            </div>
           </div>
 
           {/* Main Hero Split Grid */}
