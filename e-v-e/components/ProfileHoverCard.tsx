@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, ReactNode, MouseEvent } from "react";
 import { createPortal } from "react-dom";
-import { Coins, Sparkles, CheckCircle2, Gamepad2, Trophy, Flame } from "lucide-react";
+import { Coins, Sparkles, CheckCircle2, Gamepad2 } from "lucide-react";
 
 export interface ProfileCardData {
   id?: string;
@@ -23,22 +23,22 @@ export interface ProfileCardData {
 interface ProfileHoverCardProps {
   user: ProfileCardData;
   children: ReactNode;
-  align?: "top" | "bottom" | "auto";
+  align?: "bottom" | "top" | "auto";
   className?: string;
-  asTableRow?: boolean;
 }
 
 export function ProfileHoverCard({
   user,
   children,
-  align = "auto",
+  align = "bottom",
   className = "",
 }: ProfileHoverCardProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [coords, setCoords] = useState<{ top: number; left: number; position: "top" | "bottom" }>({
+  const [isVisible, setIsVisible] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number; position: "bottom" | "top" }>({
     top: 0,
     left: 0,
-    position: "top",
+    position: "bottom",
   });
   const [mounted, setMounted] = useState(false);
 
@@ -56,11 +56,11 @@ export function ProfileHoverCard({
   const calculatePosition = (clientX?: number) => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const cardWidth = 270;
-    const cardHeight = 190;
+    const cardWidth = 275;
+    const cardHeight = 200;
     const padding = 16;
 
-    // Anchor horizontally near the mouse position or centered on the element
+    // Anchor horizontally centered on mouse or trigger bar
     let targetX = clientX !== undefined ? clientX : rect.left + rect.width / 2;
     let left = targetX - cardWidth / 2;
 
@@ -69,13 +69,16 @@ export function ProfileHoverCard({
       left = window.innerWidth - padding - cardWidth;
     }
 
-    // Determine whether to place above or below
-    let position: "top" | "bottom" = "top";
-    let top = rect.top - cardHeight - 10;
+    // Default to positioning BELOW the hovered bar
+    let position: "bottom" | "top" = "bottom";
+    let top = rect.bottom + 8;
 
-    if (align === "bottom" || (align === "auto" && rect.top < cardHeight + padding + 10)) {
-      position = "bottom";
-      top = rect.bottom + 10;
+    // Fallback above only if bottom goes off-screen
+    if (align === "top" || (align !== "bottom" && rect.bottom + cardHeight > window.innerHeight - padding)) {
+      if (rect.top > cardHeight + padding) {
+        position = "top";
+        top = rect.top - cardHeight - 8;
+      }
     }
 
     setCoords({ top, left, position });
@@ -88,20 +91,30 @@ export function ProfileHoverCard({
     }
     calculatePosition(e?.clientX);
     setIsOpen(true);
+    // Request animation frame for smooth transparent-in transition
+    requestAnimationFrame(() => {
+      setIsVisible(true);
+    });
   };
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!isOpen) {
       calculatePosition(e.clientX);
       setIsOpen(true);
+      requestAnimationFrame(() => {
+        setIsVisible(true);
+      });
     }
   };
 
   const handleMouseLeave = () => {
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
     closeTimeoutRef.current = setTimeout(() => {
-      setIsOpen(false);
-    }, 150);
+      setIsVisible(false);
+      setTimeout(() => {
+        setIsOpen(false);
+      }, 200);
+    }, 120);
   };
 
   const initial = (user.name || "U").charAt(0).toUpperCase();
@@ -127,6 +140,7 @@ export function ProfileHoverCard({
                 clearTimeout(closeTimeoutRef.current);
                 closeTimeoutRef.current = null;
               }
+              setIsVisible(true);
               setIsOpen(true);
             }}
             onMouseLeave={handleMouseLeave}
@@ -136,17 +150,30 @@ export function ProfileHoverCard({
               left: `${coords.left}px`,
               zIndex: 999999,
             }}
-            className="w-[270px] p-4 rounded-2xl bg-white/98 backdrop-blur-md text-zinc-900 border-2 border-red-500 shadow-2xl shadow-red-950/25 animate-in fade-in zoom-in-95 duration-150 select-none font-sans pointer-events-auto"
+            className={`w-[275px] p-4 rounded-2xl bg-white/92 backdrop-blur-xl text-zinc-900 border-2 border-red-500 shadow-2xl shadow-red-950/20 select-none font-sans pointer-events-auto transition-all duration-200 ease-out ${
+              isVisible
+                ? "opacity-100 translate-y-0 scale-100"
+                : "opacity-0 -translate-y-2 scale-95 pointer-events-none"
+            }`}
           >
-            {/* Transparent Bridge to prevent mouse loss */}
+            {/* Transparent hover bridge */}
             <div
               className={`absolute left-0 right-0 h-4 ${
-                coords.position === "top" ? "-bottom-4" : "-top-4"
+                coords.position === "bottom" ? "-top-4" : "-bottom-4"
+              }`}
+            />
+
+            {/* Pointer arrow indicator */}
+            <div
+              className={`absolute w-3 h-3 bg-white/92 border-red-500 transform rotate-45 left-1/2 -translate-x-1/2 ${
+                coords.position === "bottom"
+                  ? "-top-1.5 border-t-2 border-l-2"
+                  : "-bottom-1.5 border-b-2 border-r-2"
               }`}
             />
 
             {/* Header with Avatar & Details */}
-            <div className="flex items-start gap-3 pb-3 border-b border-zinc-100">
+            <div className="flex items-start gap-3 pb-3 border-b border-zinc-200/80 relative z-10">
               <div
                 className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-base text-white shadow-md shrink-0 ${
                   user.rank === 1
@@ -203,15 +230,15 @@ export function ProfileHoverCard({
             </div>
 
             {/* Stat Badges Grid */}
-            <div className="grid grid-cols-2 gap-1.5 pt-2.5 text-xs">
-              <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-200">
+            <div className="grid grid-cols-2 gap-1.5 pt-2.5 text-xs relative z-10">
+              <div className="p-2 rounded-xl bg-zinc-50/90 border border-zinc-200/80">
                 <span className="text-[9px] text-zinc-500 font-bold block uppercase">Điểm Số</span>
                 <span className="font-mono font-black text-red-600 text-xs">
                   {typeof user.score === "number" ? user.score.toLocaleString() : user.score || "0"} pts
                 </span>
               </div>
 
-              <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-200">
+              <div className="p-2 rounded-xl bg-zinc-50/90 border border-zinc-200/80">
                 <span className="text-[9px] text-zinc-500 font-bold block uppercase">E-V-E Coins</span>
                 <span className="font-mono font-black text-amber-600 text-xs flex items-center gap-1">
                   <Coins className="w-3 h-3" /> {user.coins || 0}
@@ -219,7 +246,7 @@ export function ProfileHoverCard({
               </div>
 
               {user.accuracy !== undefined && (
-                <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-200">
+                <div className="p-2 rounded-xl bg-zinc-50/90 border border-zinc-200/80">
                   <span className="text-[9px] text-zinc-500 font-bold block uppercase">Chính Xác</span>
                   <span className="font-mono font-black text-emerald-600 text-xs">
                     {user.accuracy}%
@@ -228,7 +255,7 @@ export function ProfileHoverCard({
               )}
 
               {user.gamesWon !== undefined && (
-                <div className="p-2 rounded-xl bg-zinc-50 border border-zinc-200">
+                <div className="p-2 rounded-xl bg-zinc-50/90 border border-zinc-200/80">
                   <span className="text-[9px] text-zinc-500 font-bold block uppercase">Thắng Game</span>
                   <span className="font-mono font-black text-blue-600 text-xs flex items-center gap-1">
                     <Gamepad2 className="w-3 h-3" /> {user.gamesWon}
@@ -238,7 +265,7 @@ export function ProfileHoverCard({
             </div>
 
             {/* Footer Badge */}
-            <div className="mt-2.5 pt-2 border-t border-zinc-100 flex items-center justify-between text-[10px] text-zinc-500">
+            <div className="mt-2.5 pt-2 border-t border-zinc-200/80 flex items-center justify-between text-[10px] text-zinc-500 relative z-10">
               <span className="flex items-center gap-1 font-medium">
                 <Sparkles className="w-3 h-3 text-red-500" /> Hồ sơ E-V-E
               </span>
