@@ -16,6 +16,7 @@ import {
   Info,
   ShieldAlert,
   Download,
+  Search,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { useToast } from "@/components/Toast";
@@ -70,6 +71,7 @@ export default function TeacherUploadCenterPage() {
   const [todayGameUploads, setTodayGameUploads] = useState<number>(0);
   const [whitelistMode, setWhitelistMode] = useState<"all" | "custom">("all");
   const [allowedCourses, setAllowedCourses] = useState<string[]>([]);
+  const [courseSearchQuery, setCourseSearchQuery] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -1075,57 +1077,97 @@ export default function TeacherUploadCenterPage() {
             </div>
 
             {whitelistMode === "custom" && (
-              <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 space-y-2 mt-2">
-                <div className="flex items-center justify-between text-xs">
+              <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 space-y-3 mt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <span className="font-bold text-zinc-700">Chọn các khóa học áp dụng ({allowedCourses.length} đã chọn):</span>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setAllowedCourses(availableCourses.map((c) => c.id))}
-                      className="text-[11px] text-red-600 hover:underline font-bold"
+                      className="text-[11px] text-red-600 hover:underline font-bold cursor-pointer"
                     >
-                      Chọn tất cả
+                      Chọn tất cả ({availableCourses.length})
                     </button>
                     <span className="text-zinc-300">•</span>
                     <button
                       type="button"
                       onClick={() => setAllowedCourses([])}
-                      className="text-[11px] text-zinc-500 hover:underline"
+                      className="text-[11px] text-zinc-500 hover:underline cursor-pointer"
                     >
-                      Bỏ chọn
+                      Bỏ chọn tất cả
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
-                  {availableCourses.map((c) => {
-                    const isSelected = allowedCourses.includes(c.id);
-                    return (
-                      <label
-                        key={c.id}
-                        className={`flex items-center gap-2.5 p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
-                          isSelected
-                            ? "bg-white border-red-600 shadow-xs text-zinc-900 font-bold"
-                            : "bg-zinc-100/60 border-zinc-200 text-zinc-600 hover:bg-white"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setAllowedCourses((prev) => [...prev, c.id]);
-                            } else {
-                              setAllowedCourses((prev) => prev.filter((id) => id !== c.id));
-                            }
-                          }}
-                          className="w-4 h-4 rounded text-red-600 focus:ring-red-500 border-zinc-300"
-                        />
-                        <span className="truncate">{c.title}</span>
-                      </label>
-                    );
-                  })}
+                {/* Ô tìm kiếm khóa học */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={courseSearchQuery}
+                    onChange={(e) => setCourseSearchQuery(e.target.value)}
+                    placeholder="Tìm kiếm bài học theo tên, mã khóa học..."
+                    className="w-full bg-white border border-zinc-300 focus:border-red-600 rounded-lg pl-8 pr-3 py-1.5 text-xs text-zinc-900 focus:outline-none placeholder:text-zinc-400"
+                  />
+                  {courseSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setCourseSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-400 hover:text-zinc-600 font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
+
+                {/* Danh sách khóa học lọc theo từ khóa */}
+                {(() => {
+                  const filtered = availableCourses.filter(
+                    (c) =>
+                      c.title.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
+                      c.id.toLowerCase().includes(courseSearchQuery.toLowerCase())
+                  );
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="p-4 text-center text-xs text-zinc-400">
+                        Không tìm thấy bài học nào khớp với từ khóa "{courseSearchQuery}".
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto p-1">
+                      {filtered.map((c) => {
+                        const isSelected = allowedCourses.includes(c.id);
+                        return (
+                          <label
+                            key={c.id}
+                            className={`flex items-center gap-2.5 p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                              isSelected
+                                ? "bg-white border-red-600 shadow-xs text-zinc-900 font-bold"
+                                : "bg-zinc-100/60 border-zinc-200 text-zinc-600 hover:bg-white"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setAllowedCourses((prev) => [...prev, c.id]);
+                                } else {
+                                  setAllowedCourses((prev) => prev.filter((id) => id !== c.id));
+                                }
+                              }}
+                              className="w-4 h-4 rounded text-red-600 focus:ring-red-500 border-zinc-300"
+                            />
+                            <span className="truncate">{c.title}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
