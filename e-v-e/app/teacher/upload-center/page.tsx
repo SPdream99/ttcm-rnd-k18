@@ -62,6 +62,7 @@ export default function TeacherUploadCenterPage() {
   // 3. Upload Game State
   const [gameTitle, setGameTitle] = useState("");
   const [gameDesc, setGameDesc] = useState("");
+  const [gameRules, setGameRules] = useState("");
   const [gameVisibility, setGameVisibility] = useState<"private" | "public" | "free_to_share" | "free_to_use">("public");
   const [gameZipFile, setGameZipFile] = useState<File | null>(null);
   const [needExtraData, setNeedExtraData] = useState(true);
@@ -318,11 +319,18 @@ export default function TeacherUploadCenterPage() {
       downloadUrl = "/memory_matching_game.zip";
     }
 
+    const finalDescription = [
+      gameDesc.trim() ? `Mô tả: ${gameDesc.trim()}` : "",
+      gameRules.trim() ? `Luật chơi: ${gameRules.trim()}` : "",
+    ].filter(Boolean).join("\n\n") || gameDesc.trim() || "Trò chơi tương tác học tập tích hợp E-V-E Game SDK.";
+
     const payload = {
       id: gameGeneratedId,
       gameId: gameGeneratedId,
       title: gameTitle,
-      description: gameDesc || "Trò chơi tương tác học tập tích hợp E-V-E Game SDK.",
+      description: finalDescription,
+      rules: gameRules.trim(),
+      summary: gameDesc.trim(),
       authorId: teacherUid,
       author_id: teacherUid,
       uploaderId: teacherUid,
@@ -886,26 +894,64 @@ export default function TeacherUploadCenterPage() {
             </h3>
 
             <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-900 uppercase tracking-wider">Thông Tin & Cấu Hình Trò Chơi</label>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">Điền tên, mô tả và hướng dẫn luật chơi chi tiết cho học sinh.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!gameTitle) setGameTitle("Boss Slayer Marathon Quiz - Đấu Trùm Thuật Toán");
+                    setGameDesc("Trò chơi nhập vai học thuật 3D. Học sinh vào vai hiệp sĩ vượt tháp thử thách, mỗi câu hỏi trả lời chính xác sẽ kích hoạt đòn đánh tiêu hao sinh lực của Boss quái vật.");
+                    setGameRules("1. Mỗi màn chơi gồm 10 câu hỏi/khái niệm tương ứng với bài học được chọn.\n2. Trả lời đúng trong 5s đầu: +100 điểm & tạo đòn đánh Chí Mạng (Critical Hit x2) lên Boss.\n3. Trả lời sai hoặc quá 15s: Bị Boss phản đòn trừ 20 HP nhân vật.\n4. Tiêu diệt Boss trước khi hết 100 HP nhân vật để chiến thắng và nhận thưởng Coins.");
+                    toast.success("Đã điền sẵn khung mẫu Mô tả & Luật chơi!", "Mẫu Tham Khảo");
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition-colors flex items-center gap-1.5 border border-red-200 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" /> Áp Dụng Mẫu Chuẩn
+                </button>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-zinc-700 mb-1">Tên Trò Chơi</label>
                 <input
                   type="text"
                   value={gameTitle}
                   onChange={(e) => setGameTitle(e.target.value)}
-                  placeholder="VD: Memory Matching Game"
-                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2 text-xs text-zinc-900 focus:outline-none"
+                  placeholder="VD: Boss Slayer Marathon Quiz (Đấu Trùm Phản Xạ) hoặc Memory Match 3D"
+                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2.5 text-xs text-zinc-900 focus:outline-none placeholder:text-zinc-400 placeholder:italic"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-700 mb-1">Mô Tả Trò Chơi & Luật Chơi</label>
+                <label className="block text-xs font-bold text-zinc-700 mb-1">
+                  Mô Tả Tổng Quan Trò Chơi (Khái quát nội dung & phong cách trải nghiệm)
+                </label>
                 <textarea
                   rows={3}
                   value={gameDesc}
                   onChange={(e) => setGameDesc(e.target.value)}
-                  placeholder="Mô tả cách học sinh tương tác..."
-                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2 text-xs text-zinc-900 focus:outline-none"
+                  placeholder={"VD: Trò chơi lật thẻ tương tác 3D đa chiều. Học sinh thực hành ôn luyện ghi nhớ các khái niệm, định nghĩa và thuật ngữ lập trình thông qua việc quan sát và lật mở các ô thẻ bí ẩn trong không gian ma trận số..."}
+                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2.5 text-xs text-zinc-900 focus:outline-none placeholder:text-zinc-400 placeholder:italic leading-relaxed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 mb-1">
+                  Luật Chơi & Hướng Dẫn Tính Điểm (Chi tiết từng bước, cơ chế thưởng/phạt)
+                </label>
+                <textarea
+                  rows={5}
+                  value={gameRules}
+                  onChange={(e) => setGameRules(e.target.value)}
+                  placeholder={`VD MẪU LUẬT CHƠI:
+- Mục tiêu: Tìm và ghép đúng tất cả các cặp thẻ (Khái niệm ↔ Định nghĩa) trước khi hết giờ.
+- Cơ chế thao tác: Mỗi lượt lật 2 thẻ. Khớp đúng nhận +50 điểm và hiệu ứng ánh sáng; sai thì 2 thẻ tự úp lại sau 1.2s.
+- Combo điểm thưởng: Đúng liên tiếp 3 câu kích hoạt Fever Mode x2 điểm và +10 Coins.
+- Điều kiện thắng: Hoàn thành 100% cặp câu hỏi trong thời gian quy định.`}
+                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2.5 text-xs text-zinc-900 focus:outline-none placeholder:text-zinc-400 placeholder:italic font-mono text-[11px] leading-relaxed whitespace-pre-line"
                 />
               </div>
 
