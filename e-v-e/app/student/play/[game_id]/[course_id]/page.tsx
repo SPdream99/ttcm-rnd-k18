@@ -1070,14 +1070,14 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                     </button>
                   </div>
                 </div>
-              ) : (
-                /* STATE 3: PLAYING MEMORY CARD MATCH */
+              ) : isCardMatchingEngine ? (
+                /* STATE 3A: PLAYING MEMORY CARD MATCH ENGINE */
                 <div className="space-y-6">
                   {/* Status Banner */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-zinc-50 p-3.5 rounded-xl border border-zinc-200">
                     <div className="flex items-center gap-4 flex-wrap">
                       <span>Lượt lật: <strong className="text-zinc-900">{movesCount}</strong></span>
-                      <span>Đã ghép: <strong className="text-red-600">{matchedPairsCount} / {cards.length / 2} cặp</strong></span>
+                      <span>Đã ghép: <strong className="text-red-600">{matchedPairsCount} / {Math.max(1, Math.floor(cards.length / 2))} cặp</strong></span>
                       <span>Thời gian: <strong className="text-zinc-900">{elapsedSeconds}s</strong></span>
                       {movesCount > 0 && (
                         <span>Chính xác: <strong className="text-emerald-700">{Math.min(100, Math.max(10, Math.round((matchedPairsCount / movesCount) * 100)))}%</strong></span>
@@ -1144,6 +1144,129 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                       );
                     })}
                   </div>
+                </div>
+              ) : (
+                /* STATE 3B: PLAYING BOSS BATTLE / INTERACTIVE QUIZ ENGINE */
+                <div className="max-w-2xl mx-auto space-y-6">
+                  {/* Status Bar */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-zinc-50 p-3.5 rounded-xl border border-zinc-200">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <span className="font-bold text-red-600">
+                        Câu {currentPairIdx + 1} / {pairs.length}
+                      </span>
+                      <span>Điểm: <strong className="text-zinc-900">{score} PTS</strong></span>
+                      <span>Thời gian: <strong className="text-zinc-900">{elapsedSeconds}s</strong></span>
+                      {streak > 1 && (
+                        <span className="text-amber-600 font-bold flex items-center gap-1">
+                          <Flame className="w-3.5 h-3.5 fill-amber-500" /> Combo x{streak}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-zinc-500">
+                      Độ chính xác: <strong className="text-emerald-700">
+                        {quizAttempts > 0 ? `${Math.round((quizCorrects / quizAttempts) * 100)}%` : "100%"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Question Container */}
+                  {pairs[currentPairIdx] && (
+                    <div className="p-6 md:p-8 rounded-3xl bg-white border-2 border-red-100 shadow-xl space-y-6">
+                      {/* Question Header & Progress */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-xs font-mono">
+                          <span className="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 font-bold flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-red-600" /> THỬ THÁCH HỌC LIỆU #{currentPairIdx + 1}
+                          </span>
+                          <span className="text-zinc-400 font-bold">
+                            {Math.round(((currentPairIdx + 1) / pairs.length) * 100)}% Hoàn thành
+                          </span>
+                        </div>
+
+                        <h3 className="text-lg md:text-xl font-black text-zinc-900 leading-snug">
+                          {pairs[currentPairIdx].title}
+                        </h3>
+
+                        {/* Progress line */}
+                        <div className="w-full h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                          <div
+                            className="h-full bg-red-600 transition-all duration-300 rounded-full"
+                            style={{ width: `${((currentPairIdx + 1) / pairs.length) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Options Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                        {shuffledOptions.map((opt, optIdx) => {
+                          const optionLetters = ["A", "B", "C", "D"];
+                          const isSelected = selectedAnswer === opt;
+                          const currentCorrect = pairs[currentPairIdx]?.description || (pairs[currentPairIdx] as any)?.rightAnswer;
+                          const isActualCorrect = opt === currentCorrect;
+
+                          let optionClass = "bg-zinc-50 border-zinc-200 text-zinc-800 hover:border-red-400 hover:bg-red-50/50";
+                          if (selectedAnswer !== null) {
+                            if (isActualCorrect) {
+                              optionClass = "bg-emerald-50 border-emerald-500 text-emerald-900 font-bold ring-2 ring-emerald-200 shadow-sm";
+                            } else if (isSelected && !isCorrect) {
+                              optionClass = "bg-red-50 border-red-500 text-red-900 font-bold ring-2 ring-red-200";
+                            } else {
+                              optionClass = "bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60";
+                            }
+                          }
+
+                          return (
+                            <button
+                              key={optIdx}
+                              disabled={selectedAnswer !== null}
+                              onClick={() => handleSelectQuizAnswer(opt)}
+                              className={`p-4 rounded-2xl border-2 text-left text-xs md:text-sm font-medium transition-all duration-200 flex items-start gap-3 cursor-pointer select-none active:scale-98 ${optionClass}`}
+                            >
+                              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
+                                selectedAnswer !== null && isActualCorrect
+                                  ? "bg-emerald-600 text-white"
+                                  : isSelected && !isCorrect
+                                  ? "bg-red-600 text-white"
+                                  : "bg-zinc-200 text-zinc-700"
+                              }`}>
+                                {optionLetters[optIdx % 4]}
+                              </span>
+                              <span className="flex-1 leading-relaxed">{opt}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Explanation Feedback Box */}
+                      {selectedAnswer !== null && (
+                        <div className={`p-4 rounded-2xl border transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 ${
+                          isCorrect
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                            : "bg-red-50 border-red-200 text-red-900"
+                        }`}>
+                          <div className="flex items-center gap-2 font-bold text-xs mb-1">
+                            {isCorrect ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                <span>Chính Xác! +30 Điểm thưởng</span>
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="w-4 h-4 text-red-600" />
+                                <span>Chưa Chính Xác! Cùng xem giải thích bên dưới:</span>
+                              </>
+                            )}
+                          </div>
+                          {pairs[currentPairIdx]?.explanation && (
+                            <p className="text-xs text-zinc-600 mt-1 leading-relaxed pl-6 border-l-2 border-current">
+                              {pairs[currentPairIdx].explanation}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
