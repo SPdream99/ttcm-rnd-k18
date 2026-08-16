@@ -536,6 +536,12 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
     if (isCardMatchingEngine) {
       initializeMemoryDeck();
+    } else if (pairs.length > 0) {
+      const current = pairs[0];
+      const correct = current?.description || (current as any)?.rightAnswer || "Đáp án đúng";
+      const distractions = current?.distractions || ["Lựa chọn A", "Lựa chọn B", "Lựa chọn C"];
+      const opts = [correct, ...distractions].sort(() => Math.random() - 0.5);
+      setShuffledOptions(opts);
     }
   };
 
