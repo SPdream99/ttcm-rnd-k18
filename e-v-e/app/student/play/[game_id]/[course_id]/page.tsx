@@ -1078,39 +1078,54 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                   </div>
                 </div>
               ) : customGameUrl ? (
-                /* STATE 3C: PLAYING CUSTOM UPLOADED HTML5 / SDK GAME IN IFRAME */
+                /* STATE 3C: PLAYING CUSTOM UPLOADED HTML5 / SDK GAME IN IFRAME (AUTO SCALED & RESPONSIVE) */
                 <div className="w-full space-y-4">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs bg-zinc-50 p-3 rounded-xl border border-zinc-200">
                     <div className="flex items-center gap-2 font-bold text-zinc-800">
                       <Gamepad2 className="w-4 h-4 text-red-600" />
-                      <span>{customGameTitle || currentGameMeta.title} (HTML5 Custom SDK Engine)</span>
+                      <span>{customGameTitle || currentGameMeta.title} (HTML5 Custom Engine)</span>
                     </div>
-                    <div className="text-zinc-500 text-[11px]">
-                      Tự động nạp Extra Data bài học ({pairs.length} câu hỏi) & Kết nối SDK
+                    <div className="flex items-center gap-3 text-zinc-500 text-[11px]">
+                      <span>✦ Nạp Extra Data ({pairs.length} câu hỏi)</span>
+                      <button
+                        onClick={toggleFullscreen}
+                        className="px-2.5 py-1 rounded-lg bg-zinc-200 hover:bg-zinc-300 text-zinc-800 font-bold transition flex items-center gap-1 cursor-pointer"
+                        title="Phóng to toàn màn hình"
+                      >
+                        <Maximize2 className="w-3 h-3" /> Toàn màn hình
+                      </button>
                     </div>
                   </div>
 
-                  <div className="w-full h-[650px] md:h-[720px] rounded-2xl overflow-hidden border-2 border-zinc-300 shadow-xl bg-black relative">
+                  <div className="w-full h-[78vh] min-h-[580px] max-h-[900px] rounded-2xl overflow-hidden border-2 border-zinc-300 shadow-2xl bg-black relative flex items-center justify-center">
                     <iframe
                       ref={iframeRef}
                       src={`${customGameUrl}?gameId=${encodeURIComponent(gameId)}&courseId=${encodeURIComponent(courseId)}&userId=${encodeURIComponent(uid || "student")}&sessionToken=${encodeURIComponent(sessionToken || "")}&apiBase=${encodeURIComponent("/api/games")}`}
-                      className="w-full h-full border-0"
+                      className="w-full h-full border-0 block"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                      }}
                       allow="autoplay; fullscreen; accelerometer; gyroscope"
                       onLoad={() => {
                         if (iframeRef.current && iframeRef.current.contentWindow) {
+                          const initPayload = {
+                            gameId,
+                            courseId,
+                            courseTitle,
+                            pairs,
+                            sessionToken,
+                            userId: uid,
+                            userName: studentName,
+                          };
+                          // Hỗ trợ cả 2 chuẩn event name của SDK
                           iframeRef.current.contentWindow.postMessage(
-                            {
-                              type: "EVE_INIT_DATA",
-                              payload: {
-                                gameId,
-                                courseId,
-                                courseTitle,
-                                pairs,
-                                sessionToken,
-                                userId: uid,
-                                userName: studentName,
-                              },
-                            },
+                            { type: "EVE_INIT_GAME_DATA", payload: initPayload },
+                            "*"
+                          );
+                          iframeRef.current.contentWindow.postMessage(
+                            { type: "EVE_INIT_DATA", payload: initPayload },
                             "*"
                           );
                         }
