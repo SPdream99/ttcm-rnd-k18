@@ -277,22 +277,29 @@ export class FirestoreTeacherRepo implements TeacherPort {
       async () => {
         try {
           const snap = await getDocs(collection(db, "class_members"));
-          const list: TeacherClassStudentItem[] = [];
+          const seenStudentIds = new Set<string>();
 
           snap.docs.forEach((d) => {
             const data = d.data();
             if (classId && data.class_id && data.class_id !== classId) return;
             if (data.role === "Teacher") return;
 
-            list.push({
-              id: data.student_id || d.id,
-              name: data.student_name || "Học Viên",
-              code: "STD-2026-01",
-              className: "Lập Trình Web K18",
-              gpa: "9.2",
-              attendance: `${data.attendance_rate || 96}%`,
-              status: "Đang Học",
-            });
+            const memberDocId = d.id;
+            const studentId = data.student_id || memberDocId;
+            const uniqueKey = classId ? `${classId}_${studentId}` : memberDocId;
+
+            if (!seenStudentIds.has(uniqueKey)) {
+              seenStudentIds.add(uniqueKey);
+              list.push({
+                id: memberDocId,
+                name: data.student_name || "Học Viên",
+                code: data.code || `STD-${studentId.slice(0, 6).toUpperCase()}`,
+                className: data.class_name || "Lập Trình Web K18",
+                gpa: data.gpa ? String(data.gpa) : "9.2",
+                attendance: `${data.attendance_rate || 96}%`,
+                status: (data.status === "paused" ? "Bảo Lưu" : "Đang Học") as any,
+              });
+            }
           });
 
           return list;
