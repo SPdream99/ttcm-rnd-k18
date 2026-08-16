@@ -858,14 +858,6 @@ export default function TeacherUploadCenterPage() {
       {/* TAB 3: UPLOAD GAME */}
       {activeTab === "game" && (
         <form onSubmit={handleSubmitGame} className="space-y-6">
-          <div className="p-4 rounded-2xl border border-red-200 bg-red-50 flex items-center justify-between text-xs text-red-700">
-            <div className="flex items-center gap-2 font-bold">
-              <ShieldAlert className="w-5 h-5 text-red-600" />
-              <span>Hạn mức đăng tải: Tối đa {DAILY_GAME_LIMIT} Game/ngày</span>
-            </div>
-            <span className="font-bold">Đã đăng hôm nay: {todayGameUploads}/{DAILY_GAME_LIMIT}</span>
-          </div>
-
           <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">
             <h3 className="font-bold text-base text-zinc-900 flex items-center gap-2">
               <Gamepad2 className="w-5 h-5 text-red-600" /> Thông Tin Trò Chơi
@@ -1220,7 +1212,7 @@ export default function TeacherUploadCenterPage() {
 
           <button
             type="submit"
-            disabled={isUploading || todayGameUploads >= DAILY_GAME_LIMIT}
+            disabled={isUploading}
             className="w-full py-3.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white cursor-pointer disabled:opacity-50 shadow-sm"
           >
             {isUploading ? (
