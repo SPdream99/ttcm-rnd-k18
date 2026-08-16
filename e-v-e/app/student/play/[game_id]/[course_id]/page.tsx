@@ -398,13 +398,6 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         setLoadErrorDetails(err?.message || "Không thể tải dữ liệu câu hỏi Extra Data của bài học.");
       }
     }
-      } catch (err: any) {
-        console.error("Lỗi tải Extra Data:", err);
-        if (isCancelled) return;
-        setDataStatus("error");
-        setLoadErrorDetails(err?.message || "Không thể tải dữ liệu câu hỏi Extra Data của bài học.");
-      }
-    }
 
     loadCourseExtraData();
 
