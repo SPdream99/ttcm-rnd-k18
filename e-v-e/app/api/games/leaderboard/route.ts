@@ -27,21 +27,59 @@ export async function GET(req: NextRequest) {
         .get();
 
       if (!snapshot.empty) {
+        // Collect all unique userIds to fetch real names from users collection
+        const userIds = new Set<string>();
+        snapshot.docs.forEach((docSnap) => {
+          const d = docSnap.data();
+          if (d.userId && d.userId !== "anonymous") {
+            userIds.add(d.userId);
+          }
+        });
+
+        // Fetch real names from users collection
+        const userNamesMap = new Map<string, string>();
+        await Promise.all(
+          Array.from(userIds).map(async (uId) => {
+            try {
+              const uDoc = await adminDb.collection("users").doc(uId).get();
+              if (uDoc.exists) {
+                const uData = uDoc.data();
+                const realName =
+                  uData?.name ||
+                  uData?.displayName ||
+                  uData?.fullName ||
+                  (uData?.email ? uData.email.split("@")[0] : "");
+                if (realName) {
+                  userNamesMap.set(uId, realName);
+                }
+              }
+            } catch (err) {
+              console.warn("Could not fetch user name for ID:", uId, err);
+            }
+          })
+        );
+
         // Deduplicate: keep only the best score per userId
         const bestByUser = new Map<string, any>();
         snapshot.docs.forEach((docSnap) => {
           const d = docSnap.data();
           const uId = d.userId || "anonymous";
           const existing = bestByUser.get(uId);
-          if (!existing || d.score > existing.score) {
+          if (!existing || (d.score || 0) > (existing.score || 0)) {
+            const realName =
+              userNamesMap.get(uId) ||
+              d.userName ||
+              (uId !== "anonymous" ? `Học viên #${uId.slice(-4)}` : "Học viên");
+
             bestByUser.set(uId, {
               id: docSnap.id,
               userId: uId,
-              userName: d.userName || "",
+              userName: realName,
+              name: realName,
               score: d.score || 0,
               playTime: d.playTimeSeconds ? `${d.playTimeSeconds}s` : "--",
               accuracy: d.accuracyPercent ?? 100,
-              date: d.finishedAt ? new Date(d.finishedAt).toLocaleDateString("vi-VN") : "Hom nay",
+              date: d.finishedAt ? new Date(d.finishedAt).toLocaleDateString("vi-VN") : "Hôm nay",
             });
           }
         });
@@ -52,8 +90,6 @@ export async function GET(req: NextRequest) {
           rankings.push({
             ...entry,
             rank: idx + 1,
-            // Display name as "Hoc vien #xxxx" for privacy, keep userId for hover
-            name: `Học viên #${entry.userId?.slice(-4) || (idx + 1)}`,
           });
         });
 

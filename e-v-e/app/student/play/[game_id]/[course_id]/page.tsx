@@ -174,7 +174,13 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
   const { currentUser, profile } = useAuthAdapter();
   const uid = currentUser?.uid || profile?.uid || "usr_student";
-  const studentName = currentUser?.name || profile?.fullName || "Học Viên E-V-E";
+  const studentName =
+    currentUser?.name ||
+    (currentUser as any)?.displayName ||
+    profile?.fullName ||
+    (profile as any)?.name ||
+    (currentUser as any)?.email?.split("@")[0] ||
+    "Học Viên E-V-E";
   const userRole = currentUser?.role || profile?.role || "student";
 
   const currentGameMeta = GAME_METADATA[gameId] || {

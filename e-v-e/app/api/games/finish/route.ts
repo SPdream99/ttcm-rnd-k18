@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
       courseId,
       pathId,
       userId,
+      userName,
       sessionToken,
       score = 100,
       isWin = true,
@@ -42,14 +43,31 @@ export async function POST(req: NextRequest) {
     const earnedCoins = validation.earnedCoins;
 
     // 2. Update user coins if userId provided using Admin Firestore
+    let realUserName = userName || "";
     if (userId && userId !== "anonymous") {
       try {
-        await adminDb.collection("users").doc(userId).update({
+        const uRef = adminDb.collection("users").doc(userId);
+        const uSnap = await uRef.get();
+        if (uSnap.exists) {
+          const uData = uSnap.data();
+          if (!realUserName) {
+            realUserName =
+              uData?.name ||
+              uData?.displayName ||
+              uData?.fullName ||
+              (uData?.email ? uData.email.split("@")[0] : "");
+          }
+        }
+        await uRef.update({
           coins: FieldValue.increment(earnedCoins),
         });
       } catch (err) {
-        console.warn("Could not update user coins in Admin Firestore:", err);
+        console.warn("Could not update user coins or fetch name in Admin Firestore:", err);
       }
+    }
+
+    if (!realUserName) {
+      realUserName = userId && userId !== "anonymous" ? `Học viên #${userId.slice(-4)}` : "Học viên";
     }
 
     // 3. Upsert game result: keep only best score per user per game+course
@@ -85,11 +103,12 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Update if new score is better
-        if (finalScore > bestScore) {
+        // Update if new score is better or if name was updated
+        if (finalScore > bestScore || !bestDoc.data().userName) {
           await bestDoc.ref.update({
-            score: finalScore,
+            score: Math.max(finalScore, bestScore),
             rawReportedScore: score,
+            userName: realUserName,
             isWin,
             accuracyPercent,
             playTimeSeconds,
@@ -98,7 +117,6 @@ export async function POST(req: NextRequest) {
             finishedAt: new Date().toISOString(),
           });
         }
-        // If new score is not better, we still keep the old record unchanged
       } else {
         // No existing record, create new one
         await adminDb.collection("game_results").add({
@@ -106,6 +124,7 @@ export async function POST(req: NextRequest) {
           courseId,
           pathId: pathId || "default_path",
           userId: effectiveUserId,
+          userName: realUserName,
           score: finalScore,
           rawReportedScore: score,
           isWin,
@@ -129,6 +148,7 @@ export async function POST(req: NextRequest) {
         courseId,
         pathId,
         finalScore,
+        userName: realUserName,
         isWin,
         earnedCoins,
         courseCompleted: isWin,
