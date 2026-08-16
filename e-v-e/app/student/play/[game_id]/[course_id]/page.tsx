@@ -282,6 +282,10 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           if (data.success && Array.isArray(data.pairs) && data.pairs.length > 0) {
             loadedTitle = data.courseTitle || loadedTitle;
             loadedPairs = data.pairs;
+          } else if (!data.success && data.error === "empty_extra_data") {
+            setDataStatus("error");
+            setLoadErrorDetails(data.message || "Khóa học này chưa có dữ liệu câu hỏi / học liệu (Extra Data trống). Không thể khởi chạy trò chơi!");
+            return;
           } else if (!data.success && (data.error === "not_enrolled" || data.error === "paused")) {
             setDataStatus("error");
             setLoadErrorDetails(data.message || "Bạn chưa tham gia hoặc đang tạm dừng lớp học chứa khóa học này.");
@@ -349,15 +353,18 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         }
 
         if (loadedPairs.length === 0) {
-          const fallback = FALLBACK_COURSE_DATA[courseId] || FALLBACK_COURSE_DATA["crs_coding_basics"];
+          const fallback = FALLBACK_COURSE_DATA[courseId];
           if (fallback && Array.isArray(fallback.pairs) && fallback.pairs.length > 0) {
             loadedTitle = fallback.title;
             loadedPairs = fallback.pairs;
           }
         }
 
+        // Nếu Extra Data hoàn toàn rỗng -> Báo lỗi không load được game
         if (loadedPairs.length === 0) {
-          throw new Error("Không tìm thấy bộ câu hỏi Extra Data cho bài học này.");
+          setDataStatus("error");
+          setLoadErrorDetails("Khóa học này chưa có dữ liệu câu hỏi / học liệu (Extra Data trống). Không thể nạp và khởi chạy trò chơi!");
+          return;
         }
 
         if (isCancelled) return;

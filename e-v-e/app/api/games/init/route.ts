@@ -150,9 +150,23 @@ export async function POST(req: NextRequest) {
     }
 
     if (!pairs || pairs.length === 0) {
-      const fb = FALLBACK_PAIRS[courseId] || FALLBACK_PAIRS["crs_coding_basics"] || FALLBACK_PAIRS["crs_quantum_101"];
-      title = fb.title;
-      pairs = fb.pairs;
+      if (FALLBACK_PAIRS[courseId]) {
+        const fb = FALLBACK_PAIRS[courseId];
+        title = fb.title;
+        pairs = fb.pairs;
+      }
+    }
+
+    // Nếu trò chơi cần extra data mà dữ liệu pairs hoàn toàn rỗng -> Báo lỗi không load được game
+    if (!pairs || pairs.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "empty_extra_data",
+          message: "Khóa học này chưa có dữ liệu câu hỏi / học liệu (Extra Data trống). Không thể khởi chạy trò chơi!",
+        },
+        { status: 400 }
+      );
     }
 
     // Generate Anti-Cheat signed session token
