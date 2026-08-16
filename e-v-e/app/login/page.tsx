@@ -72,43 +72,14 @@ export default function LoginPage() {
       return;
     }
 
-    const { role, status, twoFactorEnabled } = res.user;
+    const { role, status } = res.user;
 
     if (status === "banned") {
       setMessage("Tài khoản của bạn đã bị khóa bởi Quản trị viên.");
       return;
     }
 
-    if (twoFactorEnabled) {
-      setPendingUser(res.user);
-      setIs2FAChallenge(true);
-      setMessage("Tài khoản đã kích hoạt 2FA. Đang gửi mã xác thực tới email...");
-
-      try {
-        const sendRes = await fetch("/api/auth/2fa/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: res.user.email || email,
-            recipientName: res.user.name,
-            purpose: "login",
-          }),
-        });
-        const sendData = await sendRes.json();
-        if (sendData.success) {
-          setMaskedEmail(sendData.maskedEmail || email);
-          setMessage(`Mã OTP 6 số đã được gửi tới ${sendData.maskedEmail || email}`);
-          setResendCooldown(60);
-          if (sendData.isDemo && sendData.demoOtp) {
-            setDemoOtpHint(sendData.demoOtp);
-          }
-        }
-      } catch {
-        setMessage("Không thể gửi mã 2FA. Vui lòng thử lại.");
-      }
-      return;
-    }
-
+    // 2FA temporarily disabled globally
     completeLogin(res.user);
   };
 

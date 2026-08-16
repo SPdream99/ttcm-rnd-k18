@@ -40,13 +40,7 @@ export default function TeacherProfilePage() {
   const [isKeyConfigured, setIsKeyConfigured] = useState(false);
   const [maskedKeyDisplay, setMaskedKeyDisplay] = useState("");
 
-  const [is2FAEnabled, setIs2FAEnabled] = useState(true);
-  const [show2FAModal, setShow2FAModal] = useState(false);
-  const [otpInput, setOtpInput] = useState("");
-  const [isSending2FA, setIsSending2FA] = useState(false);
-  const [isVerifying2FA, setIsVerifying2FA] = useState(false);
-  const [modalMsg, setModalMsg] = useState("");
-  const [demoOtpHint, setDemoOtpHint] = useState<string | null>(null);
+
 
   const [stats, setStats] = useState({ courses: 0, games: 0, plays: 0 });
   const [confirmModal, setConfirmModal] = useState<{
@@ -124,103 +118,6 @@ export default function TeacherProfilePage() {
     });
   };
 
-  const handleInitiate2FAToggle = async () => {
-    if (is2FAEnabled) {
-      setConfirmModal({
-        title: "Tắt Xác Thực 2 Lớp (2FA)",
-        desc: "Thầy/Cô có chắc chắn muốn tắt tính năng Bảo Mật 2 Lớp (2FA qua Email) không? Tài khoản sẽ giảm mức độ bảo vệ khi đăng nhập.",
-        confirmText: "Tắt 2FA",
-        onConfirm: async () => {
-          setConfirmModal(null);
-          setIsVerifying2FA(true);
-          try {
-            const res = await fetch("/api/auth/2fa/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: displayEmail,
-                otp: "DISABLE_2FA",
-                purpose: "disable",
-              }),
-            });
-            const data = await res.json();
-            if (data.success) {
-              setIs2FAEnabled(false);
-              toast.info("Đã tắt tính năng 2FA thành công.", "Bảo Mật");
-            }
-          } catch {
-            toast.error("Lỗi khi tắt 2FA.", "Bảo Mật");
-          } finally {
-            setIsVerifying2FA(false);
-          }
-        },
-      });
-      return;
-    }
-
-    setIsSending2FA(true);
-    setModalMsg("");
-    try {
-      const res = await fetch("/api/auth/2fa/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: displayEmail,
-          recipientName: displayName,
-          purpose: "enable",
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (data.isDemo && data.demoOtp) {
-          setDemoOtpHint(data.demoOtp);
-        }
-        setShow2FAModal(true);
-      } else {
-        toast.error("Không thể gửi mã xác thực. Vui lòng thử lại sau.", "Bảo Mật");
-      }
-    } catch {
-      toast.error("Lỗi kết nối khi gửi mã OTP.", "Bảo Mật");
-    } finally {
-      setIsSending2FA(false);
-    }
-  };
-
-  const handleConfirmEnable2FA = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otpInput.length !== 6) {
-      setModalMsg("Vui lòng nhập đủ 6 chữ số OTP.");
-      return;
-    }
-
-    setIsVerifying2FA(true);
-    setModalMsg("");
-    try {
-      const res = await fetch("/api/auth/2fa/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: displayEmail,
-          otp: otpInput,
-          purpose: "enable",
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setIs2FAEnabled(true);
-        setShow2FAModal(false);
-        toast.success("Đã kích hoạt Bảo Mật 2 Lớp (2FA qua Email) thành công!", "Bảo Mật");
-      } else {
-        setModalMsg(data.error || "Mã OTP không chính xác.");
-      }
-    } catch {
-      setModalMsg("Lỗi kết nối máy chủ.");
-    } finally {
-      setIsVerifying2FA(false);
-    }
-  };
-
   return (
     <div className="space-y-8 font-sans pb-12">
       {/* Header */}
@@ -261,136 +158,21 @@ export default function TeacherProfilePage() {
 
       {/* CARD BẢO MẬT 2 LỚP */}
       <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-red-600" /> Xác Thực 2 Bước (2FA Qua Email)
             </h3>
             <p className="text-xs text-zinc-500">
-              Bảo vệ an toàn tài khoản: Mỗi khi đăng nhập, hệ thống sẽ gửi mã OTP 6 số vào email <strong>{displayEmail}</strong>.
+              Tính năng xác thực 2 bước (2FA OTP qua email) đang được <strong>tạm tắt trên toàn hệ thống</strong> để phục vụ kiểm thử và truy cập nhanh chóng.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-bold ${
-                is2FAEnabled
-                  ? "bg-red-50 text-red-700 border border-red-200"
-                  : "bg-zinc-100 text-zinc-600 border border-zinc-200"
-              }`}
-            >
-              {is2FAEnabled ? "2FA ĐANG BẬT" : "2FA ĐANG TẮT"}
-            </span>
-
-            <button
-              type="button"
-              disabled={isSending2FA || isVerifying2FA}
-              onClick={handleInitiate2FAToggle}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 ${
-                is2FAEnabled
-                  ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200"
-                  : "bg-red-600 hover:bg-red-700 text-white shadow-sm"
-              }`}
-            >
-              {isSending2FA || isVerifying2FA ? (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              ) : is2FAEnabled ? (
-                "Tắt 2FA"
-              ) : (
-                "Bật 2FA Ngay"
-              )}
-            </button>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-zinc-600 font-medium">
-          <div>
-            <span className="text-zinc-400 block mb-1">Phương thức:</span>
-            <strong className="text-zinc-900">Email OTP (6 Chữ Số)</strong>
-          </div>
-          <div>
-            <span className="text-zinc-400 block mb-1">Hộp thư nhận OTP:</span>
-            <strong className="text-red-600">{displayEmail}</strong>
-          </div>
-          <div>
-            <span className="text-zinc-400 block mb-1">Thời hạn mã:</span>
-            <strong className="text-zinc-900">5 Phút / Lần gửi</strong>
-          </div>
+          <span className="px-3 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-600 border border-zinc-200 shrink-0 self-start sm:self-auto">
+            TẠM TẮT TOÀN HỆ THỐNG
+          </span>
         </div>
       </div>
-
-      {/* 2FA MODAL */}
-      {show2FAModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-          <div className="bg-white border-2 border-red-600 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-4 text-center relative">
-            <button
-              onClick={() => setShow2FAModal(false)}
-              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-900 p-1"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl font-bold">
-              <ShieldCheck className="w-8 h-8" />
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-zinc-900">Xác Nhận Bật 2FA Email</h3>
-              <p className="text-xs text-zinc-500">
-                Nhập mã OTP 6 số được gửi tới <strong>{displayEmail}</strong>.
-              </p>
-            </div>
-
-            {demoOtpHint && (
-              <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center justify-between">
-                <span>Mã OTP: <strong>{demoOtpHint}</strong></span>
-                <button
-                  type="button"
-                  onClick={() => setOtpInput(demoOtpHint)}
-                  className="px-2 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-bold"
-                >
-                  Điền nhanh 
-                </button>
-              </div>
-            )}
-
-            <form onSubmit={handleConfirmEnable2FA} className="space-y-4">
-              <input
-                type="text"
-                maxLength={6}
-                value={otpInput}
-                onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ""))}
-                placeholder="••••••"
-                className="w-full text-center font-mono text-2xl tracking-[8px] bg-zinc-50 border-2 border-zinc-300 focus:border-red-600 rounded-xl py-2.5 text-zinc-900 focus:outline-none font-bold"
-                required
-                autoFocus
-              />
-
-              {modalMsg && (
-                <div className="text-xs font-bold text-red-600">{modalMsg}</div>
-              )}
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShow2FAModal(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition-colors cursor-pointer"
-                >
-                  Hủy Bỏ
-                </button>
-                <button
-                  type="submit"
-                  disabled={isVerifying2FA || otpInput.length !== 6}
-                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  {isVerifying2FA ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                  Xác Nhận Kích Hoạt
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* CARD QUẢN LÝ AI KEY */}
       <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">

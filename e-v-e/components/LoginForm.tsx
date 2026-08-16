@@ -33,34 +33,7 @@ export default function LoginForm() {
       return;
     }
 
-    if (res.user.twoFactorEnabled) {
-      setPendingUser(res.user);
-      setIs2FAChallenge(true);
-      setMessage("Đang gửi mã xác thực 2FA tới email của bạn...");
-
-      try {
-        const sendRes = await fetch("/api/auth/2fa/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: res.user.email || email,
-            recipientName: res.user.name,
-            purpose: "login",
-          }),
-        });
-        const data = await sendRes.json();
-        if (data.success) {
-          setMessage(`Mã OTP 6 số đã được gửi tới email ${data.maskedEmail || email}.`);
-          if (data.isDemo && data.demoOtp) {
-            setDemoOtpHint(data.demoOtp);
-          }
-        }
-      } catch (err) {
-        console.warn("2FA Send error:", err);
-      }
-      return;
-    }
-
+    // 2FA temporarily disabled globally
     finishLogin(res.user);
   };
 
