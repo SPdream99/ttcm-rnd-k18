@@ -931,8 +931,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                       <span className="font-bold text-zinc-900 truncate max-w-[200px]">{courseTitle}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-zinc-500 font-medium">Học liệu nạp vào card:</span>
-                      <span className="font-bold text-red-600">{pairs.length} Cặp ({pairs.length * 2} Thẻ bài)</span>
+                      <span className="text-zinc-500 font-medium">Học liệu nạp vào trò chơi:</span>
+                      <span className="font-bold text-red-600">{pairs.length}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-zinc-500 font-medium">Phần thưởng tối đa:</span>
