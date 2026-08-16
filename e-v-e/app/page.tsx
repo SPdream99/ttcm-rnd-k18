@@ -226,15 +226,18 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* 3 Metric Pills */}
-              <div className="grid grid-cols-2 gap-3 pt-6 border-t border-zinc-200">
-                <div className="p-3 rounded-xl bg-white border border-zinc-200">
-                  <div className="font-mono text-base md:text-lg font-black text-zinc-900">4 Chặng</div>
-                  <div className="text-[11px] text-zinc-500 font-medium">Bản đồ mở khóa</div>
-                </div>
-                <div className="p-3 rounded-xl bg-white border border-zinc-200">
-                  <div className="font-mono text-base md:text-lg font-black text-zinc-900">24/7</div>
-                  <div className="text-[11px] text-zinc-500 font-medium">Gia Sư Trực Tuyến AI</div>
+              {/* Motto Banner */}
+              <div className="pt-6 border-t border-zinc-200">
+                <div className="p-3.5 rounded-2xl bg-white border border-zinc-200 shadow-xs flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-red-600 block">Triết Lý Giáo Dục E-V-E</span>
+                    <h3 className="text-sm md:text-base font-bold text-zinc-900 leading-tight">
+                      Học bằng niềm vui và trải nghiệm
+                    </h3>
+                  </div>
                 </div>
               </div>
             </div>
