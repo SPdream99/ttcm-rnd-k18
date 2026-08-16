@@ -200,8 +200,8 @@ export async function POST(req: NextRequest) {
           } catch {}
         }
 
-        // Học sinh không được truy cập khóa học chưa duyệt
-        if (!isCourseAccepted && userRole !== "admin" && userRole !== "teacher") {
+        // Chỉ Admin mới có quyền xem trước khóa học chưa duyệt
+        if (!isCourseAccepted && userRole !== "admin") {
           return NextResponse.json(
             {
               success: false,
@@ -232,8 +232,8 @@ export async function POST(req: NextRequest) {
       // Fallback
     }
 
-    // Kiểm tra học sinh có đang học hoặc đã tham gia lộ trình chứa courseId này hay không
-    if (userId && userId !== "anonymous" && userRole !== "admin" && userRole !== "teacher") {
+    // Kiểm tra học sinh/giáo viên có đang học hoặc đã tham gia lộ trình chứa courseId này hay không (chỉ Admin được miễn)
+    if (userId && userId !== "anonymous" && userRole !== "admin") {
       try {
         const enrollmentsSnap = await adminDb
           .collection("student_learning_path")

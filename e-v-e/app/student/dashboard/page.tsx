@@ -82,14 +82,28 @@ export default function StudentDashboardPage() {
           getDocs(collection(db, "game_results")),
         ]);
 
-        // 1. In-memory map cho Learning Paths
+        // 1. Xây dựng tập các khóa học đã được duyệt
+        const acceptedCourseIds = new Set<string>();
+        coursesSnap.docs.forEach((d: any) => {
+          const cd = d.data();
+          if (cd.isAccepted ?? cd.is_accepted) {
+            acceptedCourseIds.add(d.id);
+          }
+        });
+
+        // 2. In-memory map cho Learning Paths (CHỈ path đã duyệt VÀ 100% courses con đã duyệt)
         const pathDataMap = new Map<string, any>();
         const courseToPathMap: Record<string, { pathId: string; pathTitle: string }> = {};
 
         pathSnap.docs.forEach((d: any) => {
           const pData = d.data();
-          pathDataMap.set(d.id, pData);
+          const isPathAccepted = Boolean(pData.isAccepted ?? pData.is_accepted);
           const pCourses: string[] = Array.isArray(pData.courses) ? pData.courses : [];
+          const allCoursesApproved = pCourses.length > 0 && pCourses.every((cId) => acceptedCourseIds.has(cId));
+
+          if (!isPathAccepted || !allCoursesApproved) return; // Quy tắc một chiều
+
+          pathDataMap.set(d.id, pData);
           pCourses.forEach((cId) => {
             courseToPathMap[cId] = {
               pathId: d.id,
@@ -98,7 +112,7 @@ export default function StudentDashboardPage() {
           });
         });
 
-        // 2. Map Enrolled Classes từ bộ nhớ (Không cần gọi thêm query mạng lồng nhau)
+        // 3. Map Enrolled Classes từ bộ nhớ (Không cần gọi thêm query mạng lồng nhau)
         const userPathStatusMap = new Map<string, "active" | "paused">();
         const classesData: any[] = [];
         const seenPathIds = new Set<string>();
@@ -110,7 +124,8 @@ export default function StudentDashboardPage() {
             userPathStatusMap.set(pathId, eData.status === "paused" ? "paused" : "active");
           }
 
-          if (eData.status === "paused" || seenPathIds.has(pathId)) {
+          // Chỉ hiện lớp học nếu lộ trình thỏa mãn quy tắc duyệt một chiều
+          if (eData.status === "paused" || seenPathIds.has(pathId) || !pathDataMap.has(pathId)) {
             continue;
           }
           seenPathIds.add(pathId);

@@ -166,14 +166,25 @@ export default function StudentGamesArcadePage() {
 
         setGames(fetchedGames);
 
-        // Fetch Learning Paths map (chỉ lấy path đã được duyệt)
+        // Lấy tập ID khóa học đã duyệt
+        const acceptedCourseIds = new Set<string>();
+        coursesSnap.docs.forEach((d: any) => {
+          const cd = d.data();
+          if (cd.isAccepted ?? cd.is_accepted) {
+            acceptedCourseIds.add(d.id);
+          }
+        });
+
+        // Fetch Learning Paths map (CHỈ LẤY PATH ĐÃ DUYỆT VÀ 100% COURSES CON ĐÃ ĐƯỢC DUYỆT)
         const courseToPathMap: Record<string, { pathId: string; pathTitle: string }> = {};
         pathSnap.docs.forEach((d: any) => {
           const pData = d.data();
           const isPathAccepted = Boolean(pData.isAccepted ?? pData.is_accepted);
-          if (!isPathAccepted) return;
-
           const pCourses: string[] = Array.isArray(pData.courses) ? pData.courses : [];
+          const allCoursesApproved = pCourses.length > 0 && pCourses.every((cId) => acceptedCourseIds.has(cId));
+
+          if (!isPathAccepted || !allCoursesApproved) return; // Ràng buộc một chiều
+
           pCourses.forEach((cId) => {
             courseToPathMap[cId] = {
               pathId: d.id,
