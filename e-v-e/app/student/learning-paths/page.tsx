@@ -63,23 +63,39 @@ export default function StudentLearningPathPage() {
     }
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
+        // Lấy danh sách các khóa học đã được Admin duyệt
+        const coursesSnap = await getDocs(collection(db, "courses"));
+        const acceptedCourseIds = new Set<string>();
+        coursesSnap.docs.forEach((d) => {
+          const cData = d.data();
+          if (cData.isAccepted ?? cData.is_accepted) {
+            acceptedCourseIds.add(d.id);
+          }
+        });
+
+        // 1. All paths marked accepted in Firestore
+        const pathSnapshot = await getDocs(collection(db, "learning_path"));
+        const acceptedPathsDocs = pathSnapshot.docs.filter((d) => {
+          const data = d.data();
+          const isPathAccepted = Boolean(data.is_accepted ?? data.isAccepted);
+          if (!isPathAccepted) return false;
+
+          // RÀNG BUỘC MỘT CHIỀU: Mọi course trong lộ trình BẮT BUỘC phải được duyệt
+          const rawCourses = data.courses || data.courseIds || data.course_ids || [];
+          const pathCourseIds: string[] = Array.isArray(rawCourses)
+            ? rawCourses.map((c: any) => (typeof c === "string" ? c : c.id || c.course_id || "")).filter(Boolean)
+            : [];
+
+          if (pathCourseIds.length === 0) return false;
+          const allCoursesApproved = pathCourseIds.every((cId) => acceptedCourseIds.has(cId));
+          return allCoursesApproved;
+        });
+
         if (!user) {
-          const pathQuery = query(
-            collection(db, "learning_path"),
-            where("is_accepted", "==", true)
-          );
-          const pathSnapshot = await getDocs(pathQuery);
-          await loadTeachersAndSet(pathSnapshot.docs);
+          await loadTeachersAndSet(acceptedPathsDocs);
           setLoading(false);
           return;
         }
-
-        // 1. All accepted paths
-        const pathQuery = query(
-          collection(db, "learning_path"),
-          where("is_accepted", "==", true)
-        );
-        const pathSnapshot = await getDocs(pathQuery);
 
         // 2. Lấy tất cả các lộ trình học sinh đã tham gia (cả đang học lẫn bảo lưu)
         let enrolledPathIds = new Set<string>();
@@ -99,8 +115,8 @@ export default function StudentLearningPathPage() {
           // ignore
         }
 
-        // 3. Chỉ hiển thị các lộ trình MỚI mà học sinh CHƯA TỪNG tham gia
-        const availablePaths = pathSnapshot.docs.filter(
+        // 3. Chỉ hiển thị các lộ trình MỚI mà học sinh CHƯA TỪNG tham gia & thỏa mãn quy tắc duyệt 1 chiều
+        const availablePaths = acceptedPathsDocs.filter(
           (d) => !enrolledPathIds.has(d.id)
         );
 

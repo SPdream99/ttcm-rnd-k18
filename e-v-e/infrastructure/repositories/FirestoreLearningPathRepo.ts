@@ -73,12 +73,33 @@ export class FirestoreLearningPathRepo implements LearningPathPort {
       "learning_paths_accepted",
       async () => {
         try {
-          const q = query(
-            collection(db, COLLECTION_NAME),
-            where("is_accepted", "==", true)
-          );
-          const snap = await getDocs(q);
-          return snap.docs.map((d) => this.mapDocToLearningPath(d.id, d.data()));
+          const [pathsSnap, coursesSnap] = await Promise.all([
+            getDocs(query(collection(db, COLLECTION_NAME), where("is_accepted", "==", true))),
+            getDocs(collection(db, "courses")),
+          ]);
+
+          const acceptedCourseIds = new Set<string>();
+          coursesSnap.docs.forEach((d) => {
+            const cData = d.data();
+            if (cData.isAccepted ?? cData.is_accepted) {
+              acceptedCourseIds.add(d.id);
+            }
+          });
+
+          const validPaths: LearningPath[] = [];
+          pathsSnap.docs.forEach((d) => {
+            const pathObj = this.mapDocToLearningPath(d.id, d.data());
+            const courseList = Array.isArray(pathObj.courses) ? pathObj.courses : [];
+            // Ràng buộc một chiều: Nếu có bất kỳ course nào chưa duyệt, ẩn cả lộ trình
+            const allCoursesAccepted =
+              courseList.length > 0 && courseList.every((cId: string) => acceptedCourseIds.has(cId));
+
+            if (allCoursesAccepted) {
+              validPaths.push(pathObj);
+            }
+          });
+
+          return validPaths;
         } catch (error) {
           console.error("Error getting accepted learning paths:", error);
           return [];
