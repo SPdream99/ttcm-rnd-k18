@@ -185,68 +185,33 @@ export async function POST(req: NextRequest) {
     let title = "Khóa Học E-V-E";
     let pairs = [];
 
-    // Kiểm tra học sinh có đang học hoặc đã tham gia lộ trình chứa courseId này hay không
-    if (userId && userId !== "anonymous") {
-      try {
-        const uDoc = await adminDb.collection("users").doc(userId).get();
-        const userRole = uDoc.exists ? uDoc.data()?.role : "student";
-
-        // Admin & Teacher có quyền xem trước (god-mode)
-        if (userRole !== "admin" && userRole !== "teacher") {
-          const enrollmentsSnap = await adminDb
-            .collection("student_learning_path")
-            .where("student_id", "==", userId)
-            .get();
-
-          let hasEnrolledCourse = false;
-          let isPaused = false;
-
-          for (const enDoc of enrollmentsSnap.docs) {
-            const enData = enDoc.data();
-            const lpDoc = await adminDb.collection("learning_path").doc(enData.learning_path_id).get();
-            if (lpDoc.exists) {
-              const lpCourses = lpDoc.data()?.courses || [];
-              if (lpCourses.includes(courseId)) {
-                hasEnrolledCourse = true;
-                if (enData.status === "paused") {
-                  isPaused = true;
-                }
-                break;
-              }
-            }
-          }
-
-          if (isPaused) {
-            return NextResponse.json(
-              {
-                success: false,
-                error: "paused",
-                message: "Lớp học chứa bài học này đang ở trạng thái TẠM DỪNG (BẢO LƯU). Bạn cần kích hoạt lại lớp học để tiếp tục chơi.",
-              },
-              { status: 403 }
-            );
-          }
-
-          if (!hasEnrolledCourse) {
-            return NextResponse.json(
-              {
-                success: false,
-                error: "not_enrolled",
-                message: "Bạn chưa đăng ký hoặc chưa từng học lộ trình chứa bài học này. Vui lòng tham gia lớp học để mở khóa!",
-              },
-              { status: 403 }
-            );
-          }
-        }
-      } catch (authCheckErr) {
-        console.warn("Authorization check warning in init route:", authCheckErr);
-      }
-    }
-
+    let userRole = "student";
     try {
       const cDoc = await adminDb.collection("courses").doc(courseId).get();
       if (cDoc.exists) {
         const cData = cDoc.data()!;
+        const isCourseAccepted = Boolean(cData.isAccepted ?? cData.is_accepted ?? false);
+
+        // Xác định role của người dùng
+        if (userId && userId !== "anonymous") {
+          try {
+            const uDoc = await adminDb.collection("users").doc(userId).get();
+            userRole = uDoc.exists ? uDoc.data()?.role || "student" : "student";
+          } catch {}
+        }
+
+        // Học sinh không được truy cập khóa học chưa duyệt
+        if (!isCourseAccepted && userRole !== "admin" && userRole !== "teacher") {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "not_approved",
+              message: "Khóa học này chưa được Admin duyệt. Bạn không thể truy cập nội dung này.",
+            },
+            { status: 403 }
+          );
+        }
+
         title = cData.title || title;
         // Support multiple field name conventions:
         // 1. `pairs` (used in fill_data.mjs — primary)
@@ -265,6 +230,58 @@ export async function POST(req: NextRequest) {
       }
     } catch {
       // Fallback
+    }
+
+    // Kiểm tra học sinh có đang học hoặc đã tham gia lộ trình chứa courseId này hay không
+    if (userId && userId !== "anonymous" && userRole !== "admin" && userRole !== "teacher") {
+      try {
+        const enrollmentsSnap = await adminDb
+          .collection("student_learning_path")
+          .where("student_id", "==", userId)
+          .get();
+
+        let hasEnrolledCourse = false;
+        let isPaused = false;
+
+        for (const enDoc of enrollmentsSnap.docs) {
+          const enData = enDoc.data();
+          const lpDoc = await adminDb.collection("learning_path").doc(enData.learning_path_id).get();
+          if (lpDoc.exists) {
+            const lpCourses = lpDoc.data()?.courses || [];
+            if (lpCourses.includes(courseId)) {
+              hasEnrolledCourse = true;
+              if (enData.status === "paused") {
+                isPaused = true;
+              }
+              break;
+            }
+          }
+        }
+
+        if (isPaused) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "paused",
+              message: "Lớp học chứa bài học này đang ở trạng thái TẠM DỪNG (BẢO LƯU). Bạn cần kích hoạt lại lớp học để tiếp tục chơi.",
+            },
+            { status: 403 }
+          );
+        }
+
+        if (!hasEnrolledCourse) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "not_enrolled",
+              message: "Bạn chưa đăng ký hoặc chưa từng học lộ trình chứa bài học này. Vui lòng tham gia lớp học để mở khóa!",
+            },
+            { status: 403 }
+          );
+        }
+      } catch (authCheckErr) {
+        console.warn("Authorization check warning in init route:", authCheckErr);
+      }
     }
 
     if (!pairs || pairs.length === 0) {
