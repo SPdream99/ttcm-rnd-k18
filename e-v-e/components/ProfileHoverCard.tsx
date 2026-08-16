@@ -85,12 +85,12 @@ export function ProfileHoverCard({
     let position: "bottom" | "top" = "bottom";
     let top = rect.bottom + 8;
 
-    // Fallback above only if bottom exceeds viewport
-    if (align === "top" || (align !== "bottom" && rect.bottom + cardHeight > window.innerHeight - padding)) {
-      if (rect.top > cardHeight + padding) {
-        position = "top";
-        top = rect.top - cardHeight - 8;
-      }
+    // Tự động kiểm tra: nếu hiện ở dưới mà bị tràn/che lấp đáy màn hình thì đổi vị trí lên TRÊN
+    const wouldOverflowBottom = rect.bottom + cardHeight + padding + 8 > window.innerHeight;
+
+    if (align === "top" || wouldOverflowBottom) {
+      position = "top";
+      top = Math.max(padding, rect.top - cardHeight - 8);
     }
 
     setCoords({ top, left, position, arrowLeft });
