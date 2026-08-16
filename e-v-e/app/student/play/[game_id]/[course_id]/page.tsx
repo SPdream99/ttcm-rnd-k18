@@ -276,15 +276,11 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
     async function loadCourseExtraData() {
       setDataStatus("loading");
-      setLoadProgress(20);
-      setLoadStepMessage("1/3: Đang kết nối máy chủ và xác thực Game Session...");
+      setLoadProgress(30);
+      setLoadStepMessage("1/2: Đang kết nối máy chủ và xác thực Game Session...");
 
       try {
-        await new Promise((r) => setTimeout(r, 250));
         if (isCancelled) return;
-
-        setLoadProgress(50);
-        setLoadStepMessage("2/3: Đang nạp bộ câu hỏi tương tác & Extra Data bài học...");
 
         let loadedPairs: CourseContentPair[] = [];
         let loadedTitle = "Khóa Học E-V-E";
@@ -315,36 +311,38 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           console.warn("API init fetch warning:", apiErr);
         }
 
-        // Kiểm tra quyền trên client Firestore: Chỉ học sinh đang/đã học lộ trình có chứa bài này mới được chơi
+        // Kiểm tra quyền trên client Firestore: Chạy song song nhanh chóng
         if (uid && userRole !== "admin" && userRole !== "teacher") {
           try {
             const enSnap = await getDocs(
               query(collection(db, "student_learning_path"), where("student_id", "==", uid))
             );
-            let hasEnrolled = false;
-            let isPaused = false;
-            for (const d of enSnap.docs) {
-              const dData = d.data();
-              const lpSnap = await getDoc(doc(db, "learning_path", dData.learning_path_id));
-              if (lpSnap.exists()) {
-                const lpCourses = lpSnap.data()?.courses || [];
-                if (lpCourses.includes(courseId)) {
-                  hasEnrolled = true;
-                  if (dData.status === "paused") {
-                    isPaused = true;
-                  }
-                  break;
-                }
-              }
-            }
 
-            if (isPaused) {
+            const lpChecks = enSnap.docs.map(async (d) => {
+              const dData = d.data();
+              try {
+                const lpSnap = await getDoc(doc(db, "learning_path", dData.learning_path_id));
+                if (lpSnap.exists()) {
+                  const lpCourses = lpSnap.data()?.courses || [];
+                  return {
+                    includesCourse: lpCourses.includes(courseId),
+                    isPaused: dData.status === "paused",
+                  };
+                }
+              } catch {}
+              return { includesCourse: false, isPaused: false };
+            });
+
+            const checkResults = await Promise.all(lpChecks);
+            const matchingResult = checkResults.find((r) => r.includesCourse);
+
+            if (matchingResult?.isPaused) {
               setDataStatus("error");
               setLoadErrorDetails("Lớp học chứa bài học này đang ở trạng thái TẠM DỪNG (BẢO LƯU). Bạn cần kích hoạt lại lớp học để tiếp tục chơi.");
               return;
             }
 
-            if (!hasEnrolled) {
+            if (!matchingResult) {
               setDataStatus("error");
               setLoadErrorDetails("Bạn chưa đăng ký hoặc chưa từng học lộ trình chứa bài học này. Vui lòng tham gia lớp học để mở khóa và chơi trò chơi với dữ liệu này!");
               return;
@@ -391,14 +389,15 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
         setCourseTitle(loadedTitle);
         setPairs(loadedPairs);
-        setLoadProgress(85);
-        setLoadStepMessage(`3/3: Đã nạp thành công ${loadedPairs.length} câu hỏi Extra Data! Chuẩn bị khởi chạy game...`);
-
-        await new Promise((r) => setTimeout(r, 350));
-        if (isCancelled) return;
-
         setLoadProgress(100);
         setDataStatus("ready");
+      } catch (err: any) {
+        console.error("Lỗi tải Extra Data:", err);
+        if (isCancelled) return;
+        setDataStatus("error");
+        setLoadErrorDetails(err?.message || "Không thể tải dữ liệu câu hỏi Extra Data của bài học.");
+      }
+    }
       } catch (err: any) {
         console.error("Lỗi tải Extra Data:", err);
         if (isCancelled) return;

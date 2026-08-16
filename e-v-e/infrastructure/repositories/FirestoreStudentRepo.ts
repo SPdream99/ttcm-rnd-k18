@@ -19,9 +19,11 @@ export class FirestoreStudentRepo implements StudentPort {
       "student_stats",
       async () => {
         try {
-          const pathsSnap = await getDocs(collection(db, "student_learning_path"));
-          const assignmentsSnap = await getDocs(collection(db, "assignments"));
-          const submissionsSnap = await getDocs(collection(db, "submissions"));
+          const [pathsSnap, assignmentsSnap, submissionsSnap] = await Promise.all([
+            getDocs(collection(db, "student_learning_path")),
+            getDocs(collection(db, "assignments")),
+            getDocs(collection(db, "submissions")),
+          ]);
 
           const enrolledCount = pathsSnap.size || 2;
           const submittedCount = submissionsSnap.size || 1;

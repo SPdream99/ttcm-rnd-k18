@@ -60,16 +60,15 @@ export default function StudentLeaderboardPage() {
           if (!cachedStudents.isStale && !cachedTeachers.isStale) return;
         }
 
-        // 1. Fetch users from Firestore
-        const userSnap = await getDocs(collection(db, "users"));
+        // Fetch users, game_results, and courses in parallel
+        const [userSnap, gameResSnap, coursesSnap] = await Promise.all([
+          getDocs(collection(db, "users")),
+          getDocs(collection(db, "game_results")),
+          getDocs(collection(db, "courses")),
+        ]);
+
         const allUsers: any[] = userSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-        // 2. Fetch game results
-        const gameResSnap = await getDocs(collection(db, "game_results"));
         const gameResults: any[] = gameResSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-        // 3. Fetch courses
-        const coursesSnap = await getDocs(collection(db, "courses"));
         const courses: any[] = coursesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
         // Student Rankings

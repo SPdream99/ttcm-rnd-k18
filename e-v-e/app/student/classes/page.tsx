@@ -62,11 +62,12 @@ export default function StudentClassPage() {
 
   const fetchClasses = async (userUid: string) => {
     try {
-      const enrollmentQuery = query(
-        collection(db, "student_learning_path"),
-        where("student_id", "==", userUid)
-      );
-      const enrollmentSnapshot = await getDocs(enrollmentQuery);
+      // Chạy song song toàn bộ dữ liệu cần thiết
+      const [enrollmentSnapshot, pathSnapshot, usersSnapshot] = await Promise.all([
+        getDocs(query(collection(db, "student_learning_path"), where("student_id", "==", userUid))),
+        getDocs(collection(db, "learning_path")),
+        getDocs(collection(db, "users")),
+      ]);
 
       const enrollments: StudentLearningPath[] = enrollmentSnapshot.docs
         .map((docSnap) => {
@@ -80,6 +81,13 @@ export default function StudentClassPage() {
         })
         .filter((item) => item.learning_path_id);
 
+      // In-memory maps
+      const pathMap = new Map<string, any>();
+      pathSnapshot.docs.forEach((d) => pathMap.set(d.id, d.data()));
+
+      const userMap = new Map<string, any>();
+      usersSnapshot.docs.forEach((d) => userMap.set(d.id, d.data()));
+
       const classList: ClassItem[] = [];
       const seenPathIds = new Set<string>();
 
@@ -89,48 +97,32 @@ export default function StudentClassPage() {
         }
         seenPathIds.add(enrollment.learning_path_id);
 
-        const pathQuery = query(
-          collection(db, "learning_path"),
-          where("__name__", "==", enrollment.learning_path_id)
-        );
-        const pathSnapshot = await getDocs(pathQuery);
+        const pathData = pathMap.get(enrollment.learning_path_id);
+        if (!pathData) continue;
 
-        if (pathSnapshot.empty) continue;
-
-        const pathDoc = pathSnapshot.docs[0];
-        const pathData = pathDoc.data();
-
-        let teacherName = "ThS. Nguyễn Thành Đạt";
-        if (pathData.author_id) {
-          const teacherQuery = query(
-            collection(db, "users"),
-            where("id", "==", pathData.author_id)
-          );
-          const teacherSnapshot = await getDocs(teacherQuery);
-          if (!teacherSnapshot.empty) {
-            const teacherData = teacherSnapshot.docs[0].data();
-            teacherName = teacherData.name || teacherData.displayName || "ThS. Nguyễn Thành Đạt";
-          }
+        let teacherName = pathData.authorName || pathData.teacherName || "ThS. Nguyễn Thành Đạt";
+        if (pathData.author_id && userMap.has(pathData.author_id)) {
+          const u = userMap.get(pathData.author_id);
+          teacherName = u.name || u.displayName || u.fullName || teacherName;
         }
 
         classList.push({
-          id: pathDoc.id,
-          enrollmentDocId: enrollment.id || `${userUid}_${pathDoc.id}`,
+          id: enrollment.learning_path_id,
+          enrollmentDocId: enrollment.id || `${userUid}_${enrollment.learning_path_id}`,
           title: pathData.title || "Lớp Học",
           description: pathData.description || "",
           instructor: teacherName,
           coursesCount: Array.isArray(pathData.courses) ? pathData.courses.length : 0,
-          progress: Math.min(enrollment.progress, 100),
-          difficulty: pathData.difficulty || "Beginner",
-          category: pathData.category || "General",
-          status: (enrollment.status === "paused" ? "paused" : "active") as "active" | "paused",
+          progress: enrollment.progress,
+          difficulty: pathData.difficulty || "Trung bình",
+          category: pathData.category || "Công nghệ & Lập trình",
+          status: enrollment.status === "paused" ? "paused" : "active",
         });
       }
 
       setClasses(classList);
-      cacheService.set("student_classes_page", classList, 60000);
     } catch (error) {
-      console.error("Error loading classes:", error);
+      console.error("Lỗi khi tải danh sách lớp học:", error);
     } finally {
       setLoading(false);
     }

@@ -85,7 +85,18 @@ export default function StudentGamesArcadePage() {
     async function loadArcadeData() {
       try {
         setLoading(true);
-        const gamesSnap = await getDocs(collection(db, "game_info"));
+        const studentUid = currentUser?.uid || auth.currentUser?.uid;
+
+        // Tối ưu hóa: Chạy song song toàn bộ các truy vấn Firestore độc lập
+        const [gamesSnap, pathSnap, enSnap, coursesSnap] = await Promise.all([
+          getDocs(collection(db, "game_info")),
+          getDocs(collection(db, "learning_path")),
+          studentUid
+            ? getDocs(query(collection(db, "student_learning_path"), where("student_id", "==", studentUid)))
+            : Promise.resolve({ docs: [] } as any),
+          getDocs(collection(db, "courses")),
+        ]);
+
         let fetchedGames: ArcadeGameItem[] = [];
 
         // Built-in standard games
@@ -128,7 +139,7 @@ export default function StudentGamesArcadePage() {
         });
 
         if (!gamesSnap.empty) {
-          gamesSnap.docs.forEach((d) => {
+          gamesSnap.docs.forEach((d: any) => {
             const data = d.data();
             if (data.status === "approved" || data.status === "active") {
               fetchedGames.push({
@@ -155,9 +166,8 @@ export default function StudentGamesArcadePage() {
         setGames(fetchedGames);
 
         // Fetch Learning Paths map
-        const pathSnap = await getDocs(collection(db, "learning_path"));
         const courseToPathMap: Record<string, { pathId: string; pathTitle: string }> = {};
-        pathSnap.docs.forEach((d) => {
+        pathSnap.docs.forEach((d: any) => {
           const pData = d.data();
           const pCourses: string[] = Array.isArray(pData.courses) ? pData.courses : [];
           pCourses.forEach((cId) => {
@@ -168,30 +178,18 @@ export default function StudentGamesArcadePage() {
           });
         });
 
-        // Fetch student enrollments
-        const studentUid = currentUser?.uid || auth.currentUser?.uid;
+        // Map student enrollments
         const userPathStatusMap = new Map<string, "active" | "paused">();
-
-        if (studentUid) {
-          try {
-            const enSnap = await getDocs(
-              query(collection(db, "student_learning_path"), where("student_id", "==", studentUid))
-            );
-            for (const d of enSnap.docs) {
-              const data = d.data();
-              if (data.learning_path_id) {
-                userPathStatusMap.set(data.learning_path_id, data.status === "paused" ? "paused" : "active");
-              }
-            }
-          } catch (enErr) {
-            console.warn("Could not check student enrollments:", enErr);
+        for (const d of enSnap.docs) {
+          const data = d.data();
+          if (data.learning_path_id) {
+            userPathStatusMap.set(data.learning_path_id, data.status === "paused" ? "paused" : "active");
           }
         }
 
-        // Fetch all courses and attach enrollment status
-        const coursesSnap = await getDocs(collection(db, "courses"));
+        // Map all courses and attach enrollment status
         const cl: GameCourseItem[] = [];
-        coursesSnap.docs.forEach((d) => {
+        coursesSnap.docs.forEach((d: any) => {
           const cd = d.data();
           const pInfo = courseToPathMap[d.id];
           const enrollmentStatus: "active" | "paused" | "not_enrolled" = pInfo

@@ -141,26 +141,27 @@ export default function CourseDetailPage() {
           const enSnap = await getDocs(
             query(collection(db, "student_learning_path"), where("student_id", "==", user.uid))
           );
-          let enrolled = false;
-          let paused = false;
 
-          for (const d of enSnap.docs) {
+          const lpChecks = enSnap.docs.map(async (d) => {
             const data = d.data();
-            const lpDoc = await getDoc(doc(db, "learning_path", data.learning_path_id));
-            if (lpDoc.exists()) {
-              const courses = lpDoc.data().courses || [];
-              if (courses.includes(courseId)) {
-                enrolled = true;
-                if (data.status === "paused") {
-                  paused = true;
-                }
-                break;
+            try {
+              const lpDoc = await getDoc(doc(db, "learning_path", data.learning_path_id));
+              if (lpDoc.exists()) {
+                const courses = lpDoc.data().courses || [];
+                return {
+                  includesCourse: courses.includes(courseId),
+                  isPaused: data.status === "paused",
+                };
               }
-            }
-          }
+            } catch {}
+            return { includesCourse: false, isPaused: false };
+          });
 
-          setIsEnrolled(enrolled);
-          setIsPaused(paused);
+          const results = await Promise.all(lpChecks);
+          const match = results.find((r) => r.includesCourse);
+
+          setIsEnrolled(Boolean(match));
+          setIsPaused(Boolean(match?.isPaused));
         } catch (err) {
           console.warn("Could not check enrollment status:", err);
         }

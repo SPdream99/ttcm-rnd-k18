@@ -19,9 +19,11 @@ export class FirestoreTeacherRepo implements TeacherPort {
       "teacher_stats",
       async () => {
         try {
-          const classesSnap = await getDocs(collection(db, "classes"));
-          const assignmentsSnap = await getDocs(collection(db, "assignments"));
-          const studentsSnap = await getDocs(collection(db, "class_members"));
+          const [classesSnap, assignmentsSnap, studentsSnap] = await Promise.all([
+            getDocs(collection(db, "classes")),
+            getDocs(collection(db, "assignments")),
+            getDocs(collection(db, "class_members")),
+          ]);
 
           const totalClasses = classesSnap.size || 2;
           const totalAssignments = assignmentsSnap.size || 3;

@@ -67,61 +67,27 @@ export default function StudentDashboardPage() {
       try {
         setLoading(true);
         const user = auth.currentUser;
+        const userUid = user?.uid || "guest";
 
-        // 1. Fetch Enrolled Classes & User status map
-        const userPathStatusMap = new Map<string, "active" | "paused">();
-        const classesData: any[] = [];
+        // Tối ưu hóa: Chạy song song toàn bộ các truy vấn Firestore độc lập
+        const [enrollSnap, pathSnap, coursesSnap, gamesSnap, userSnap, gameResSnap] = await Promise.all([
+          user
+            ? getDocs(query(collection(db, "student_learning_path"), where("student_id", "==", user.uid)))
+            : Promise.resolve({ docs: [] } as any),
+          getDocs(collection(db, "learning_path")),
+          getDocs(collection(db, "courses")),
+          getDocs(collection(db, "game_info")),
+          getDocs(collection(db, "users")),
+          getDocs(collection(db, "game_results")),
+        ]);
 
-        if (user) {
-          try {
-            const enrollSnap = await getDocs(
-              query(collection(db, "student_learning_path"), where("student_id", "==", user.uid))
-            );
-
-            const seenPathIds = new Set<string>();
-
-            for (const docItem of enrollSnap.docs) {
-              const eData = docItem.data();
-              const pathId = eData.learning_path_id;
-              if (pathId) {
-                userPathStatusMap.set(pathId, eData.status === "paused" ? "paused" : "active");
-              }
-
-              // Lớp học đang tạm dừng/bảo lưu thì KHÔNG hiển thị ở danh sách lớp đang học của Dashboard
-              if (eData.status === "paused") {
-                continue;
-              }
-              if (seenPathIds.has(pathId)) {
-                continue;
-              }
-              seenPathIds.add(pathId);
-
-              const pathDoc = await getDoc(doc(db, "learning_path", pathId));
-              if (pathDoc.exists()) {
-                const pData = pathDoc.data();
-                const courses = Array.isArray(pData.courses) ? pData.courses : [];
-                classesData.push({
-                  id: pathDoc.id,
-                  title: pData.title || "Lớp học E-V-E",
-                  description: pData.description || "",
-                  progress: Number(eData.progress) || 0,
-                  coursesCount: courses.length,
-                  category: pData.category || "Công nghệ & Lập trình",
-                  teacherName: pData.authorName || pData.teacherName || "ThS. Nguyễn Thành Đạt",
-                });
-              }
-            }
-            setEnrolledClasses(classesData);
-          } catch (e) {
-            console.error("Lỗi khi tải thông tin lớp học:", e);
-          }
-        }
-
-        // 2. Fetch Learning Paths for Course Mapping
-        const pathSnap = await getDocs(collection(db, "learning_path"));
+        // 1. In-memory map cho Learning Paths
+        const pathDataMap = new Map<string, any>();
         const courseToPathMap: Record<string, { pathId: string; pathTitle: string }> = {};
-        pathSnap.docs.forEach((d) => {
+
+        pathSnap.docs.forEach((d: any) => {
           const pData = d.data();
+          pathDataMap.set(d.id, pData);
           const pCourses: string[] = Array.isArray(pData.courses) ? pData.courses : [];
           pCourses.forEach((cId) => {
             courseToPathMap[cId] = {
@@ -131,10 +97,42 @@ export default function StudentDashboardPage() {
           });
         });
 
-        // 3. Fetch All Courses and map enrollment status
-        const coursesSnap = await getDocs(collection(db, "courses"));
+        // 2. Map Enrolled Classes từ bộ nhớ (Không cần gọi thêm query mạng lồng nhau)
+        const userPathStatusMap = new Map<string, "active" | "paused">();
+        const classesData: any[] = [];
+        const seenPathIds = new Set<string>();
+
+        for (const docItem of enrollSnap.docs) {
+          const eData = docItem.data();
+          const pathId = eData.learning_path_id;
+          if (pathId) {
+            userPathStatusMap.set(pathId, eData.status === "paused" ? "paused" : "active");
+          }
+
+          if (eData.status === "paused" || seenPathIds.has(pathId)) {
+            continue;
+          }
+          seenPathIds.add(pathId);
+
+          const pData = pathDataMap.get(pathId);
+          if (pData) {
+            const courses = Array.isArray(pData.courses) ? pData.courses : [];
+            classesData.push({
+              id: pathId,
+              title: pData.title || "Lớp học E-V-E",
+              description: pData.description || "",
+              progress: Number(eData.progress) || 0,
+              coursesCount: courses.length,
+              category: pData.category || "Công nghệ & Lập trình",
+              teacherName: pData.authorName || pData.teacherName || "ThS. Nguyễn Thành Đạt",
+            });
+          }
+        }
+        setEnrolledClasses(classesData);
+
+        // 3. Map Courses List
         const cl: DashboardCourseItem[] = [];
-        coursesSnap.docs.forEach((d) => {
+        coursesSnap.docs.forEach((d: any) => {
           const cd = d.data();
           const pInfo = courseToPathMap[d.id];
           const enrollmentStatus: "active" | "paused" | "not_enrolled" = pInfo
@@ -153,14 +151,11 @@ export default function StudentDashboardPage() {
             tags: Array.isArray(cd.tags) ? cd.tags : ["Lập trình"],
           });
         });
-
         setCoursesList(cl);
 
-        // 4. Fetch Games List from Firestore
-        const gamesSnap = await getDocs(collection(db, "game_info"));
+        // 4. Map Games List
         let gamesList: any[] = [];
-
-        gamesSnap.docs.forEach((d) => {
+        gamesSnap.docs.forEach((d: any) => {
           const data = d.data();
           const needExtraData = data.needExtraData !== false;
           gamesList.push({
@@ -198,70 +193,82 @@ export default function StudentDashboardPage() {
         }
         setAvailableGames(gamesList);
 
-        // 5. Leaderboard - Lấy dữ liệu thực tế từ Database Firestore (users & game_results)
-        try {
-          const userSnap = await getDocs(collection(db, "users"));
-          const gameResSnap = await getDocs(collection(db, "game_results"));
+        // 5. Map Leaderboard
+        const studentMap = new Map<
+          string,
+          { id: string; name: string; score: number; coins: number; isMe: boolean }
+        >();
 
-          const studentMap = new Map<
-            string,
-            { id: string; name: string; score: number; coins: number; isMe: boolean }
-          >();
-
-          userSnap.docs.forEach((d) => {
-            const u = d.data();
-            const uId = d.id;
-            if (u.role === "student" || (!u.role && u.email)) {
-              studentMap.set(uId, {
-                id: uId,
-                name: u.name || u.displayName || u.fullName || `Học viên #${uId.slice(-4)}`,
-                score: Number(u.score) || (Number(u.coins) ? Number(u.coins) * 2 : 100),
-                coins: Number(u.coins) || 0,
-                isMe: user ? uId === user.uid : false,
-              });
-            }
-          });
-
-          // Cộng thêm điểm từ kết quả chơi minigame thực tế
-          gameResSnap.docs.forEach((d) => {
-            const gr = d.data();
-            const uId = gr.userId || gr.user_id || gr.uid;
-            if (uId && studentMap.has(uId)) {
-              const item = studentMap.get(uId)!;
-              item.score += Number(gr.score) || 0;
-              item.coins += Number(gr.earnedCoins) || Number(gr.coins_earned) || 0;
-            }
-          });
-
-          // Đảm bảo học sinh hiện tại luôn có mặt trong danh sách nếu đã đăng nhập
-          if (user && !studentMap.has(user.uid)) {
-            studentMap.set(user.uid, {
-              id: user.uid,
-              name: displayName,
-              score: displayCoins * 2 || 150,
-              coins: displayCoins,
-              isMe: true,
+        userSnap.docs.forEach((d: any) => {
+          const u = d.data();
+          const uId = d.id;
+          if (u.role === "student" || (!u.role && u.email)) {
+            studentMap.set(uId, {
+              id: uId,
+              name: u.name || u.displayName || u.fullName || `Học viên #${uId.slice(-4)}`,
+              score: Number(u.score) || (Number(u.coins) ? Number(u.coins) * 2 : 100),
+              coins: Number(u.coins) || 0,
+              isMe: user ? uId === user.uid : false,
             });
           }
+        });
 
-          const sorted = Array.from(studentMap.values())
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 5)
-            .map((item, idx) => ({
-              rank: idx + 1,
-              id: item.id,
-              name: item.name,
-              score: `${item.score.toLocaleString()} XP`,
-              level: `Cấp ${Math.max(1, Math.floor(item.score / 400) + 1)}`,
-              isMe: item.isMe,
-            }));
+        // 5. Map Leaderboard
+        const studentMap = new Map<
+          string,
+          { id: string; name: string; score: number; coins: number; isMe: boolean }
+        >();
 
-          setTopRankings(sorted);
-        } catch (rankErr) {
-          console.warn("Could not load real leaderboard in dashboard:", rankErr);
+        userSnap.docs.forEach((d: any) => {
+          const u = d.data();
+          const uId = d.id;
+          if (u.role === "student" || (!u.role && u.email)) {
+            studentMap.set(uId, {
+              id: uId,
+              name: u.name || u.displayName || u.fullName || `Học viên #${uId.slice(-4)}`,
+              score: Number(u.score) || (Number(u.coins) ? Number(u.coins) * 2 : 100),
+              coins: Number(u.coins) || 0,
+              isMe: user ? uId === user.uid : false,
+            });
+          }
+        });
+
+        // Điền điểm tích lũy từ kết quả game
+        gameResSnap.docs.forEach((d: any) => {
+          const res = d.data();
+          const uId = res.userId;
+          if (uId && studentMap.has(uId)) {
+            const current = studentMap.get(uId)!;
+            current.score = Math.max(current.score, Number(res.score) || 0);
+          }
+        });
+
+        // Đảm bảo học sinh hiện tại luôn có mặt trong danh sách nếu đã đăng nhập
+        if (user && !studentMap.has(user.uid)) {
+          studentMap.set(user.uid, {
+            id: user.uid,
+            name: displayName,
+            score: displayCoins * 2 || 150,
+            coins: displayCoins,
+            isMe: true,
+          });
         }
-      } catch (error) {
-        console.error("Lỗi khi tải dữ liệu Dashboard:", error);
+
+        const sorted = Array.from(studentMap.values())
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 5)
+          .map((item, idx) => ({
+            rank: idx + 1,
+            id: item.id,
+            name: item.name,
+            score: `${item.score.toLocaleString()} XP`,
+            level: `Cấp ${Math.max(1, Math.floor(item.score / 400) + 1)}`,
+            isMe: item.isMe,
+          }));
+
+        setTopRankings(sorted);
+      } catch (err) {
+        console.error("Lỗi khi tải dữ liệu trang chủ:", err);
       } finally {
         setLoading(false);
       }

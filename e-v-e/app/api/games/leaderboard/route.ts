@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/infrastructure/firebase/firebaseAdmin";
 
+const userNamesCache = new Map<string, { name: string; timestamp: number }>();
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -37,28 +39,43 @@ export async function GET(req: NextRequest) {
           }
         });
 
-        // Fetch real names from users collection
+        // Fetch real names from in-memory cache or Firestore
         const userNamesMap = new Map<string, string>();
-        await Promise.all(
-          Array.from(userIds).map(async (uId) => {
-            try {
-              const uDoc = await adminDb.collection("users").doc(uId).get();
-              if (uDoc.exists) {
-                const uData = uDoc.data();
-                const realName =
-                  uData?.name ||
-                  uData?.displayName ||
-                  uData?.fullName ||
-                  (uData?.email ? uData.email.split("@")[0] : "");
-                if (realName) {
-                  userNamesMap.set(uId, realName);
+        const now = Date.now();
+        const missingUserIds: string[] = [];
+
+        for (const uId of Array.from(userIds)) {
+          const cached = userNamesCache.get(uId);
+          if (cached && now - cached.timestamp < 300000) {
+            userNamesMap.set(uId, cached.name);
+          } else {
+            missingUserIds.push(uId);
+          }
+        }
+
+        if (missingUserIds.length > 0) {
+          await Promise.all(
+            missingUserIds.map(async (uId) => {
+              try {
+                const uDoc = await adminDb.collection("users").doc(uId).get();
+                if (uDoc.exists) {
+                  const uData = uDoc.data();
+                  const realName =
+                    uData?.name ||
+                    uData?.displayName ||
+                    uData?.fullName ||
+                    (uData?.email ? uData.email.split("@")[0] : "");
+                  if (realName) {
+                    userNamesMap.set(uId, realName);
+                    userNamesCache.set(uId, { name: realName, timestamp: now });
+                  }
                 }
+              } catch (err) {
+                console.warn("Could not fetch user name for ID:", uId, err);
               }
-            } catch (err) {
-              console.warn("Could not fetch user name for ID:", uId, err);
-            }
-          })
-        );
+            })
+          );
+        }
 
         // Deduplicate: strictly keep ONLY the SINGLE BEST score per user
         const bestByUser = new Map<
