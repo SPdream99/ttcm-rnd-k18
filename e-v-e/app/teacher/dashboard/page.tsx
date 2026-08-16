@@ -190,9 +190,10 @@ export default function TeacherDashboardPage() {
 
         const myClassIds = new Set(myClassesList.map((c) => c.id));
 
-        // ── 3. Fetch & Filter Enrolled Students ──
+        // ── 3. Fetch & Filter Enrolled Students (Đếm thực tế từ class_members) ──
         const membersSnap = await getDocs(collection(db, "class_members"));
         const uniqueStudentKeys = new Set<string>();
+        const classStudentCountMap: Record<string, number> = {};
 
         membersSnap.docs.forEach((d) => {
           const mData = d.data();
@@ -200,13 +201,16 @@ export default function TeacherDashboardPage() {
           if (myClassIds.has(classId) && mData.role !== "Teacher") {
             const studentKey = mData.student_id || mData.studentId || mData.student_email || mData.studentEmail || d.id;
             if (studentKey) uniqueStudentKeys.add(String(studentKey));
+            classStudentCountMap[classId] = (classStudentCountMap[classId] || 0) + 1;
           }
         });
 
-        const enrolledStudentsCount =
-          uniqueStudentKeys.size > 0
-            ? uniqueStudentKeys.size
-            : myClassesList.reduce((acc, c) => acc + (Number(c.total_students) || 0), 0);
+        // Gán sĩ số thực tế từ DB vào từng lớp
+        myClassesList.forEach((c) => {
+          c.total_students = classStudentCountMap[c.id] || 0;
+        });
+
+        const enrolledStudentsCount = uniqueStudentKeys.size;
 
         // ── 4. Fetch & Filter Teacher's Games ──
         const gamesSnap = await getDocs(collection(db, "game_info"));
@@ -331,6 +335,15 @@ export default function TeacherDashboardPage() {
 
     loadTeacherData();
   }, [teacherUid, teacherEmail, teacherName]);
+
+  if (loading) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 font-sans">
+        <div className="w-12 h-12 rounded-full border-4 border-red-200 border-t-red-600 animate-spin" />
+        <p className="text-red-600 font-bold text-sm">Đang tải dữ liệu giảng viên từ hệ thống...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 font-sans pb-12">

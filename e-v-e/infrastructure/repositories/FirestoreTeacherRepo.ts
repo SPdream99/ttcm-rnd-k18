@@ -154,7 +154,20 @@ export class FirestoreTeacherRepo implements TeacherPort {
       cacheKey,
       async () => {
         try {
-          const snap = await getDocs(collection(db, "classes"));
+          const [snap, membersSnap] = await Promise.all([
+            getDocs(collection(db, "classes")),
+            getDocs(collection(db, "class_members")),
+          ]);
+
+          const studentCountByClass: Record<string, number> = {};
+          membersSnap.docs.forEach((md) => {
+            const m = md.data();
+            const cId = m.class_id || m.classId;
+            if (cId && m.role !== "Teacher") {
+              studentCountByClass[cId] = (studentCountByClass[cId] || 0) + 1;
+            }
+          });
+
           const list: TeacherClassItem[] = [];
 
           snap.docs.forEach((d) => {
@@ -174,7 +187,7 @@ export class FirestoreTeacherRepo implements TeacherPort {
                 id: d.id,
                 name: data.name || "Lớp Học",
                 grade: data.code || "K18",
-                studentsCount: Number(data.total_students || data.totalStudents || 0),
+                studentsCount: studentCountByClass[d.id] || 0,
                 subject: data.subject || "Lập Trình",
                 avgGpa: "8.8",
               });
