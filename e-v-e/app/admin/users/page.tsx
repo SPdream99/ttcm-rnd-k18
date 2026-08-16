@@ -18,6 +18,7 @@ import {
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/components/Toast";
+import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { formatDisplayDate } from "@/lib/dateUtils";
 
 interface AdminUserItem {
@@ -43,11 +44,24 @@ interface ConfirmModalData {
 
 export default function AdminUsersPage() {
   const { toast } = useToast();
+  const { currentUser, profile } = useAuthAdapter();
+  const currentAdminUid = currentUser?.uid || currentUser?.id || profile?.uid || profile?.id || "";
+  const currentAdminEmail = currentUser?.email || profile?.email || "";
+
   const [users, setUsers] = useState<AdminUserItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<"all" | "pending" | "teacher" | "student">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [confirmPrompt, setConfirmPrompt] = useState<ConfirmModalData | null>(null);
+
+  /** Kiểm tra user có phải admin không */
+  const isAdminUser = (user: AdminUserItem) =>
+    user.role === "admin" || user.role === "school";
+
+  /** Kiểm tra user có phải chính admin đang đăng nhập không */
+  const isSelf = (user: AdminUserItem) =>
+    (currentAdminUid && (user.id === currentAdminUid || user.uid === currentAdminUid)) ||
+    (currentAdminEmail && user.email.toLowerCase() === currentAdminEmail.toLowerCase());
 
   useEffect(() => {
     async function fetchUsers() {
@@ -97,6 +111,17 @@ export default function AdminUsersPage() {
   }, []);
 
   const handlePromptUpdateStatus = (user: AdminUserItem, newStatus: "active" | "banned") => {
+    // Bảo vệ: Admin không được khóa chính mình
+    if (newStatus === "banned" && isSelf(user)) {
+      toast("Không thể khóa tài khoản của chính bạn.", "error");
+      return;
+    }
+    // Bảo vệ: Admin không được khóa admin khác
+    if (newStatus === "banned" && isAdminUser(user)) {
+      toast("Không thể khóa tài khoản quản trị viên khác.", "error");
+      return;
+    }
+
     const actionText = newStatus === "active" ? "phê duyệt / mở khóa" : "từ chối / khóa";
     setConfirmPrompt({
       title: `Xác Nhận ${newStatus === "active" ? "Duyệt" : "Khóa"} Tài Khoản`,
@@ -330,7 +355,12 @@ export default function AdminUsersPage() {
                     {/* Actions */}
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {user.status === "pending" ? (
+                        {/* Admin / chính mình: không hiển thị nút khóa */}
+                        {(isAdminUser(user) || isSelf(user)) ? (
+                          <span className="text-[11px] text-zinc-400 italic">
+                            {isSelf(user) ? "Tài khoản của bạn" : "Quản trị viên"}
+                          </span>
+                        ) : user.status === "pending" ? (
                           <>
                             <button
                               onClick={() => handlePromptUpdateStatus(user, "active")}
