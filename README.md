@@ -47,8 +47,9 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 
 ### 3. Ứng Dụng Trí Tuệ Nhân Tạo (Google Gemini AI)
 - **AI Tutor cho Học Sinh**: Giải đáp thắc mắc lập trình 24/7, hướng dẫn tư duy giải bài tập, định dạng code syntax highlight với nút sao chép nhanh.
-- **AI Assistant cho Giáo Viên**: Hỗ trợ tự động tạo ngân hàng câu hỏi, soạn khung giáo án và cấu trúc nội dung bài giảng.
-- **Bảo Mật Client-Side**: Khóa Gemini API Key cá nhân được mã hóa và lưu trữ độc quyền tại trình duyệt (Local Storage), không lưu trữ trên máy chủ backend.
+- **AI Assistant cho Giáo Viên**: Hỗ trợ tự động tạo ngân hàng câu hỏi (JSON Pairs), soạn khung giáo án và cấu trúc nội dung bài giảng.
+- **Widget Thu Nhỏ & Nhận Diện Ngữ Cảnh Trang**: Tự động nhận diện trang hiện tại, lưu trữ trí nhớ cuộc hội thoại xuyên suốt (Persistent Memory) trên toàn bộ các trang.
+- **Bảo Mật Client-Side**: Khóa Gemini API Key cá nhân được mã hóa và lưu trữ độc quyền tại trình duyệt (Local Storage), tự động xóa sạch khi đăng xuất.
 
 ### 4. Quản Lý Lớp Học & Tương Tác Sư Phạm (Class Hub)
 - **Theo dõi tiến độ học tập**: Đo lường phần trăm hoàn thành chặng học, điểm danh, bảng xếp hạng lớp học.
@@ -62,7 +63,7 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 - **Frontend:** Next.js 16 (App Router & Turbopack), React 19, TypeScript, Tailwind CSS, Lucide Icons, Framer Motion
 - **Backend & API:** Next.js Route Handlers, Clean Architecture (Entities, Ports, Adapters)
 - **Cơ Sở Dữ Liệu & Auth:** Firebase Cloud Firestore, Firebase Authentication (2FA OTP), Firebase Admin SDK
-- **Trí Tuệ Nhân Tạo:** Google Generative AI (Gemini 1.5 Pro / Flash)
+- **Trí Tuệ Nhân Tạo:** Google Generative AI (Gemini 1.5 Pro / Flash), OpenAI GPT-4o-mini
 - **Game Engine & SDK:** HTML5 Canvas, Web Audio API, E-V-E Game Bridge Protocol
 
 ---
@@ -108,9 +109,11 @@ USE_MOCK_DB="false"
 ```
 
 ### 4. Khởi Tạo Cơ Sở Dữ Liệu Chuẩn (Seed Firestore)
-Chạy script chuẩn hóa dữ liệu 100% Tiếng Việt có dấu:
+Chạy bộ 3 script chuẩn hóa cơ sở dữ liệu:
 ```bash
-node scripts/reset_firestore.js
+node scripts/reset_firestore.mjs
+node scripts/initDatabase.mjs
+node scripts/fill_data.mjs
 ```
 
 ### 5. Khởi Chạy Server Phát Triển
@@ -128,15 +131,18 @@ e-v-e/
 ├── app/                  # Next.js App Router (Giao diện & API Routes)
 │   ├── (auth)/           # Đăng nhập, đăng ký, xác thực 2FA
 │   ├── admin/            # Trang quản trị dành cho Admin
-│   ├── api/              # API endpoints (AI Tutor, Game SDK Init & Verify, Class...)
-│   ├── student/          # Dashboard, bản đồ chặng, lớp học, phòng chơi game của học sinh
-│   └── teacher/          # Quản lý lớp, sổ điểm, tạo bài tập dành cho giảng viên
-├── components/           # UI Components dùng chung (LearningPathMap, Sidebar, Navbar...)
+│   ├── api/              # API endpoints (AI Tutor, Game SDK Init & Finish, Class...)
+│   ├── student/          # Dashboard, bản đồ chặng, lớp học, phòng chơi game, hồ sơ học sinh
+│   └── teacher/          # Quản lý lớp, soạn bài, học liệu, tài liệu Game SDK, trợ giảng AI
+├── components/           # UI Components dùng chung (AITutorFloatingWidget, LearningPathMap, Sidebar, Navbar...)
+├── context/              # React Contexts (AuthContext, AudioContext)
 ├── core/                 # Clean Architecture (Entities, Ports, Use Cases)
+├── hooks/                # Custom React Hooks (useAuthAdapter, useFirestoreLive)
 ├── infrastructure/       # Database Adapters (Firestore & Repositories)
-├── lib/                  # Tiện ích, Firebase Client/Admin, Anti-Cheat Helpers
+├── lib/                  # Tiện ích, Firebase Client/Admin, Anti-Cheat, secureKeyStorage, aiChatStorage, pageContextService
 ├── public/               # Tài nguyên tĩnh, âm thanh, icons
-└── scripts/              # Script quản trị & Reset cơ sở dữ liệu (reset_firestore.js)
+├── scripts/              # Bộ 3 scripts quản trị cơ sở dữ liệu (reset_firestore.mjs, initDatabase.mjs, fill_data.mjs)
+└── firestore.rules       # Quy tắc bảo mật Cloud Firestore
 ```
 
 ---
