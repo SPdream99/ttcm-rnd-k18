@@ -52,22 +52,70 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Save game result history record with anti-cheat verification flag
+    // 3. Upsert game result: keep only best score per user per game+course
+    // This prevents duplicate leaderboard entries
     try {
-      await adminDb.collection("game_results").add({
-        gameId,
-        courseId,
-        pathId: pathId || "default_path",
-        userId: userId || "anonymous",
-        score: finalScore,
-        rawReportedScore: score,
-        isWin,
-        accuracyPercent,
-        playTimeSeconds,
-        earnedCoins,
-        verifiedByAntiCheat: true,
-        finishedAt: new Date().toISOString(),
-      });
+      const effectiveUserId = userId || "anonymous";
+
+      // Check if user already has a result for this game+course
+      const existingSnap = await adminDb
+        .collection("game_results")
+        .where("gameId", "==", gameId)
+        .where("courseId", "==", courseId)
+        .where("userId", "==", effectiveUserId)
+        .limit(5)
+        .get();
+
+      if (!existingSnap.empty) {
+        // Find the doc with the highest score
+        let bestDoc = existingSnap.docs[0];
+        let bestScore = bestDoc.data().score || 0;
+
+        // Clean up any extra duplicates - keep only the best one
+        for (let i = 1; i < existingSnap.docs.length; i++) {
+          const docData = existingSnap.docs[i].data();
+          if ((docData.score || 0) > bestScore) {
+            // Delete the old best, this one is better
+            await bestDoc.ref.delete();
+            bestDoc = existingSnap.docs[i];
+            bestScore = docData.score || 0;
+          } else {
+            // Delete this duplicate
+            await existingSnap.docs[i].ref.delete();
+          }
+        }
+
+        // Update if new score is better
+        if (finalScore > bestScore) {
+          await bestDoc.ref.update({
+            score: finalScore,
+            rawReportedScore: score,
+            isWin,
+            accuracyPercent,
+            playTimeSeconds,
+            earnedCoins,
+            verifiedByAntiCheat: true,
+            finishedAt: new Date().toISOString(),
+          });
+        }
+        // If new score is not better, we still keep the old record unchanged
+      } else {
+        // No existing record, create new one
+        await adminDb.collection("game_results").add({
+          gameId,
+          courseId,
+          pathId: pathId || "default_path",
+          userId: effectiveUserId,
+          score: finalScore,
+          rawReportedScore: score,
+          isWin,
+          accuracyPercent,
+          playTimeSeconds,
+          earnedCoins,
+          verifiedByAntiCheat: true,
+          finishedAt: new Date().toISOString(),
+        });
+      }
     } catch (saveErr) {
       console.warn("Could not save game_results record:", saveErr);
     }

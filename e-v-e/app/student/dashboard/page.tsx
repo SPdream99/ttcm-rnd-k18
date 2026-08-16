@@ -198,14 +198,68 @@ export default function StudentDashboardPage() {
         }
         setAvailableGames(gamesList);
 
-        // 5. Leaderboard Mock / Firestore
-        setTopRankings([
-          { rank: 1, name: "Nguyễn Nhật Anh", score: "9,850 XP", level: "Cấp 18", isMe: false },
-          { rank: 2, name: "Trần Minh Quân", score: "8,920 XP", level: "Cấp 16", isMe: false },
-          { rank: 3, name: displayName, score: "7,450 XP", level: "Cấp 12", isMe: true },
-          { rank: 4, name: "Lê Hoàng Long", score: "6,200 XP", level: "Cấp 10", isMe: false },
-          { rank: 5, name: "Phạm Thảo Vy", score: "5,800 XP", level: "Cấp 9", isMe: false },
-        ]);
+        // 5. Leaderboard - Lấy dữ liệu thực tế từ Database Firestore (users & game_results)
+        try {
+          const userSnap = await getDocs(collection(db, "users"));
+          const gameResSnap = await getDocs(collection(db, "game_results"));
+
+          const studentMap = new Map<
+            string,
+            { id: string; name: string; score: number; coins: number; isMe: boolean }
+          >();
+
+          userSnap.docs.forEach((d) => {
+            const u = d.data();
+            const uId = d.id;
+            if (u.role === "student" || (!u.role && u.email)) {
+              studentMap.set(uId, {
+                id: uId,
+                name: u.name || u.displayName || u.fullName || `Học viên #${uId.slice(-4)}`,
+                score: Number(u.score) || (Number(u.coins) ? Number(u.coins) * 2 : 100),
+                coins: Number(u.coins) || 0,
+                isMe: user ? uId === user.uid : false,
+              });
+            }
+          });
+
+          // Cộng thêm điểm từ kết quả chơi minigame thực tế
+          gameResSnap.docs.forEach((d) => {
+            const gr = d.data();
+            const uId = gr.userId || gr.user_id || gr.uid;
+            if (uId && studentMap.has(uId)) {
+              const item = studentMap.get(uId)!;
+              item.score += Number(gr.score) || 0;
+              item.coins += Number(gr.earnedCoins) || Number(gr.coins_earned) || 0;
+            }
+          });
+
+          // Đảm bảo học sinh hiện tại luôn có mặt trong danh sách nếu đã đăng nhập
+          if (user && !studentMap.has(user.uid)) {
+            studentMap.set(user.uid, {
+              id: user.uid,
+              name: displayName,
+              score: displayCoins * 2 || 150,
+              coins: displayCoins,
+              isMe: true,
+            });
+          }
+
+          const sorted = Array.from(studentMap.values())
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 5)
+            .map((item, idx) => ({
+              rank: idx + 1,
+              id: item.id,
+              name: item.name,
+              score: `${item.score.toLocaleString()} XP`,
+              level: `Cấp ${Math.max(1, Math.floor(item.score / 400) + 1)}`,
+              isMe: item.isMe,
+            }));
+
+          setTopRankings(sorted);
+        } catch (rankErr) {
+          console.warn("Could not load real leaderboard in dashboard:", rankErr);
+        }
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu Dashboard:", error);
       } finally {
@@ -214,7 +268,7 @@ export default function StudentDashboardPage() {
     }
 
     loadDashboardData();
-  }, [displayName]);
+  }, [displayName, displayCoins]);
 
   const handleOpenGameLauncher = (game: any) => {
     if (game.needExtraData) {
@@ -511,11 +565,24 @@ export default function StudentDashboardPage() {
                     {user.rank}
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
-                      <span>{user.name}</span>
+                    <div className="relative group/user inline-flex items-center gap-1.5 cursor-pointer">
+                      <span className="text-xs font-bold text-zinc-900 group-hover/user:text-red-600 transition-colors">
+                        {user.name}
+                      </span>
                       {user.isMe && (
                         <span className="text-[10px] text-red-600 font-black">(Bạn)</span>
                       )}
+
+                      {/* Tooltip Hồ sơ học viên khi hover */}
+                      <div className="absolute left-0 bottom-full mb-1.5 z-50 hidden group-hover/user:block w-48 p-2.5 rounded-xl bg-zinc-900 text-white shadow-xl text-left border border-zinc-700">
+                        <div className="text-[10px] text-zinc-400 font-normal uppercase tracking-wider">Hồ sơ học viên</div>
+                        <div className="text-xs font-bold text-white mt-0.5">{user.name}</div>
+                        <div className="text-[10px] text-zinc-400 font-mono mt-0.5">ID: {user.id ? user.id.slice(-8) : "--"}</div>
+                        <div className="mt-1.5 pt-1.5 border-t border-zinc-800 text-[10px] text-zinc-300 font-normal flex justify-between">
+                          <span>Điểm: <strong className="text-amber-400">{user.score}</strong></span>
+                          <span>{user.level}</span>
+                        </div>
+                      </div>
                     </div>
                     <div className="text-[10px] text-zinc-400 font-medium">{user.level}</div>
                   </div>

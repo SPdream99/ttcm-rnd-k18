@@ -357,28 +357,28 @@ export default function StudentGamesArcadePage() {
   return (
     <div className="space-y-8 font-sans pb-12">
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-zinc-900 via-zinc-800 to-zinc-900 border border-zinc-700 p-6 md:p-8 text-white shadow-xl">
+      <div className="relative overflow-hidden rounded-3xl bg-red-600 border border-red-500 p-6 md:p-8 text-white shadow-xl">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-bold">
-              <Gamepad2 className="w-3.5 h-3.5 text-red-400" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-xs font-bold">
+              <Gamepad2 className="w-3.5 h-3.5 text-white" />
               <span>E-V-E Game Arcade Studio</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
               Kho Trò Chơi Giáo Dục Tương Tác
             </h1>
-            <p className="text-xs md:text-sm text-zinc-300 leading-relaxed">
+            <p className="text-xs md:text-sm text-red-100 leading-relaxed">
               Trải nghiệm các trò chơi học tập tương tác, củng cố kiến thức các bài học thực tế, rèn luyện tư duy và tích lũy E-V-E Coins.
             </p>
           </div>
 
-          <div className="flex items-center gap-4 bg-zinc-800/80 backdrop-blur-xs border border-zinc-700 p-4 rounded-2xl self-start md:self-auto">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+          <div className="flex items-center gap-4 bg-white/15 backdrop-blur-xs border border-white/20 p-4 rounded-2xl self-start md:self-auto">
+            <div className="w-12 h-12 rounded-xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-300">
               <Coins className="w-6 h-6" />
             </div>
             <div>
-              <div className="text-[11px] text-zinc-400 font-medium">Số dư hiện tại</div>
-              <div className="text-xl font-black text-amber-400">{studentCoins.toLocaleString()} Coins</div>
+              <div className="text-[11px] text-red-100 font-medium">Số dư hiện tại</div>
+              <div className="text-xl font-black text-amber-300">{studentCoins.toLocaleString()} Coins</div>
             </div>
           </div>
         </div>

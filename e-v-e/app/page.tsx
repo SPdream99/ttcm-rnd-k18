@@ -241,14 +241,10 @@ export default function Home() {
               </div>
 
               {/* 3 Metric Pills */}
-              <div className="grid grid-cols-3 gap-3 pt-6 border-t border-zinc-200">
+              <div className="grid grid-cols-2 gap-3 pt-6 border-t border-zinc-200">
                 <div className="p-3 rounded-xl bg-white border border-zinc-200">
                   <div className="font-mono text-base md:text-lg font-black text-zinc-900">4 Chặng</div>
                   <div className="text-[11px] text-zinc-500 font-medium">Bản đồ mở khóa</div>
-                </div>
-                <div className="p-3 rounded-xl bg-white border border-zinc-200">
-                  <div className="font-mono text-base md:text-lg font-black text-red-600">+50 Coins</div>
-                  <div className="text-[11px] text-zinc-500 font-medium">Thưởng mỗi màn</div>
                 </div>
                 <div className="p-3 rounded-xl bg-white border border-zinc-200">
                   <div className="font-mono text-base md:text-lg font-black text-zinc-900">24/7</div>
@@ -418,11 +414,8 @@ export default function Home() {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-zinc-200 flex items-center justify-between font-mono text-xs">
+                  <div className="pt-3 border-t border-zinc-200 font-mono text-xs">
                     <span className="text-zinc-500 text-[11px]">{tile.stat}</span>
-                    <span className="text-red-600 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                      Chi tiết <ChevronRight className="w-3.5 h-3.5" />
-                    </span>
                   </div>
                 </div>
               );
@@ -685,14 +678,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-zinc-500">
-            <div>
-              © 2026 E-V-E • MindX TTCM Teaching K18. All rights reserved.
-            </div>
-            <div className="flex items-center gap-2 text-zinc-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>SYSTEM ALL SYSTEMS OPERATIONAL</span>
-            </div>
+          <div className="font-mono text-[11px] text-zinc-500 text-center sm:text-left">
+            © 2026 E-V-E. All rights reserved.
           </div>
         </div>
       </footer>

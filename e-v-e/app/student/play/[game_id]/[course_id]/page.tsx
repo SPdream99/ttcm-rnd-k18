@@ -158,6 +158,8 @@ interface MemoryCardItem {
 interface LeaderboardRecord {
   id?: string;
   rank: number;
+  userId: string;
+  userName?: string;
   name: string;
   score: number;
   playTime: string;
@@ -1168,36 +1170,53 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {rankingList.map((record, index) => (
-                  <tr
-                    key={record.id || index}
-                    className={`hover:bg-zinc-50 transition-colors ${
-                      index === 0
-                        ? "bg-red-50 text-red-700 font-bold"
-                        : "text-zinc-700"
-                    }`}
-                  >
-                    <td className="py-3 px-4 font-bold">
-                      {index === 0 ? "Hạng 1" : index === 1 ? "Hạng 2" : index === 2 ? "Hạng 3" : `#${index + 1}`}
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-zinc-900 flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-red-600" />
-                      {record.name}
-                    </td>
-                    <td className="py-3 px-4 text-center font-bold font-mono text-zinc-900">
-                      {record.score} pts
-                    </td>
-                    <td className="py-3 px-4 text-center text-zinc-500">
-                      {record.playTime}
-                    </td>
-                    <td className="py-3 px-4 text-center text-emerald-700 font-bold">
-                      {record.accuracy}%
-                    </td>
-                    <td className="py-3 px-4 text-right text-zinc-500">
-                      {record.date}
-                    </td>
-                  </tr>
-                ))}
+                {rankingList.map((record, index) => {
+                  const isMe = record.userId === uid;
+                  return (
+                    <tr
+                      key={record.id || index}
+                      className={`transition-colors ${
+                        isMe
+                          ? "bg-red-50/80 border-l-2 border-red-600 font-bold"
+                          : index === 0
+                          ? "bg-amber-50/50 font-bold"
+                          : "hover:bg-zinc-50 text-zinc-700"
+                      }`}
+                    >
+                      <td className="py-3 px-4 font-bold">
+                        {index === 0 ? "Hạng 1" : index === 1 ? "Hạng 2" : index === 2 ? "Hạng 3" : `#${index + 1}`}
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-zinc-900">
+                        <div className="relative group/user inline-flex items-center gap-2 cursor-pointer">
+                          <User className="w-3.5 h-3.5 text-red-600" />
+                          <span>{record.name}{isMe ? " (Bạn)" : ""}</span>
+                          {/* Hover Profile Tooltip */}
+                          <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover/user:block w-52 p-3 rounded-xl bg-white border border-zinc-200 shadow-xl text-left">
+                            <div className="text-[11px] text-zinc-500 font-normal">Hồ sơ học viên</div>
+                            <div className="text-xs font-bold text-zinc-900 mt-0.5">{record.name}</div>
+                            <div className="text-[10px] text-zinc-400 font-mono mt-0.5">ID: {record.userId?.slice(-8) || "--"}</div>
+                            <div className="mt-2 pt-2 border-t border-zinc-100 text-[11px] text-zinc-600 font-normal space-y-0.5">
+                              <div>Điểm cao nhất: <span className="font-bold text-red-600">{record.score} pts</span></div>
+                              <div>Độ chính xác: <span className="font-bold text-emerald-600">{record.accuracy}%</span></div>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-center font-bold font-mono text-zinc-900">
+                        {record.score} pts
+                      </td>
+                      <td className="py-3 px-4 text-center text-zinc-500">
+                        {record.playTime}
+                      </td>
+                      <td className="py-3 px-4 text-center text-emerald-700 font-bold">
+                        {record.accuracy}%
+                      </td>
+                      <td className="py-3 px-4 text-right text-zinc-500">
+                        {record.date}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

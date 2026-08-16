@@ -23,24 +23,42 @@ export async function GET(req: NextRequest) {
         .where("courseId", "==", courseId)
         .where("isWin", "==", true)
         .orderBy("score", "desc")
-        .limit(20)
+        .limit(50)
         .get();
 
       if (!snapshot.empty) {
-        let currentRank = 1;
+        // Deduplicate: keep only the best score per userId
+        const bestByUser = new Map<string, any>();
         snapshot.docs.forEach((docSnap) => {
           const d = docSnap.data();
+          const uId = d.userId || "anonymous";
+          const existing = bestByUser.get(uId);
+          if (!existing || d.score > existing.score) {
+            bestByUser.set(uId, {
+              id: docSnap.id,
+              userId: uId,
+              userName: d.userName || "",
+              score: d.score || 0,
+              playTime: d.playTimeSeconds ? `${d.playTimeSeconds}s` : "--",
+              accuracy: d.accuracyPercent ?? 100,
+              date: d.finishedAt ? new Date(d.finishedAt).toLocaleDateString("vi-VN") : "Hom nay",
+            });
+          }
+        });
+
+        // Sort by score desc and assign ranks
+        const sorted = Array.from(bestByUser.values()).sort((a, b) => b.score - a.score);
+        sorted.forEach((entry, idx) => {
           rankings.push({
-            id: docSnap.id,
-            rank: currentRank++,
-            userId: d.userId || "anonymous",
-            name: d.userName || `Học viên #${d.userId?.slice(-4) || currentRank}`,
-            score: d.score || 0,
-            playTime: d.playTimeSeconds ? `${d.playTimeSeconds}s` : "--",
-            accuracy: d.accuracyPercent ?? 100,
-            date: d.finishedAt ? new Date(d.finishedAt).toLocaleDateString("vi-VN") : "Hôm nay",
+            ...entry,
+            rank: idx + 1,
+            // Display name as "Hoc vien #xxxx" for privacy, keep userId for hover
+            name: `Học viên #${entry.userId?.slice(-4) || (idx + 1)}`,
           });
         });
+
+        // Limit to top 20 after dedup
+        rankings = rankings.slice(0, 20);
       }
     } catch (e) {
       console.warn("Firestore query warning for game leaderboard:", e);
