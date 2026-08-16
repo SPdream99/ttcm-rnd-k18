@@ -18,6 +18,7 @@ import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { useToast } from "@/components/Toast";
 import { collection, getDocs, deleteDoc, updateDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { formatDisplayDate } from "@/lib/dateUtils";
 
 export default function TeacherMyContentsPage() {
   const { toast } = useToast();
@@ -80,9 +81,7 @@ export default function TeacherMyContentsPage() {
                 authorId: docAuthor,
                 visibility: data.visibility || "public",
                 isAccepted: Boolean(data.isAccepted ?? data.is_accepted),
-                createdAt: data.createdAt
-                  ? new Date(data.createdAt).toLocaleDateString("vi-VN")
-                  : "Hôm nay",
+                createdAt: formatDisplayDate(data.createdAt || data.created_at, "Hôm nay"),
               });
             }
           });
@@ -113,9 +112,7 @@ export default function TeacherMyContentsPage() {
                 resourcesCount: lc.resources?.length || 0,
                 authorId: lcAuthor || teacherUid,
                 isAccepted: Boolean(lc.isAccepted ?? lc.is_accepted),
-                createdAt: lc.createdAt
-                  ? new Date(lc.createdAt).toLocaleDateString("vi-VN")
-                  : "Vừa tạo",
+                createdAt: formatDisplayDate(lc.createdAt || lc.created_at, "Vừa tạo"),
               };
               if (existingIdx === -1) {
                 myCourses.unshift(formatted);
@@ -161,9 +158,7 @@ export default function TeacherMyContentsPage() {
                 authorId: docAuthor,
                 visibility: data.visibility || "public",
                 isAccepted: Boolean(data.isAccepted ?? data.is_accepted),
-                createdAt: data.createdAt
-                  ? new Date(data.createdAt).toLocaleDateString("vi-VN")
-                  : "Hôm nay",
+                createdAt: formatDisplayDate(data.createdAt || data.created_at, "Hôm nay"),
               });
             }
           });
@@ -205,9 +200,7 @@ export default function TeacherMyContentsPage() {
                   data.authorName ||
                   (Array.isArray(data.authors) ? data.authors.join(", ") : "Tôi"),
                 isAccepted: Boolean(data.isAccepted ?? data.is_accepted),
-                createdAt: data.createdAt
-                  ? new Date(data.createdAt).toLocaleDateString("vi-VN")
-                  : "Hôm nay",
+                createdAt: formatDisplayDate(data.createdAt || data.created_at, "Hôm nay"),
               });
             }
           });
@@ -239,11 +232,10 @@ export default function TeacherMyContentsPage() {
                 needExtraData: Boolean(lg.needExtraData ?? lg.need_extra_data),
                 playsCount: Number(lg.playsCount ?? lg.plays_count ?? 0),
                 authorId: lgAuthor || teacherUid,
-                authorName: lg.authorName || "Tôi",
+                visibility: lg.visibility || "public",
+                authorName: "Tôi",
                 isAccepted: Boolean(lg.isAccepted ?? lg.is_accepted),
-                createdAt: lg.createdAt
-                  ? new Date(lg.createdAt).toLocaleDateString("vi-VN")
-                  : "Vừa tải lên",
+                createdAt: formatDisplayDate(lg.createdAt || lg.created_at, "Vừa tạo"),
               };
 
               if (existingIdx === -1) {

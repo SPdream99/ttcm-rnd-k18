@@ -18,6 +18,7 @@ import {
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/components/Toast";
+import { formatDisplayDate } from "@/lib/dateUtils";
 
 interface AdminUserItem {
   id: string;
@@ -80,7 +81,7 @@ export default function AdminUsersPage() {
                 status: data.status || "active",
                 departmentOrClass: data.departmentOrClass || (data.schoolCode ? `Mã trường: ${data.schoolCode}` : ""),
                 coins: Number(data.coins) || 0,
-                createdAt: data.createdAt || "2026",
+                createdAt: formatDisplayDate(data.createdAt || data.created_at, "2026"),
               };
             });
           }

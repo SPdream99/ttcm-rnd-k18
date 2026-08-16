@@ -20,6 +20,42 @@ import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { cacheService } from "@/lib/cacheService";
+import { formatDisplayDate } from "@/lib/dateUtils";
+
+function sanitizeCourse(c: any) {
+  return {
+    id: String(c.id || ""),
+    title: String(c.title || "Khóa học"),
+    description: String(c.description || c.subtitle || ""),
+    pairsCount: Number(c.pairsCount || 0),
+    authorId: String(c.authorId || ""),
+    visibility: String(c.visibility || "public"),
+    createdAt: formatDisplayDate(c.createdAt, "2026-08-10"),
+  };
+}
+
+function sanitizeClass(cls: any) {
+  return {
+    id: String(cls.id || ""),
+    name: String(cls.name || "Lớp học"),
+    code: String(cls.code || "K18"),
+    subject: String(cls.subject || "Lập trình"),
+    schedule: typeof cls.schedule === "string" ? cls.schedule : "19h30 - 21h30",
+    total_students: Number(cls.total_students || cls.totalStudents || 0),
+    description: String(cls.description || "Lớp học do giảng viên trực tiếp phụ trách."),
+  };
+}
+
+function sanitizeGame(g: any) {
+  return {
+    id: String(g.id || ""),
+    gameId: String(g.gameId || g.id || ""),
+    title: String(g.title || "Game học tập"),
+    description: String(g.description || g.subtitle || "Trò chơi tương tác"),
+    genre: String(g.genre || "3D Interactive"),
+    playsCount: Number(g.playsCount || 0),
+  };
+}
 
 export default function TeacherDashboardPage() {
   const { currentUser, profile } = useAuthAdapter();
@@ -50,13 +86,13 @@ export default function TeacherDashboardPage() {
       try {
         setLoading(true);
 
-        const cacheKey = `teacher_dashboard_exact_${teacherUid || teacherEmail || "me"}`;
+        const cacheKey = `teacher_dashboard_exact_v2_${teacherUid || teacherEmail || "me"}`;
         const cached = cacheService.get<any>(cacheKey);
-        if (cached) {
-          setStats(cached.data.stats);
-          setRecentCourses(cached.data.recentCourses);
-          setMyGames(cached.data.myGames);
-          setMyClasses(cached.data.myClasses);
+        if (cached && cached.data) {
+          setStats(cached.data.stats || { totalPlays: 0, enrolledStudents: 0, myCoursesCount: 0, myGamesCount: 0, myClassesCount: 0, myAssignmentsCount: 0 });
+          setRecentCourses((cached.data.recentCourses || []).map(sanitizeCourse));
+          setMyGames((cached.data.myGames || []).map(sanitizeGame));
+          setMyClasses((cached.data.myClasses || []).map(sanitizeClass));
           setLoading(false);
           if (!cached.isStale) return;
         }
@@ -80,15 +116,17 @@ export default function TeacherDashboardPage() {
               ? data.contentData
               : data.pairs || data.contentData?.pairs || data.content_data?.pairs || [];
 
-            myCoursesList.push({
-              id: d.id,
-              title: data.title || "Khóa học",
-              description: data.description || data.subtitle || "",
-              pairsCount: pairs.length,
-              authorId: docAuthorId,
-              visibility: data.visibility || "public",
-              createdAt: data.createdAt || "2026-08-10",
-            });
+            myCoursesList.push(
+              sanitizeCourse({
+                id: d.id,
+                title: data.title,
+                description: data.description || data.subtitle,
+                pairsCount: pairs.length,
+                authorId: docAuthorId,
+                visibility: data.visibility || "public",
+                createdAt: data.createdAt || data.created_at,
+              })
+            );
           }
         });
 
@@ -100,15 +138,15 @@ export default function TeacherDashboardPage() {
               const lcAuthor = lc.authorId || lc.author_id || lc.instructorId || lc.instructor_id;
               if (!lcAuthor || lcAuthor === teacherUid) {
                 const existingIdx = myCoursesList.findIndex((c) => c.id === lc.id);
-                const formatted = {
+                const formatted = sanitizeCourse({
                   id: lc.id,
                   title: lc.title || "Khóa học mới tạo",
                   description: lc.description || "",
                   pairsCount: (lc.pairs || lc.contentData?.pairs || []).length,
                   authorId: lcAuthor || teacherUid,
                   visibility: lc.visibility || "public",
-                  createdAt: lc.createdAt || "Vừa tạo",
-                };
+                  createdAt: lc.createdAt || lc.created_at || "Vừa tạo",
+                });
                 if (existingIdx === -1) {
                   myCoursesList.unshift(formatted);
                 } else {
@@ -136,15 +174,17 @@ export default function TeacherDashboardPage() {
             (teacherName && docTeacherName && docTeacherName.toLowerCase() === teacherName.toLowerCase());
 
           if (isMatch) {
-            myClassesList.push({
-              id: d.id,
-              name: data.name || "Lớp học",
-              code: data.code || "K18",
-              subject: data.subject || "Lập trình",
-              schedule: data.schedule || "19h30 - 21h30",
-              total_students: Number(data.total_students || data.totalStudents || 0),
-              description: data.description || "Lớp học do giảng viên trực tiếp phụ trách.",
-            });
+            myClassesList.push(
+              sanitizeClass({
+                id: d.id,
+                name: data.name,
+                code: data.code,
+                subject: data.subject,
+                schedule: data.schedule,
+                total_students: data.total_students || data.totalStudents,
+                description: data.description,
+              })
+            );
           }
         });
 
@@ -159,7 +199,7 @@ export default function TeacherDashboardPage() {
           const classId = mData.class_id || mData.classId;
           if (myClassIds.has(classId) && mData.role !== "Teacher") {
             const studentKey = mData.student_id || mData.studentId || mData.student_email || mData.studentEmail || d.id;
-            if (studentKey) uniqueStudentKeys.add(studentKey);
+            if (studentKey) uniqueStudentKeys.add(String(studentKey));
           }
         });
 
@@ -183,14 +223,16 @@ export default function TeacherDashboardPage() {
             (teacherName && docAuthorName && docAuthorName.toLowerCase() === teacherName.toLowerCase());
 
           if (isMatch) {
-            myGamesList.push({
-              id: d.id,
-              gameId: data.gameId || d.id,
-              title: data.title || "Game học tập",
-              description: data.description || data.subtitle || "Trò chơi tương tác",
-              genre: data.genre || "3D Interactive",
-              playsCount: Number(data.playsCount || data.plays_count || data.playCount || 0),
-            });
+            myGamesList.push(
+              sanitizeGame({
+                id: d.id,
+                gameId: data.gameId || d.id,
+                title: data.title,
+                description: data.description || data.subtitle,
+                genre: data.genre,
+                playsCount: data.playsCount || data.plays_count || data.playCount,
+              })
+            );
           }
         });
 
@@ -202,14 +244,14 @@ export default function TeacherDashboardPage() {
               const lgAuthor = lg.authorId || lg.author_id || lg.uploaderId || lg.uploader_id;
               if (!lgAuthor || lgAuthor === teacherUid) {
                 const existingIdx = myGamesList.findIndex((g) => g.id === lg.id || g.title === lg.title);
-                const formatted = {
+                const formatted = sanitizeGame({
                   id: lg.id || lg.gameId,
                   gameId: lg.gameId || lg.id,
                   title: lg.title || "Game Tải Lên",
                   description: lg.description || "Trò chơi học tập tích hợp Game SDK.",
                   genre: lg.genre || "Custom SDK",
-                  playsCount: Number(lg.playsCount || lg.plays_count || 0),
-                };
+                  playsCount: lg.playsCount || lg.plays_count || 0,
+                });
                 if (existingIdx === -1) {
                   myGamesList.unshift(formatted);
                 } else {
@@ -235,7 +277,7 @@ export default function TeacherDashboardPage() {
           if (
             (courseId && myCourseIds.has(courseId)) ||
             (gameId && myGameIds.has(gameId)) ||
-            (studentId && uniqueStudentKeys.has(studentId))
+            (studentId && uniqueStudentKeys.has(String(studentId)))
           ) {
             calculatedPlays += 1;
           }
@@ -474,7 +516,7 @@ export default function TeacherDashboardPage() {
                     <div className="flex items-center gap-2 text-[10px] text-zinc-400">
                       <span>{c.pairsCount || 0} Cặp câu hỏi</span>
                       <span>•</span>
-                      <span>{c.createdAt}</span>
+                      <span>{formatDisplayDate(c.createdAt)}</span>
                     </div>
                   </div>
                   <Link href={`/student/courses/${c.id}`}>

@@ -13,6 +13,7 @@ import {
 } from "@/core/entities/Teacher";
 import { cacheService } from "@/lib/cacheService";
 import { getAuthCookie } from "@/lib/cookies";
+import { formatDisplayDate } from "@/lib/dateUtils";
 
 export class FirestoreTeacherRepo implements TeacherPort {
   private getTeacherCredentials() {
@@ -213,7 +214,7 @@ export class FirestoreTeacherRepo implements TeacherPort {
               id: d.id,
               title: data.title || "Bài tập",
               className: data.subject || "Lớp K18",
-              dueDate: data.dueDate || data.due_date || "2026-08-30",
+              dueDate: formatDisplayDate(data.dueDate || data.due_date, "2026-08-30"),
               submittedCount: 1,
               totalCount: Number(data.total_students || 24),
               status: data.status === "submitted" ? "Đã Nộp" : "Đang Giao",
@@ -250,7 +251,7 @@ export class FirestoreTeacherRepo implements TeacherPort {
               id: d.id,
               title: data.title || "Bài giảng",
               className: "Lập Trình Web K18",
-              date: data.date || "2026-08-10",
+              date: formatDisplayDate(data.date || data.createdAt, "2026-08-10"),
               duration: "90 phút",
               slidesCount: 32,
             });
