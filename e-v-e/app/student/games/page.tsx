@@ -141,7 +141,8 @@ export default function StudentGamesArcadePage() {
         if (!gamesSnap.empty) {
           gamesSnap.docs.forEach((d: any) => {
             const data = d.data();
-            if (data.status === "approved" || data.status === "active") {
+            const isGameAccepted = Boolean(data.isAccepted ?? data.is_accepted ?? (data.status === "approved" || data.status === "active"));
+            if (isGameAccepted) {
               fetchedGames.push({
                 id: d.id,
                 title: data.name || data.title || "Minigame",
@@ -152,7 +153,7 @@ export default function StudentGamesArcadePage() {
                 author: data.authorName || "Giáo Viên E-V-E",
                 difficulty: "Trung Bình",
                 rewardCoins: 50,
-                needExtraData: Boolean(data.need_extra_data),
+                needExtraData: Boolean(data.need_extra_data ?? data.needExtraData ?? true),
                 coursesAllowed: data.courses_allowed || "all",
                 thumbnailUrl: data.thumbnailUrl || "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80",
                 rating: 4.7,
@@ -165,10 +166,13 @@ export default function StudentGamesArcadePage() {
 
         setGames(fetchedGames);
 
-        // Fetch Learning Paths map
+        // Fetch Learning Paths map (chỉ lấy path đã được duyệt)
         const courseToPathMap: Record<string, { pathId: string; pathTitle: string }> = {};
         pathSnap.docs.forEach((d: any) => {
           const pData = d.data();
+          const isPathAccepted = Boolean(pData.isAccepted ?? pData.is_accepted);
+          if (!isPathAccepted) return;
+
           const pCourses: string[] = Array.isArray(pData.courses) ? pData.courses : [];
           pCourses.forEach((cId) => {
             courseToPathMap[cId] = {
@@ -187,10 +191,13 @@ export default function StudentGamesArcadePage() {
           }
         }
 
-        // Map all courses and attach enrollment status
+        // Map all courses and attach enrollment status (CHỈ LẤY KHÓA HỌC ĐÃ DUYỆT)
         const cl: GameCourseItem[] = [];
         coursesSnap.docs.forEach((d: any) => {
           const cd = d.data();
+          const isCourseAccepted = Boolean(cd.isAccepted ?? cd.is_accepted ?? false);
+          if (!isCourseAccepted) return; // Ẩn các khóa học chưa được duyệt
+
           const pInfo = courseToPathMap[d.id];
           const enrollmentStatus: "active" | "paused" | "not_enrolled" = pInfo
             ? userPathStatusMap.get(pInfo.pathId) || "not_enrolled"

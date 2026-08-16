@@ -131,10 +131,13 @@ export default function StudentDashboardPage() {
         }
         setEnrolledClasses(classesData);
 
-        // 3. Map Courses List
+        // 3. Map Courses List (CHỈ LẤY KHÓA HỌC ĐÃ DUYỆT)
         const cl: DashboardCourseItem[] = [];
         coursesSnap.docs.forEach((d: any) => {
           const cd = d.data();
+          const isCourseAccepted = Boolean(cd.isAccepted ?? cd.is_accepted ?? false);
+          if (!isCourseAccepted) return; // Bỏ qua khóa học chưa duyệt
+
           const pInfo = courseToPathMap[d.id];
           const enrollmentStatus: "active" | "paused" | "not_enrolled" = pInfo
             ? userPathStatusMap.get(pInfo.pathId) || "not_enrolled"
@@ -154,10 +157,13 @@ export default function StudentDashboardPage() {
         });
         setCoursesList(cl);
 
-        // 4. Map Games List
+        // 4. Map Games List (CHỈ LẤY GAME ĐÃ DUYỆT)
         let gamesList: any[] = [];
         gamesSnap.docs.forEach((d: any) => {
           const data = d.data();
+          const isGameAccepted = Boolean(data.isAccepted ?? data.is_accepted ?? (data.status === "approved" || data.status === "active"));
+          if (!isGameAccepted) return; // Bỏ qua game chưa duyệt
+
           const needExtraData = data.needExtraData !== false;
           gamesList.push({
             id: d.id,

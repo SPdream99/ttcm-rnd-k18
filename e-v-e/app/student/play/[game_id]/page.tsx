@@ -89,11 +89,14 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
         setLoading(true);
         const user = auth.currentUser;
 
-        // 1. Fetch Learning Paths for Course Mapping
+        // 1. Fetch Learning Paths for Course Mapping (chỉ path đã duyệt)
         const pathSnap = await getDocs(collection(db, "learning_path"));
         const courseToPathMap: Record<string, { pathId: string; pathTitle: string }> = {};
         pathSnap.docs.forEach((d) => {
           const pData = d.data();
+          const isPathAccepted = Boolean(pData.isAccepted ?? pData.is_accepted);
+          if (!isPathAccepted) return;
+
           const pCourses: string[] = Array.isArray(pData.courses) ? pData.courses : [];
           pCourses.forEach((cId) => {
             courseToPathMap[cId] = {
@@ -121,11 +124,14 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
           }
         }
 
-        // 3. Fetch courses
+        // 3. Fetch courses (CHỈ LẤY KHÓA HỌC ĐÃ ĐƯỢC ADMIN DUYỆT)
         const coursesSnap = await getDocs(collection(db, "courses"));
         const list: LobbyCourseItem[] = [];
         coursesSnap.docs.forEach((d) => {
           const data = d.data();
+          const isCourseAccepted = Boolean(data.isAccepted ?? data.is_accepted ?? false);
+          if (!isCourseAccepted) return; // Bỏ qua khóa học chưa duyệt
+
           const pInfo = courseToPathMap[d.id];
           const enrollmentStatus: "active" | "paused" | "not_enrolled" = pInfo
             ? userPathStatusMap.get(pInfo.pathId) || "not_enrolled"
