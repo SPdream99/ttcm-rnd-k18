@@ -17,13 +17,14 @@ export async function GET(req: NextRequest) {
     let rankings: any[] = [];
 
     try {
+      // Query game results for this specific game + course
       const snapshot = await adminDb
         .collection("game_results")
         .where("gameId", "==", gameId)
         .where("courseId", "==", courseId)
         .where("isWin", "==", true)
         .orderBy("score", "desc")
-        .limit(50)
+        .limit(100)
         .get();
 
       if (!snapshot.empty) {
@@ -59,13 +60,47 @@ export async function GET(req: NextRequest) {
           })
         );
 
-        // Deduplicate: keep only the best score per userId
-        const bestByUser = new Map<string, any>();
+        // Deduplicate: strictly keep ONLY the SINGLE BEST score per user
+        const bestByUser = new Map<
+          string,
+          {
+            id: string;
+            userId: string;
+            userName: string;
+            name: string;
+            score: number;
+            accuracy: number;
+            playTimeRaw: number;
+            playTime: string;
+            date: string;
+            timestamp: number;
+          }
+        >();
+
         snapshot.docs.forEach((docSnap) => {
           const d = docSnap.data();
           const uId = d.userId || "anonymous";
+          const dScore = Number(d.score) || 0;
+          const dAccuracy = Number(d.accuracyPercent) ?? 100;
+          const dPlayTime = Number(d.playTimeSeconds) || 9999;
+          const dTimestamp = d.finishedAt ? new Date(d.finishedAt).getTime() : 0;
+
           const existing = bestByUser.get(uId);
-          if (!existing || (d.score || 0) > (existing.score || 0)) {
+
+          let isBetter = false;
+          if (!existing) {
+            isBetter = true;
+          } else if (dScore > existing.score) {
+            isBetter = true;
+          } else if (dScore === existing.score) {
+            if (dAccuracy > existing.accuracy) {
+              isBetter = true;
+            } else if (dAccuracy === existing.accuracy && dPlayTime < existing.playTimeRaw) {
+              isBetter = true;
+            }
+          }
+
+          if (isBetter) {
             const realName =
               userNamesMap.get(uId) ||
               d.userName ||
@@ -76,16 +111,23 @@ export async function GET(req: NextRequest) {
               userId: uId,
               userName: realName,
               name: realName,
-              score: d.score || 0,
+              score: dScore,
+              accuracy: dAccuracy,
+              playTimeRaw: dPlayTime,
               playTime: d.playTimeSeconds ? `${d.playTimeSeconds}s` : "--",
-              accuracy: d.accuracyPercent ?? 100,
               date: d.finishedAt ? new Date(d.finishedAt).toLocaleDateString("vi-VN") : "Hôm nay",
+              timestamp: dTimestamp,
             });
           }
         });
 
-        // Sort by score desc and assign ranks
-        const sorted = Array.from(bestByUser.values()).sort((a, b) => b.score - a.score);
+        // Sort by score DESC -> accuracy DESC -> playTime ASC -> timestamp DESC
+        const sorted = Array.from(bestByUser.values()).sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy;
+          return a.playTimeRaw - b.playTimeRaw;
+        });
+
         sorted.forEach((entry, idx) => {
           rankings.push({
             ...entry,

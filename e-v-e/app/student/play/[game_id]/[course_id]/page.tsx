@@ -426,6 +426,23 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
   useEffect(() => {
     loadLeaderboard();
+
+    // Lắng nghe sự kiện kết thúc game từ E-V-E Game SDK nhúng qua iframe
+    const handleSdkMessage = (event: MessageEvent) => {
+      if (!event.data) return;
+      if (event.data.type === "EVE_GAME_FINISHED") {
+        const p = event.data.payload || {};
+        if (p.score !== undefined) setScore(p.score);
+        if (p.playTimeSeconds !== undefined) setFinalPlayTime(p.playTimeSeconds);
+        if (p.accuracyPercent !== undefined) setFinalAccuracy(p.accuracyPercent);
+        setIsGameOver(true);
+        loadLeaderboard();
+        setTimeout(loadLeaderboard, 800);
+      }
+    };
+
+    window.addEventListener("message", handleSdkMessage);
+    return () => window.removeEventListener("message", handleSdkMessage);
   }, [gameId, courseId]);
 
   useEffect(() => {
@@ -663,9 +680,10 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
       console.warn("Could not save game result:", err);
     }
 
-    setTimeout(() => {
-      loadLeaderboard();
-    }, 1000);
+    // Tự động cập nhật Bảng Xếp Hạng ngay tức thì
+    loadLeaderboard();
+    setTimeout(loadLeaderboard, 600);
+    setTimeout(loadLeaderboard, 1500);
   };
 
   const handleRestart = () => {
