@@ -28,8 +28,9 @@ import {
   Clock,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, getDocs, query, collection, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { CourseContentPair } from "@/core/entities/Course";
 
 interface PlayPageProps {
@@ -173,7 +174,6 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const { game_id: gameId, course_id: courseId } = resolvedParams;
 
   const { currentUser, profile } = useAuthAdapter();
-  const uid = currentUser?.uid || profile?.uid || "usr_student";
   const studentName =
     currentUser?.name ||
     (currentUser as any)?.displayName ||
@@ -182,6 +182,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     (currentUser as any)?.email?.split("@")[0] ||
     "Học Viên E-V-E";
   const userRole = currentUser?.role || profile?.role || "student";
+  const uid = currentUser?.uid || profile?.uid || auth.currentUser?.uid || "";
 
   const currentGameMeta = GAME_METADATA[gameId] || {
     title: gameId.replace(/_/g, " ").toUpperCase(),
@@ -228,8 +229,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   // Extra Data Preloader States & Session
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [loadProgress, setLoadProgress] = useState(20);
-  const [loadStepMessage, setLoadStepMessage] = useState("1/3: Đang kết nối máy chủ và xác thực Game Session...");
+  const [loadProgress, setLoadProgress] = useState(25);
+  const [loadStepMessage, setLoadStepMessage] = useState("1/2: Đang kết nối máy chủ và xác thực...");
   const [loadErrorDetails, setLoadErrorDetails] = useState<string | null>(null);
 
   // Live Performance & Metric Tracking
@@ -274,10 +275,10 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   useEffect(() => {
     let isCancelled = false;
 
-    async function loadCourseExtraData() {
+    async function loadCourseExtraData(targetUid: string) {
       setDataStatus("loading");
-      setLoadProgress(30);
-      setLoadStepMessage("1/2: Đang kết nối máy chủ và xác thực Game Session...");
+      setLoadProgress(35);
+      setLoadStepMessage("1/2: Đang xác thực quyền truy cập và tải học liệu Extra Data...");
 
       try {
         if (isCancelled) return;
@@ -285,73 +286,37 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         let loadedPairs: CourseContentPair[] = [];
         let loadedTitle = "Khóa Học E-V-E";
 
+        // 1. Gọi API khởi tạo Session & lấy dữ liệu phía Server
         try {
           const res = await fetch("/api/games/init", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ gameId, courseId, userId: uid }),
+            body: JSON.stringify({ gameId, courseId, userId: targetUid || "anonymous" }),
           });
           const data = await res.json();
+
           if (data.success && Array.isArray(data.pairs) && data.pairs.length > 0) {
             loadedTitle = data.courseTitle || loadedTitle;
             loadedPairs = data.pairs;
             if (data.sessionToken) {
               setSessionToken(data.sessionToken);
             }
-          } else if (!data.success && data.error === "empty_extra_data") {
-            setDataStatus("error");
-            setLoadErrorDetails(data.message || "Khóa học này chưa có dữ liệu câu hỏi / học liệu (Extra Data trống). Không thể khởi chạy trò chơi!");
-            return;
-          } else if (!data.success && (data.error === "not_enrolled" || data.error === "paused")) {
-            setDataStatus("error");
-            setLoadErrorDetails(data.message || "Bạn chưa tham gia hoặc đang tạm dừng lớp học chứa khóa học này.");
-            return;
+          } else if (!data.success) {
+            if (data.error === "empty_extra_data") {
+              setDataStatus("error");
+              setLoadErrorDetails(data.message || "Khóa học này chưa có dữ liệu câu hỏi / học liệu (Extra Data trống). Không thể khởi chạy trò chơi!");
+              return;
+            } else if (data.error === "not_enrolled" || data.error === "paused") {
+              setDataStatus("error");
+              setLoadErrorDetails(data.message || "Bạn chưa tham gia hoặc đang tạm dừng lớp học chứa khóa học này.");
+              return;
+            }
           }
         } catch (apiErr) {
           console.warn("API init fetch warning:", apiErr);
         }
 
-        // Kiểm tra quyền trên client Firestore: Chạy song song nhanh chóng
-        if (uid && userRole !== "admin" && userRole !== "teacher") {
-          try {
-            const enSnap = await getDocs(
-              query(collection(db, "student_learning_path"), where("student_id", "==", uid))
-            );
-
-            const lpChecks = enSnap.docs.map(async (d) => {
-              const dData = d.data();
-              try {
-                const lpSnap = await getDoc(doc(db, "learning_path", dData.learning_path_id));
-                if (lpSnap.exists()) {
-                  const lpCourses = lpSnap.data()?.courses || [];
-                  return {
-                    includesCourse: lpCourses.includes(courseId),
-                    isPaused: dData.status === "paused",
-                  };
-                }
-              } catch {}
-              return { includesCourse: false, isPaused: false };
-            });
-
-            const checkResults = await Promise.all(lpChecks);
-            const matchingResult = checkResults.find((r) => r.includesCourse);
-
-            if (matchingResult?.isPaused) {
-              setDataStatus("error");
-              setLoadErrorDetails("Lớp học chứa bài học này đang ở trạng thái TẠM DỪNG (BẢO LƯU). Bạn cần kích hoạt lại lớp học để tiếp tục chơi.");
-              return;
-            }
-
-            if (!matchingResult) {
-              setDataStatus("error");
-              setLoadErrorDetails("Bạn chưa đăng ký hoặc chưa từng học lộ trình chứa bài học này. Vui lòng tham gia lớp học để mở khóa và chơi trò chơi với dữ liệu này!");
-              return;
-            }
-          } catch (enErr) {
-            console.warn("Client enrollment check warning:", enErr);
-          }
-        }
-
+        // 2. Nếu API chưa nạp được pairs, thử tra cứu Firestore trực tiếp
         if (loadedPairs.length === 0) {
           try {
             const cSnap = await getDoc(doc(db, "courses", courseId));
@@ -370,6 +335,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           }
         }
 
+        // 3. Fallback sang dữ liệu mẫu chuẩn nếu cần
         if (loadedPairs.length === 0) {
           const fallback = FALLBACK_COURSE_DATA[courseId];
           if (fallback && Array.isArray(fallback.pairs) && fallback.pairs.length > 0) {
@@ -378,7 +344,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           }
         }
 
-        // Nếu Extra Data hoàn toàn rỗng -> Báo lỗi không load được game
+        // 4. Nếu sau mọi bước mà Extra Data vẫn trống -> Báo lỗi
         if (loadedPairs.length === 0) {
           setDataStatus("error");
           setLoadErrorDetails("Khóa học này chưa có dữ liệu câu hỏi / học liệu (Extra Data trống). Không thể nạp và khởi chạy trò chơi!");
@@ -399,10 +365,15 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
       }
     }
 
-    loadCourseExtraData();
+    // Lắng nghe Auth trạng thái chuẩn để không bị nháy lỗi chưa đăng nhập
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      const activeUid = user?.uid || uid;
+      loadCourseExtraData(activeUid);
+    });
 
     return () => {
       isCancelled = true;
+      unsubAuth();
     };
   }, [gameId, courseId, uid]);
 
