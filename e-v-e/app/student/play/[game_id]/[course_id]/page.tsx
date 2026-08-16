@@ -311,15 +311,16 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
               setSessionToken(data.sessionToken);
             }
           } else if (!data.success) {
-            if (data.error === "empty_extra_data") {
-              setDataStatus("error");
-              setLoadErrorDetails(data.message || "Khóa học này chưa có dữ liệu câu hỏi / học liệu (Extra Data trống). Không thể khởi chạy trò chơi!");
-              return;
-            } else if (data.error === "not_enrolled" || data.error === "paused") {
-              setDataStatus("error");
-              setLoadErrorDetails(data.message || "Bạn chưa tham gia hoặc đang tạm dừng lớp học chứa khóa học này.");
-              return;
-            }
+            setDataStatus("error");
+            setLoadErrorDetails(
+              data.message ||
+                (data.error === "not_approved"
+                  ? "Bài học này chưa được Quản trị viên phê duyệt hoặc đã bị hủy duyệt. Không thể sử dụng trong trò chơi."
+                  : data.error === "not_enrolled_or_unapproved"
+                  ? "Lộ trình hoặc bài học này chưa được phê duyệt (hoặc có bài học con chưa duyệt). Không thể sử dụng trong trò chơi."
+                  : "Không thể khởi chạy trò chơi với bài học này.")
+            );
+            return;
           }
         } catch (apiErr) {
           console.warn("API init fetch warning:", apiErr);

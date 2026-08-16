@@ -206,17 +206,13 @@ export async function POST(req: NextRequest) {
             {
               success: false,
               error: "not_approved",
-              message: "Khóa học này chưa được Admin duyệt. Bạn không thể truy cập nội dung này.",
+              message: "Khóa học này chưa được Admin duyệt hoặc đã bị hủy duyệt. Bạn không thể sử dụng khóa học này trong trò chơi.",
             },
             { status: 403 }
           );
         }
 
         title = cData.title || title;
-        // Support multiple field name conventions:
-        // 1. `pairs` (used in fill_data.mjs — primary)
-        // 2. `contentData` array (legacy flat format)
-        // 3. `contentData.pairs` / `content_data.pairs` (legacy nested format)
         if (Array.isArray(cData.pairs) && cData.pairs.length > 0) {
           pairs = cData.pairs;
         } else if (Array.isArray(cData.contentData) && cData.contentData.length > 0) {
@@ -227,12 +223,24 @@ export async function POST(req: NextRequest) {
             cData.content_data?.pairs ||
             [];
         }
+      } else {
+        // Course không tồn tại trong DB
+        if (userRole !== "admin") {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "not_approved",
+              message: "Khóa học không tồn tại hoặc chưa được duyệt.",
+            },
+            { status: 404 }
+          );
+        }
       }
     } catch {
       // Fallback
     }
 
-    // Kiểm tra học sinh có đang học hoặc đã tham gia lộ trình chứa courseId này hay không (Admin & Giáo viên được miễn)
+    // Kiểm tra học sinh có đang học hoặc đã tham gia lộ trình CHỨA courseId này và lộ trình đó PHẢI ĐƯỢC DUYỆT (Admin & Giáo viên được miễn)
     if (userId && userId !== "anonymous" && userRole !== "admin" && userRole !== "teacher" && userRole !== "instructor") {
       try {
         const enrollmentsSnap = await adminDb
@@ -240,25 +248,41 @@ export async function POST(req: NextRequest) {
           .where("student_id", "==", userId)
           .get();
 
-        let hasEnrolledCourse = false;
+        // Lấy danh sách tất cả các courses đã được duyệt để kiểm tra ràng buộc 1 chiều của Learning Path
+        const allCoursesSnap = await adminDb.collection("courses").get();
+        const approvedCourseSet = new Set<string>();
+        allCoursesSnap.docs.forEach((docSnap) => {
+          const cd = docSnap.data();
+          if (cd.isAccepted ?? cd.is_accepted) {
+            approvedCourseSet.add(docSnap.id);
+          }
+        });
+
+        let hasEnrolledAndApprovedPath = false;
         let isPaused = false;
 
         for (const enDoc of enrollmentsSnap.docs) {
           const enData = enDoc.data();
           const lpDoc = await adminDb.collection("learning_path").doc(enData.learning_path_id).get();
           if (lpDoc.exists) {
-            const lpCourses = lpDoc.data()?.courses || [];
-            if (lpCourses.includes(courseId)) {
-              hasEnrolledCourse = true;
+            const lpData = lpDoc.data()!;
+            const isPathApproved = Boolean(lpData.isAccepted ?? lpData.is_accepted ?? false);
+            const lpCourses: string[] = Array.isArray(lpData.courses) ? lpData.courses : [];
+            const allSubCoursesApproved = lpCourses.length > 0 && lpCourses.every((cId) => approvedCourseSet.has(cId));
+
+            // Lộ trình phải được duyệt VÀ toàn bộ khóa học con phải được duyệt
+            if (isPathApproved && allSubCoursesApproved && lpCourses.includes(courseId)) {
               if (enData.status === "paused") {
                 isPaused = true;
+              } else {
+                hasEnrolledAndApprovedPath = true;
+                break;
               }
-              break;
             }
           }
         }
 
-        if (isPaused) {
+        if (isPaused && !hasEnrolledAndApprovedPath) {
           return NextResponse.json(
             {
               success: false,
@@ -269,12 +293,12 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        if (!hasEnrolledCourse) {
+        if (!hasEnrolledAndApprovedPath) {
           return NextResponse.json(
             {
               success: false,
-              error: "not_enrolled",
-              message: "Bạn chưa đăng ký hoặc chưa từng học lộ trình chứa bài học này. Vui lòng tham gia lớp học để mở khóa!",
+              error: "not_enrolled_or_unapproved",
+              message: "Lộ trình hoặc bài học này chưa được phê duyệt (hoặc đã bị hủy duyệt). Bạn không thể sử dụng trong trò chơi.",
             },
             { status: 403 }
           );
