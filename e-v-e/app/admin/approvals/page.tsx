@@ -21,7 +21,7 @@ import {
   Info,
 } from "lucide-react";
 import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { useToast } from "@/components/Toast";
 import { cacheService } from "@/lib/cacheService";
 import { Course, CourseContentPair } from "@/core/entities/Course";
