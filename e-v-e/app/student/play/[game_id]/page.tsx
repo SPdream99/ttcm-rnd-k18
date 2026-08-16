@@ -118,10 +118,17 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
           });
         });
 
-        // 2. Fetch student enrollments
+        // 2. Fetch student enrollments & check teacher role
         const userPathStatusMap = new Map<string, "active" | "paused">();
+        let isTeacherOrAdmin = false;
         if (user) {
           try {
+            const uDoc = await getDoc(doc(db, "users", user.uid));
+            const r = uDoc.exists() ? uDoc.data()?.role : "";
+            if (r === "teacher" || r === "instructor" || r === "admin") {
+              isTeacherOrAdmin = true;
+            }
+
             const enSnap = await getDocs(
               query(collection(db, "student_learning_path"), where("student_id", "==", user.uid))
             );
@@ -144,7 +151,9 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
           if (!isCourseAccepted) return; // Bỏ qua khóa học chưa duyệt
 
           const pInfo = courseToPathMap[d.id];
-          const enrollmentStatus: "active" | "paused" | "not_enrolled" = pInfo
+          const enrollmentStatus: "active" | "paused" | "not_enrolled" = isTeacherOrAdmin
+            ? "active"
+            : pInfo
             ? userPathStatusMap.get(pInfo.pathId) || "not_enrolled"
             : "not_enrolled";
 

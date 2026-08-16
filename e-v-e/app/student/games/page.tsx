@@ -202,6 +202,8 @@ export default function StudentGamesArcadePage() {
           }
         }
 
+        const isTeacherOrAdmin = ["teacher", "instructor", "admin"].includes(currentUser?.role || profile?.role || "");
+
         // Map all courses and attach enrollment status (CHỈ LẤY KHÓA HỌC ĐÃ DUYỆT)
         const cl: GameCourseItem[] = [];
         coursesSnap.docs.forEach((d: any) => {
@@ -210,7 +212,9 @@ export default function StudentGamesArcadePage() {
           if (!isCourseAccepted) return; // Ẩn các khóa học chưa được duyệt
 
           const pInfo = courseToPathMap[d.id];
-          const enrollmentStatus: "active" | "paused" | "not_enrolled" = pInfo
+          const enrollmentStatus: "active" | "paused" | "not_enrolled" = isTeacherOrAdmin
+            ? "active"
+            : pInfo
             ? userPathStatusMap.get(pInfo.pathId) || "not_enrolled"
             : "not_enrolled";
 
