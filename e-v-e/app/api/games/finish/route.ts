@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       score = 100,
       isWin = true,
       accuracyPercent = 100,
-      playTimeSeconds = 60,
+      playTimeSeconds = 30,
     } = body;
 
     if (!gameId || !courseId) {
@@ -26,8 +26,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const safePlayTime = Math.max(1, Number(playTimeSeconds) || 1);
+    const safeAccuracy = Math.min(100, Math.max(0, Math.round(Number(accuracyPercent) || 100)));
+
     // 1. Anti-Cheat & Secure Score Validation
-    const validation = validateGameScore(sessionToken, Number(score), Number(playTimeSeconds));
+    const validation = validateGameScore(sessionToken, Number(score), safePlayTime);
     if (!validation.isValid) {
       return NextResponse.json(
         {
@@ -81,7 +84,7 @@ export async function POST(req: NextRequest) {
         .where("gameId", "==", gameId)
         .where("courseId", "==", courseId)
         .where("userId", "==", effectiveUserId)
-        .limit(5)
+        .limit(10)
         .get();
 
       if (!existingSnap.empty) {
@@ -93,25 +96,30 @@ export async function POST(req: NextRequest) {
         for (let i = 1; i < existingSnap.docs.length; i++) {
           const docData = existingSnap.docs[i].data();
           if ((docData.score || 0) > bestScore) {
-            // Delete the old best, this one is better
-            await bestDoc.ref.delete();
+            await bestDoc.ref.delete().catch(() => {});
             bestDoc = existingSnap.docs[i];
             bestScore = docData.score || 0;
           } else {
-            // Delete this duplicate
-            await existingSnap.docs[i].ref.delete();
+            await existingSnap.docs[i].ref.delete().catch(() => {});
           }
         }
 
-        // Update if new score is better or if name was updated
-        if (finalScore > bestScore || !bestDoc.data().userName) {
+        // Update if new score is better or same score with faster time / better accuracy
+        const prevData = bestDoc.data();
+        const isBetter =
+          finalScore > bestScore ||
+          (finalScore === bestScore &&
+            (safePlayTime < (prevData.playTimeSeconds || 9999) ||
+              safeAccuracy > (prevData.accuracyPercent || 0)));
+
+        if (isBetter || !prevData.userName) {
           await bestDoc.ref.update({
             score: Math.max(finalScore, bestScore),
             rawReportedScore: score,
             userName: realUserName,
             isWin,
-            accuracyPercent,
-            playTimeSeconds,
+            accuracyPercent: safeAccuracy,
+            playTimeSeconds: safePlayTime,
             earnedCoins,
             verifiedByAntiCheat: true,
             finishedAt: new Date().toISOString(),
@@ -128,8 +136,8 @@ export async function POST(req: NextRequest) {
           score: finalScore,
           rawReportedScore: score,
           isWin,
-          accuracyPercent,
-          playTimeSeconds,
+          accuracyPercent: safeAccuracy,
+          playTimeSeconds: safePlayTime,
           earnedCoins,
           verifiedByAntiCheat: true,
           finishedAt: new Date().toISOString(),
@@ -150,6 +158,8 @@ export async function POST(req: NextRequest) {
         finalScore,
         userName: realUserName,
         isWin,
+        accuracyPercent: safeAccuracy,
+        playTimeSeconds: safePlayTime,
         earnedCoins,
         courseCompleted: isWin,
         unlockedNextCourse: isWin,

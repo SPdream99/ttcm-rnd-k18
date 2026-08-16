@@ -225,11 +225,19 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
 
-  // ── Extra Data Preloader States ──
+  // Extra Data Preloader States & Session
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
   const [loadProgress, setLoadProgress] = useState(20);
   const [loadStepMessage, setLoadStepMessage] = useState("1/3: Đang kết nối máy chủ và xác thực Game Session...");
   const [loadErrorDetails, setLoadErrorDetails] = useState<string | null>(null);
+
+  // Live Performance & Metric Tracking
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [finalPlayTime, setFinalPlayTime] = useState(0);
+  const [finalAccuracy, setFinalAccuracy] = useState(100);
+  const [quizAttempts, setQuizAttempts] = useState(0);
+  const [quizCorrects, setQuizCorrects] = useState(0);
 
   // Background audio
   useEffect(() => {
@@ -252,6 +260,15 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
       audioRef.current.play().catch(() => {});
     }
   }, [isSoundMuted, gameState, dataStatus]);
+
+  // Active game stopwatch timer
+  useEffect(() => {
+    if (gameState !== "playing" || isGameOver || previewTimer > 0) return;
+    const interval = setInterval(() => {
+      setElapsedSeconds((s) => s + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [gameState, isGameOver, previewTimer]);
 
   // Load Course Extra Data
   useEffect(() => {
@@ -282,6 +299,9 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           if (data.success && Array.isArray(data.pairs) && data.pairs.length > 0) {
             loadedTitle = data.courseTitle || loadedTitle;
             loadedPairs = data.pairs;
+            if (data.sessionToken) {
+              setSessionToken(data.sessionToken);
+            }
           } else if (!data.success && data.error === "empty_extra_data") {
             setDataStatus("error");
             setLoadErrorDetails(data.message || "Khóa học này chưa có dữ liệu câu hỏi / học liệu (Extra Data trống). Không thể khởi chạy trò chơi!");
@@ -493,6 +513,9 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     setSelectedAnswer(null);
     setIsCorrect(null);
     setMovesCount(0);
+    setElapsedSeconds(0);
+    setQuizAttempts(0);
+    setQuizCorrects(0);
 
     if (isCardMatchingEngine) {
       initializeMemoryDeck();
@@ -520,13 +543,17 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
             )
           );
           setSelectedCards([]);
-          setScore((s) => s + 30);
+          setScore((s) => s + 35);
           setStreak((st) => st + 1);
           setMatchedPairsCount((m) => {
             const nextCount = m + 1;
             const totalPairsCount = cards.length / 2;
             if (nextCount >= totalPairsCount) {
-              handleGameWin(score + 30 + lives * 10);
+              const actualTime = Math.max(1, elapsedSeconds);
+              const moves = movesCount + 1;
+              const accuracy = moves > 0 ? Math.min(100, Math.max(15, Math.round((totalPairsCount / moves) * 100))) : 100;
+              const finalScore = score + 35 + (lives * 15) + Math.max(0, 100 - actualTime * 2);
+              handleGameWin(finalScore, accuracy, actualTime);
             }
             return nextCount;
           });
@@ -575,8 +602,13 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     const correctBool = option === correct;
     setIsCorrect(correctBool);
 
+    const newAttempts = quizAttempts + 1;
+    const newCorrects = quizCorrects + (correctBool ? 1 : 0);
+    setQuizAttempts(newAttempts);
+    setQuizCorrects(newCorrects);
+
     if (correctBool) {
-      setScore((s) => s + 25);
+      setScore((s) => s + 30 + streak * 5);
       setStreak((st) => st + 1);
     } else {
       setStreak(0);
@@ -586,15 +618,26 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
       if (currentPairIdx + 1 < pairs.length) {
         setCurrentPairIdx((i) => i + 1);
       } else {
-        handleGameWin(score + (correctBool ? 25 : 0));
+        const actualTime = Math.max(1, elapsedSeconds);
+        const accuracy = newAttempts > 0 ? Math.min(100, Math.max(10, Math.round((newCorrects / newAttempts) * 100))) : 100;
+        const finalScore = score + (correctBool ? 30 : 0) + (correctBool ? 20 : 0);
+        handleGameWin(finalScore, accuracy, actualTime);
       }
     }, 1500);
   };
 
-  const handleGameWin = async (finalScoreValue: number) => {
+  const handleGameWin = async (finalScoreValue: number, customAccuracy?: number, customTime?: number) => {
     setIsGameOver(true);
-    const coinsWon = Math.round(finalScoreValue * 0.5);
+    const coinsWon = Math.round(finalScoreValue * 0.4);
     setEarnedCoins(coinsWon);
+
+    const actualPlayTime = customTime !== undefined ? customTime : Math.max(1, elapsedSeconds);
+    const actualAccuracy = customAccuracy !== undefined ? customAccuracy : (
+      movesCount > 0 ? Math.min(100, Math.max(15, Math.round((matchedPairsCount / movesCount) * 100))) : 100
+    );
+
+    setFinalPlayTime(actualPlayTime);
+    setFinalAccuracy(actualAccuracy);
 
     try {
       const res = await fetch("/api/games/finish", {
@@ -605,17 +648,20 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           courseId,
           userId: uid,
           userName: studentName,
+          sessionToken,
           score: finalScoreValue,
           isWin: true,
-          accuracyPercent: 100,
-          playTimeSeconds: 45,
+          accuracyPercent: actualAccuracy,
+          playTimeSeconds: actualPlayTime,
         }),
       });
       const data = await res.json();
       if (data.success && data.data?.earnedCoins) {
         setEarnedCoins(data.data.earnedCoins);
       }
-    } catch {}
+    } catch (err) {
+      console.warn("Could not save game result:", err);
+    }
 
     setTimeout(() => {
       loadLeaderboard();
@@ -972,14 +1018,22 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-zinc-50 border border-zinc-200 text-center">
                     <div>
                       <div className="text-[10px] text-zinc-500 uppercase font-bold">Tổng Điểm</div>
-                      <div className="text-xl font-black text-zinc-900 font-mono">{score} PTS</div>
+                      <div className="text-lg font-black text-zinc-900 font-mono">{score} PTS</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-zinc-500 uppercase font-bold">Thời Gian</div>
+                      <div className="text-lg font-black text-zinc-900 font-mono">{finalPlayTime || elapsedSeconds}s</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-emerald-600 uppercase font-bold">Độ Chính Xác</div>
+                      <div className="text-lg font-black text-emerald-700 font-mono">{finalAccuracy}%</div>
                     </div>
                     <div>
                       <div className="text-[10px] text-red-600 uppercase font-bold">Coins Thưởng</div>
-                      <div className="text-xl font-black text-red-600 font-mono">+{earnedCoins} </div>
+                      <div className="text-lg font-black text-red-600 font-mono">+{earnedCoins}</div>
                     </div>
                   </div>
 
@@ -1003,9 +1057,13 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                 <div className="space-y-6">
                   {/* Status Banner */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-zinc-50 p-3.5 rounded-xl border border-zinc-200">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 flex-wrap">
                       <span>Lượt lật: <strong className="text-zinc-900">{movesCount}</strong></span>
                       <span>Đã ghép: <strong className="text-red-600">{matchedPairsCount} / {cards.length / 2} cặp</strong></span>
+                      <span>Thời gian: <strong className="text-zinc-900">{elapsedSeconds}s</strong></span>
+                      {movesCount > 0 && (
+                        <span>Chính xác: <strong className="text-emerald-700">{Math.min(100, Math.max(10, Math.round((matchedPairsCount / movesCount) * 100)))}%</strong></span>
+                      )}
                     </div>
 
                     {previewTimer > 0 ? (
