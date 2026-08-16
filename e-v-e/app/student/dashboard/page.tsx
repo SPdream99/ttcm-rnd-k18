@@ -213,26 +213,6 @@ export default function StudentDashboardPage() {
           }
         });
 
-        // 5. Map Leaderboard
-        const studentMap = new Map<
-          string,
-          { id: string; name: string; score: number; coins: number; isMe: boolean }
-        >();
-
-        userSnap.docs.forEach((d: any) => {
-          const u = d.data();
-          const uId = d.id;
-          if (u.role === "student" || (!u.role && u.email)) {
-            studentMap.set(uId, {
-              id: uId,
-              name: u.name || u.displayName || u.fullName || `Học viên #${uId.slice(-4)}`,
-              score: Number(u.score) || (Number(u.coins) ? Number(u.coins) * 2 : 100),
-              coins: Number(u.coins) || 0,
-              isMe: user ? uId === user.uid : false,
-            });
-          }
-        });
-
         // Điền điểm tích lũy từ kết quả game
         gameResSnap.docs.forEach((d: any) => {
           const res = d.data();
