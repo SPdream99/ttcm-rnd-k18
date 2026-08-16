@@ -35,10 +35,16 @@ export function ProfileHoverCard({
 }: ProfileHoverCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [coords, setCoords] = useState<{ top: number; left: number; position: "bottom" | "top" }>({
+  const [coords, setCoords] = useState<{
+    top: number;
+    left: number;
+    position: "bottom" | "top";
+    arrowLeft: number;
+  }>({
     top: 0,
     left: 0,
     position: "bottom",
+    arrowLeft: 137,
   });
   const [mounted, setMounted] = useState(false);
 
@@ -60,20 +66,26 @@ export function ProfileHoverCard({
     const cardHeight = 200;
     const padding = 16;
 
-    // Anchor horizontally centered on mouse or trigger bar
+    // Anchor horizontally centered on mouse cursor or trigger bar
     let targetX = clientX !== undefined ? clientX : rect.left + rect.width / 2;
     let left = targetX - cardWidth / 2;
 
+    // Keep card inside viewport bounds
     if (left < padding) left = padding;
     if (left + cardWidth > window.innerWidth - padding) {
       left = window.innerWidth - padding - cardWidth;
     }
 
+    // Dynamic arrow offset pointing directly to the mouse cursor
+    let arrowLeft = targetX - left;
+    if (arrowLeft < 20) arrowLeft = 20;
+    if (arrowLeft > cardWidth - 20) arrowLeft = cardWidth - 20;
+
     // Default to positioning BELOW the hovered bar
     let position: "bottom" | "top" = "bottom";
     let top = rect.bottom + 8;
 
-    // Fallback above only if bottom goes off-screen
+    // Fallback above only if bottom exceeds viewport
     if (align === "top" || (align !== "bottom" && rect.bottom + cardHeight > window.innerHeight - padding)) {
       if (rect.top > cardHeight + padding) {
         position = "top";
@@ -81,7 +93,7 @@ export function ProfileHoverCard({
       }
     }
 
-    setCoords({ top, left, position });
+    setCoords({ top, left, position, arrowLeft });
   };
 
   const handleMouseEnter = (e?: MouseEvent) => {
@@ -91,15 +103,15 @@ export function ProfileHoverCard({
     }
     calculatePosition(e?.clientX);
     setIsOpen(true);
-    // Request animation frame for smooth transparent-in transition
     requestAnimationFrame(() => {
       setIsVisible(true);
     });
   };
 
+  // Kéo hover profile chạy theo vị trí chuột trên toàn bộ thanh
   const handleMouseMove = (e: MouseEvent) => {
+    calculatePosition(e.clientX);
     if (!isOpen) {
-      calculatePosition(e.clientX);
       setIsOpen(true);
       requestAnimationFrame(() => {
         setIsVisible(true);
@@ -113,7 +125,7 @@ export function ProfileHoverCard({
       setIsVisible(false);
       setTimeout(() => {
         setIsOpen(false);
-      }, 200);
+      }, 180);
     }, 120);
   };
 
@@ -149,8 +161,9 @@ export function ProfileHoverCard({
               top: `${coords.top}px`,
               left: `${coords.left}px`,
               zIndex: 999999,
+              transition: "left 65ms cubic-bezier(0.2, 0, 0, 1), top 120ms ease, opacity 180ms ease, transform 180ms ease",
             }}
-            className={`w-[275px] p-4 rounded-2xl bg-white/92 backdrop-blur-xl text-zinc-900 border-2 border-red-500 shadow-2xl shadow-red-950/20 select-none font-sans pointer-events-auto transition-all duration-200 ease-out ${
+            className={`w-[275px] p-4 rounded-2xl bg-white/92 backdrop-blur-xl text-zinc-900 border-2 border-red-500 shadow-2xl shadow-red-950/20 select-none font-sans pointer-events-auto ${
               isVisible
                 ? "opacity-100 translate-y-0 scale-100"
                 : "opacity-0 -translate-y-2 scale-95 pointer-events-none"
@@ -163,9 +176,13 @@ export function ProfileHoverCard({
               }`}
             />
 
-            {/* Pointer arrow indicator */}
+            {/* Dynamic pointer arrow indicator following cursor */}
             <div
-              className={`absolute w-3 h-3 bg-white/92 border-red-500 transform rotate-45 left-1/2 -translate-x-1/2 ${
+              style={{
+                left: `${coords.arrowLeft}px`,
+                transition: "left 65ms cubic-bezier(0.2, 0, 0, 1)",
+              }}
+              className={`absolute w-3 h-3 bg-white/92 border-red-500 transform rotate-45 -translate-x-1/2 ${
                 coords.position === "bottom"
                   ? "-top-1.5 border-t-2 border-l-2"
                   : "-bottom-1.5 border-b-2 border-r-2"
