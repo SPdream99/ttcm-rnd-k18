@@ -370,15 +370,6 @@ export default function StudentDashboardPage() {
       <div className="rounded-2xl border-2 border-red-600 bg-white p-6 md:p-8 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-600 text-xs font-bold">
-                E-V-E Educational Ecosystem
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-bold">
-                <Flame className="w-3.5 h-3.5 text-red-600" /> Chuỗi học 7 ngày
-              </span>
-            </div>
-
             <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight">
               Chào mừng trở lại, <span className="text-red-600">{displayName}</span>
             </h1>
@@ -388,24 +379,14 @@ export default function StudentDashboardPage() {
             </p>
           </div>
 
-          {/* Khối Thao Tác & Điểm Thưởng */}
+          {/* Khối Điểm Thưởng */}
           <div className="flex items-center gap-3 self-start lg:self-auto shrink-0">
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200">
               <div className="w-9 h-9 rounded-lg bg-red-600 text-white flex items-center justify-center font-bold">
                 <Coins className="w-5 h-5" />
               </div>
-              <div>
-                <span className="text-[10px] text-zinc-500 block font-bold uppercase">Số dư Coins</span>
-                <span className="text-base font-bold text-red-600 font-mono">{displayCoins} Coins</span>
-              </div>
+              <span className="text-base font-bold text-red-600 font-mono">{displayCoins} Coins</span>
             </div>
-
-            <Link
-              href="/student/ai-tutor"
-              className="px-5 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors flex items-center gap-2 cursor-pointer"
-            >
-              <Bot className="w-4 h-4" /> Hỏi Gia Sư
-            </Link>
           </div>
         </div>
       </div>
