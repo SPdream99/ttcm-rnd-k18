@@ -72,43 +72,14 @@ export default function LoginPage() {
       return;
     }
 
-    const { role, status, twoFactorEnabled } = res.user;
+    const { role, status } = res.user;
 
     if (status === "banned") {
       setMessage("Tài khoản của bạn đã bị khóa bởi Quản trị viên.");
       return;
     }
 
-    if (twoFactorEnabled) {
-      setPendingUser(res.user);
-      setIs2FAChallenge(true);
-      setMessage("Tài khoản đã kích hoạt 2FA. Đang gửi mã xác thực tới email...");
-
-      try {
-        const sendRes = await fetch("/api/auth/2fa/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: res.user.email || email,
-            recipientName: res.user.name,
-            purpose: "login",
-          }),
-        });
-        const sendData = await sendRes.json();
-        if (sendData.success) {
-          setMaskedEmail(sendData.maskedEmail || email);
-          setMessage(`Mã OTP 6 số đã được gửi tới ${sendData.maskedEmail || email}`);
-          setResendCooldown(60);
-          if (sendData.isDemo && sendData.demoOtp) {
-            setDemoOtpHint(sendData.demoOtp);
-          }
-        }
-      } catch {
-        setMessage("Không thể gửi mã 2FA. Vui lòng thử lại.");
-      }
-      return;
-    }
-
+    // 2FA temporarily disabled globally
     completeLogin(res.user);
   };
 
@@ -264,7 +235,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="bg-zinc-50 text-zinc-900 min-h-screen flex flex-col items-center justify-center p-4 md:p-8 font-sans">
+    <div className="bg-zinc-50 text-zinc-900 min-h-screen flex flex-col items-center justify-center p-4 md:p-8 font-sans relative">
+      {/* Back to Home floating action */}
+      <div className="w-full max-w-md mb-2 flex items-center justify-between">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-zinc-200 text-xs font-bold text-zinc-600 hover:text-red-600 hover:border-red-300 transition-all shadow-2xs cursor-pointer"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Quay lại trang chủ</span>
+        </Link>
+      </div>
+
       <main className="w-full max-w-md my-auto">
         {/* Brand Header */}
         <div className="text-center mb-6">

@@ -49,37 +49,55 @@ export default function StudentLearningPathPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [learningPaths, setLearningPaths] = useState<LearningPath[]>(() => {
-    return cacheService.get<LearningPath[]>("student_learning_paths_page")?.data || [];
-  });
+  const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
   const [search, setSearch] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
-  const [loading, setLoading] = useState<boolean>(() => {
-    return !cacheService.get<LearningPath[]>("student_learning_paths_page");
-  });
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    // Đọc cache sau khi mount trên client để tránh lỗi hydration mismatch
+    const cached = cacheService.get<LearningPath[]>("student_learning_paths_page");
+    if (cached?.data && cached.data.length > 0) {
+      setLearningPaths(cached.data);
+      setLoading(false);
+    }
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
+        // Lấy danh sách các khóa học đã được Admin duyệt
+        const coursesSnap = await getDocs(collection(db, "courses"));
+        const acceptedCourseIds = new Set<string>();
+        coursesSnap.docs.forEach((d) => {
+          const cData = d.data();
+          if (cData.isAccepted ?? cData.is_accepted) {
+            acceptedCourseIds.add(d.id);
+          }
+        });
+
+        // 1. All paths marked accepted in Firestore
+        const pathSnapshot = await getDocs(collection(db, "learning_path"));
+        const acceptedPathsDocs = pathSnapshot.docs.filter((d) => {
+          const data = d.data();
+          const isPathAccepted = Boolean(data.is_accepted ?? data.isAccepted);
+          if (!isPathAccepted) return false;
+
+          // RÀNG BUỘC MỘT CHIỀU: Mọi course trong lộ trình BẮT BUỘC phải được duyệt
+          const rawCourses = data.courses || data.courseIds || data.course_ids || [];
+          const pathCourseIds: string[] = Array.isArray(rawCourses)
+            ? rawCourses.map((c: any) => (typeof c === "string" ? c : c.id || c.course_id || "")).filter(Boolean)
+            : [];
+
+          if (pathCourseIds.length === 0) return false;
+          const allCoursesApproved = pathCourseIds.every((cId) => acceptedCourseIds.has(cId));
+          return allCoursesApproved;
+        });
+
         if (!user) {
-          const pathQuery = query(
-            collection(db, "learning_path"),
-            where("is_accepted", "==", true)
-          );
-          const pathSnapshot = await getDocs(pathQuery);
-          await loadTeachersAndSet(pathSnapshot.docs);
+          await loadTeachersAndSet(acceptedPathsDocs);
           setLoading(false);
           return;
         }
 
-        // 1. All accepted paths
-        const pathQuery = query(
-          collection(db, "learning_path"),
-          where("is_accepted", "==", true)
-        );
-        const pathSnapshot = await getDocs(pathQuery);
-
-        // 2. Already enrolled
+        // 2. Lấy tất cả các lộ trình học sinh đã tham gia (cả đang học lẫn bảo lưu)
         let enrolledPathIds = new Set<string>();
         try {
           const enrollmentQuery = query(
@@ -90,22 +108,19 @@ export default function StudentLearningPathPage() {
 
           enrolledPathIds = new Set(
             enrollmentSnapshot.docs
-              .map((d) => {
-                const data = d.data();
-                return data.status === "active" ? data.learning_path_id : null;
-              })
+              .map((d) => d.data().learning_path_id)
               .filter(Boolean)
           );
         } catch {
           // ignore
         }
 
-        // 3. Filter unenrolled or all
-        const availablePaths = pathSnapshot.docs.filter(
+        // 3. Chỉ hiển thị các lộ trình MỚI mà học sinh CHƯA TỪNG tham gia & thỏa mãn quy tắc duyệt 1 chiều
+        const availablePaths = acceptedPathsDocs.filter(
           (d) => !enrolledPathIds.has(d.id)
         );
 
-        await loadTeachersAndSet(availablePaths.length > 0 ? availablePaths : pathSnapshot.docs);
+        await loadTeachersAndSet(availablePaths);
       } catch (err) {
         console.error("Error loading learning paths:", err);
         toast.error("Không thể tải danh sách Learning Path.", "Lỗi");

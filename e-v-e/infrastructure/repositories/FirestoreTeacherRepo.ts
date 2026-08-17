@@ -12,41 +12,112 @@ import {
   TeacherClassStudentItem,
 } from "@/core/entities/Teacher";
 import { cacheService } from "@/lib/cacheService";
+import { getAuthCookie } from "@/lib/cookies";
+import { formatDisplayDate } from "@/lib/dateUtils";
 
 export class FirestoreTeacherRepo implements TeacherPort {
+  private getTeacherCredentials() {
+    const cookie = getAuthCookie();
+    return {
+      teacherUid: cookie?.uid || cookie?.id || "",
+      teacherEmail: cookie?.email || "",
+      teacherName: cookie?.fullName || cookie?.name || cookie?.displayName || "",
+    };
+  }
+
   async getStats(): Promise<TeacherMetric[]> {
+    const { teacherUid, teacherEmail, teacherName } = this.getTeacherCredentials();
+    const cacheKey = `teacher_exact_stats_${teacherUid || "default"}`;
+
     return cacheService.getOrFetch(
-      "teacher_stats",
+      cacheKey,
       async () => {
         try {
-          const classesSnap = await getDocs(collection(db, "classes"));
-          const assignmentsSnap = await getDocs(collection(db, "assignments"));
-          const studentsSnap = await getDocs(collection(db, "class_members"));
+          const [learningPathsSnap, classesSnap, assignmentsSnap, studentsSnap] = await Promise.all([
+            getDocs(collection(db, "learning_path")),
+            getDocs(collection(db, "classes")),
+            getDocs(collection(db, "assignments")),
+            getDocs(collection(db, "class_members")),
+          ]);
 
-          const totalClasses = classesSnap.size || 2;
-          const totalAssignments = assignmentsSnap.size || 3;
-          const totalStudents = studentsSnap.size || 24;
+          // Lọc lộ trình / lớp học của giáo viên hiện tại (Các lớp đang giảng dạy chính là các lộ trình)
+          const myClassIds = new Set<string>();
+          let myClassCount = 0;
+
+          learningPathsSnap.docs.forEach((d) => {
+            const data = d.data();
+            const docAuthorId = data.author_id || data.authorId;
+            const docTeacherEmail = data.author_email || data.authorEmail;
+            const docTeacherName = data.author_name || data.authorName || data.teacher;
+
+            const isMatch =
+              !teacherUid ||
+              docAuthorId === teacherUid ||
+              (teacherEmail && docTeacherEmail && docTeacherEmail.toLowerCase() === teacherEmail.toLowerCase()) ||
+              (teacherName && docTeacherName && docTeacherName.toLowerCase() === teacherName.toLowerCase());
+
+            if (isMatch) {
+              myClassIds.add(d.id);
+              myClassCount += 1;
+            }
+          });
+
+          // Bổ sung các class doc nếu có
+          classesSnap.docs.forEach((d) => {
+            const data = d.data();
+            const docTeacherId = data.teacher_id || data.teacherId || data.instructorId || data.authorId;
+            const isMatch = !teacherUid || docTeacherId === teacherUid;
+            if (isMatch) {
+              myClassIds.add(d.id);
+            }
+          });
+
+          // Lọc học sinh trong các lớp của giáo viên
+          const uniqueStudentIds = new Set<string>();
+          studentsSnap.docs.forEach((d) => {
+            const data = d.data();
+            const classId = data.class_id || data.classId;
+            if (myClassIds.has(classId) && data.role !== "Teacher") {
+              const sKey = data.student_id || data.studentId || data.student_email || d.id;
+              if (sKey) uniqueStudentIds.add(sKey);
+            }
+          });
+
+          // Lọc bài tập đã giao của giáo viên
+          let myAssignmentsCount = 0;
+          assignmentsSnap.docs.forEach((d) => {
+            const data = d.data();
+            const docTeacherId = data.teacher_id || data.teacherId;
+            const classId = data.class_id || data.classId;
+            if (
+              !teacherUid ||
+              docTeacherId === teacherUid ||
+              (classId && myClassIds.has(classId))
+            ) {
+              myAssignmentsCount += 1;
+            }
+          });
 
           return [
             {
               title: "Tổng Số Lớp Phụ Trách",
-              value: `${totalClasses} Lớp`,
-              change: "Học kỳ 1 - 2026",
+              value: `${myClassCount} Lớp`,
+              change: "Học kỳ đang diễn ra",
               color: "text-red-600",
               bgColor: "bg-red-50",
               borderColor: "border-red-200",
             },
             {
               title: "Tổng Số Học Viên",
-              value: `${totalStudents} Học Viên`,
-              change: "Tỉ lệ chuyên cần 98%",
+              value: `${uniqueStudentIds.size} Học Viên`,
+              change: "Sĩ số hoạt động",
               color: "text-zinc-900",
               bgColor: "bg-zinc-50",
               borderColor: "border-zinc-200",
             },
             {
               title: "Bài Tập Đã Giao",
-              value: `${totalAssignments} Bài Tập`,
+              value: `${myAssignmentsCount} Bài Tập`,
               change: "Đang mở nhận bài",
               color: "text-emerald-700",
               bgColor: "bg-emerald-50",
@@ -57,24 +128,24 @@ export class FirestoreTeacherRepo implements TeacherPort {
           return [
             {
               title: "Tổng Số Lớp Phụ Trách",
-              value: "2 Lớp",
-              change: "Học kỳ 1 - 2026",
+              value: "0 Lớp",
+              change: "Chưa phân công",
               color: "text-red-600",
               bgColor: "bg-red-50",
               borderColor: "border-red-200",
             },
             {
               title: "Tổng Số Học Viên",
-              value: "24 Học Viên",
-              change: "Tỉ lệ chuyên cần 98%",
+              value: "0 Học Viên",
+              change: "Chưa có học sinh",
               color: "text-zinc-900",
               bgColor: "bg-zinc-50",
               borderColor: "border-zinc-200",
             },
             {
               title: "Bài Tập Đã Giao",
-              value: "3 Bài Tập",
-              change: "Đang mở nhận bài",
+              value: "0 Bài Tập",
+              change: "Chưa giao bài",
               color: "text-emerald-700",
               bgColor: "bg-emerald-50",
               borderColor: "border-emerald-200",
@@ -87,23 +158,91 @@ export class FirestoreTeacherRepo implements TeacherPort {
   }
 
   async getClasses(): Promise<TeacherClassItem[]> {
+    const { teacherUid, teacherEmail, teacherName } = this.getTeacherCredentials();
+    const cacheKey = `teacher_classes_${teacherUid || "default"}`;
+
     return cacheService.getOrFetch(
-      "teacher_classes_list",
+      cacheKey,
       async () => {
         try {
-          const snap = await getDocs(collection(db, "classes"));
-          const list: TeacherClassItem[] = [];
+          const [pathsSnap, snap, membersSnap, enrollmentsSnap] = await Promise.all([
+            getDocs(collection(db, "learning_path")),
+            getDocs(collection(db, "classes")),
+            getDocs(collection(db, "class_members")),
+            getDocs(collection(db, "student_learning_path")),
+          ]);
 
+          const studentCountByClass: Record<string, number> = {};
+          membersSnap.docs.forEach((md) => {
+            const m = md.data();
+            const cId = m.class_id || m.classId;
+            if (cId && m.role !== "Teacher") {
+              studentCountByClass[cId] = (studentCountByClass[cId] || 0) + 1;
+            }
+          });
+
+          // Đếm học viên tham gia theo learning_path_id
+          enrollmentsSnap.docs.forEach((ed) => {
+            const eData = ed.data();
+            const lpId = eData.learning_path_id;
+            if (lpId) {
+              studentCountByClass[lpId] = (studentCountByClass[lpId] || 0) + 1;
+            }
+          });
+
+          const list: TeacherClassItem[] = [];
+          const seenIds = new Set<string>();
+
+          // 1. Map từ Learning Paths (Các lớp đang giảng dạy chính là các lộ trình)
+          pathsSnap.docs.forEach((d) => {
+            const data = d.data();
+            const docAuthorId = data.author_id || data.authorId;
+            const docTeacherEmail = data.author_email || data.authorEmail;
+            const docTeacherName = data.author_name || data.authorName || data.teacher;
+
+            const isMatch =
+              !teacherUid ||
+              docAuthorId === teacherUid ||
+              (teacherEmail && docTeacherEmail && docTeacherEmail.toLowerCase() === teacherEmail.toLowerCase()) ||
+              (teacherName && docTeacherName && docTeacherName.toLowerCase() === teacherName.toLowerCase());
+
+            if (isMatch && !seenIds.has(d.id)) {
+              seenIds.add(d.id);
+              list.push({
+                id: d.id,
+                name: data.title || "Lớp Học (Lộ Trình)",
+                grade: data.difficulty || "K18",
+                studentsCount: studentCountByClass[d.id] || 0,
+                subject: data.category || "Lộ Trình Học Tập",
+                avgGpa: "8.8",
+              });
+            }
+          });
+
+          // 2. Map từ Classes collection
           snap.docs.forEach((d) => {
             const data = d.data();
-            list.push({
-              id: d.id,
-              name: data.name || "Lớp Học",
-              grade: data.code || "K18",
-              studentsCount: Number(data.total_students) || 24,
-              subject: data.subject || "Lập Trình",
-              avgGpa: "8.8",
-            });
+            const docTeacherId = data.teacher_id || data.teacherId || data.instructorId || data.authorId;
+            const docTeacherEmail = data.teacher_email || data.teacherEmail;
+            const docTeacherName = data.teacher_name || data.teacherName || data.instructor;
+
+            const isMatch =
+              !teacherUid ||
+              docTeacherId === teacherUid ||
+              (teacherEmail && docTeacherEmail && docTeacherEmail.toLowerCase() === teacherEmail.toLowerCase()) ||
+              (teacherName && docTeacherName && docTeacherName.toLowerCase() === teacherName.toLowerCase());
+
+            if (isMatch && !seenIds.has(d.id)) {
+              seenIds.add(d.id);
+              list.push({
+                id: d.id,
+                name: data.name || "Lớp Học",
+                grade: data.code || "K18",
+                studentsCount: studentCountByClass[d.id] || 0,
+                subject: data.subject || "Lập Trình",
+                avgGpa: "8.8",
+              });
+            }
           });
 
           return list;
@@ -116,7 +255,10 @@ export class FirestoreTeacherRepo implements TeacherPort {
   }
 
   async getAssignments(classId?: string): Promise<TeacherAssignmentItem[]> {
-    const cacheKey = classId ? `teacher_assignments_${classId}` : "teacher_assignments_all";
+    const { teacherUid, teacherEmail, teacherName } = this.getTeacherCredentials();
+    const cacheKey = classId
+      ? `teacher_assignments_${teacherUid}_${classId}`
+      : `teacher_assignments_${teacherUid}_all`;
 
     return cacheService.getOrFetch(
       cacheKey,
@@ -129,13 +271,16 @@ export class FirestoreTeacherRepo implements TeacherPort {
             const data = d.data();
             if (classId && data.class_id && data.class_id !== classId) return;
 
+            const docTeacherId = data.teacher_id || data.teacherId;
+            if (teacherUid && docTeacherId && docTeacherId !== teacherUid) return;
+
             list.push({
               id: d.id,
               title: data.title || "Bài tập",
               className: data.subject || "Lớp K18",
-              dueDate: data.dueDate || data.due_date || "2026-08-30",
+              dueDate: formatDisplayDate(data.dueDate || data.due_date, "2026-08-30"),
               submittedCount: 1,
-              totalCount: 24,
+              totalCount: Number(data.total_students || 24),
               status: data.status === "submitted" ? "Đã Nộp" : "Đang Giao",
             });
           });
@@ -150,7 +295,10 @@ export class FirestoreTeacherRepo implements TeacherPort {
   }
 
   async getLectures(classId?: string): Promise<TeacherLectureItem[]> {
-    const cacheKey = classId ? `teacher_lectures_${classId}` : "teacher_lectures_all";
+    const { teacherUid } = this.getTeacherCredentials();
+    const cacheKey = classId
+      ? `teacher_lectures_${teacherUid}_${classId}`
+      : `teacher_lectures_${teacherUid}_all`;
 
     return cacheService.getOrFetch(
       cacheKey,
@@ -167,7 +315,7 @@ export class FirestoreTeacherRepo implements TeacherPort {
               id: d.id,
               title: data.title || "Bài giảng",
               className: "Lập Trình Web K18",
-              date: data.date || "2026-08-10",
+              date: formatDisplayDate(data.date || data.createdAt, "2026-08-10"),
               duration: "90 phút",
               slidesCount: 32,
             });
@@ -183,29 +331,68 @@ export class FirestoreTeacherRepo implements TeacherPort {
   }
 
   async getClassStudents(classId?: string): Promise<TeacherClassStudentItem[]> {
-    const cacheKey = classId ? `teacher_students_${classId}` : "teacher_students_all";
+    const { teacherUid } = this.getTeacherCredentials();
+    const cacheKey = classId
+      ? `teacher_students_${teacherUid}_${classId}`
+      : `teacher_students_${teacherUid}_all`;
 
     return cacheService.getOrFetch(
       cacheKey,
       async () => {
         try {
-          const snap = await getDocs(collection(db, "class_members"));
-          const list: TeacherClassStudentItem[] = [];
+          const [membersSnap, enrollmentsSnap] = await Promise.all([
+            getDocs(collection(db, "class_members")),
+            getDocs(collection(db, "student_learning_path")),
+          ]);
 
-          snap.docs.forEach((d) => {
+          const list: TeacherClassStudentItem[] = [];
+          const seenStudentIds = new Set<string>();
+
+          // 1. Lấy từ class_members
+          membersSnap.docs.forEach((d) => {
             const data = d.data();
             if (classId && data.class_id && data.class_id !== classId) return;
             if (data.role === "Teacher") return;
 
-            list.push({
-              id: data.student_id || d.id,
-              name: data.student_name || "Học Viên",
-              code: "STD-2026-01",
-              className: "Lập Trình Web K18",
-              gpa: "9.2",
-              attendance: `${data.attendance_rate || 96}%`,
-              status: "Đang Học",
-            });
+            const memberDocId = d.id;
+            const studentId = data.student_id || memberDocId;
+            const uniqueKey = `${studentId}_${data.class_id || "general"}`;
+
+            if (!seenStudentIds.has(uniqueKey)) {
+              seenStudentIds.add(uniqueKey);
+              list.push({
+                id: memberDocId,
+                name: data.student_name || "Học Viên",
+                code: data.code || `STD-${studentId.slice(0, 6).toUpperCase()}`,
+                className: data.class_name || "Lớp Học",
+                gpa: data.gpa ? String(data.gpa) : "9.0",
+                attendance: `${data.attendance_rate || 96}%`,
+                status: (data.status === "paused" ? "Bảo Lưu" : "Đang Học") as any,
+              });
+            }
+          });
+
+          // 2. Lấy từ student_learning_path (đăng ký lộ trình)
+          enrollmentsSnap.docs.forEach((d) => {
+            const data = d.data();
+            const lpId = data.learning_path_id;
+            if (classId && lpId && lpId !== classId) return;
+
+            const studentId = data.student_id || d.id;
+            const uniqueKey = `${studentId}_${lpId || "lp"}`;
+
+            if (!seenStudentIds.has(uniqueKey)) {
+              seenStudentIds.add(uniqueKey);
+              list.push({
+                id: d.id,
+                name: data.student_name || "Học Viên",
+                code: `STD-${studentId.slice(0, 6).toUpperCase()}`,
+                className: data.learning_path_title || "Lộ Trình Học Tập",
+                gpa: data.gpa ? String(data.gpa) : "8.8",
+                attendance: `${data.attendance_rate || 95}%`,
+                status: (data.status === "paused" ? "Bảo Lưu" : "Đang Học") as any,
+              });
+            }
           });
 
           return list;

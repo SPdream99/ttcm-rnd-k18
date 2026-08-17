@@ -76,7 +76,7 @@ const elEarnedCoins = document.getElementById("earned-coins");
 window.addEventListener("DOMContentLoaded", async () => {
   if (window.EveSDK) {
     try {
-      console.log("🎮 Đang khởi tạo E-V-E Game SDK v2.0...");
+      console.log(" Đang khởi tạo E-V-E Game SDK v2.0...");
       gameSession = await window.EveSDK.initSession({
         gameId: "starter_quiz_game",
         courseId: "crs_coding_basics",
@@ -85,12 +85,12 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (gameSession && gameSession.pairs && gameSession.pairs.length > 0) {
         questionPairs = gameSession.pairs;
         elCourseTitle.textContent = gameSession.courseTitle || "Khóa Học E-V-E";
-        console.log("✅ Đã nhận thành công bộ câu hỏi từ khóa học:", gameSession.pairs);
+        console.log(" Đã nhận thành công bộ câu hỏi từ khóa học:", gameSession.pairs);
       } else {
         elCourseTitle.textContent = "Chế Độ Chạy Thử Nghiệm (Offline Demo)";
       }
     } catch (e) {
-      console.warn("⚠️ Không thể kết nối máy chủ E-V-E, sử dụng bộ câu hỏi mẫu:", e);
+      console.warn(" Không thể kết nối máy chủ E-V-E, sử dụng bộ câu hỏi mẫu:", e);
       elCourseTitle.textContent = "Chế Độ Chạy Thử Nghiệm (Offline Demo)";
     }
   } else {
@@ -141,7 +141,7 @@ function showQuestion() {
   const totalQuestions = questionPairs.length;
 
   elQuestionIndex.textContent = `Câu ${currentIndex + 1} / ${totalQuestions}`;
-  elStreakBadge.textContent = `Chuỗi: x${Math.max(1, streakCount)} 🔥`;
+  elStreakBadge.textContent = `Chuỗi: x${Math.max(1, streakCount)} `;
   elQuestionText.textContent = currentPair.title;
 
   // Update progress bar
@@ -275,5 +275,5 @@ async function finishGame() {
     earnedCoins = isWin ? 50 : 10;
   }
 
-  elEarnedCoins.textContent = `+${earnedCoins} 🪙`;
+  elEarnedCoins.textContent = `+${earnedCoins} `;
 }

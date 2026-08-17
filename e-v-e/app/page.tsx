@@ -176,21 +176,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-70 pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          {/* Top Status Capsule */}
-          <div className="flex items-center justify-between flex-wrap gap-3 pb-8 border-b border-zinc-200 mb-8 md:mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600 text-white text-[11px] font-mono uppercase tracking-wider font-bold shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <span>E-V-E PLATFORM v2.4 • LIVE LEARNING ECOSYSTEM</span>
-            </div>
 
-            <div className="hidden sm:flex items-center gap-6 text-[12px] font-mono text-zinc-500 uppercase">
-              <span>RBAC SECURED</span>
-              <span>•</span>
-              <span>GAME SDK COMPLIANT</span>
-              <span>•</span>
-              <span>AI POWERED</span>
-            </div>
-          </div>
 
           {/* Main Hero Split Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
@@ -240,19 +226,18 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* 3 Metric Pills */}
-              <div className="grid grid-cols-3 gap-3 pt-6 border-t border-zinc-200">
-                <div className="p-3 rounded-xl bg-white border border-zinc-200">
-                  <div className="font-mono text-base md:text-lg font-black text-zinc-900">4 Chặng</div>
-                  <div className="text-[11px] text-zinc-500 font-medium">Bản đồ mở khóa</div>
-                </div>
-                <div className="p-3 rounded-xl bg-white border border-zinc-200">
-                  <div className="font-mono text-base md:text-lg font-black text-red-600">+50 Coins</div>
-                  <div className="text-[11px] text-zinc-500 font-medium">Thưởng mỗi màn</div>
-                </div>
-                <div className="p-3 rounded-xl bg-white border border-zinc-200">
-                  <div className="font-mono text-base md:text-lg font-black text-zinc-900">24/7</div>
-                  <div className="text-[11px] text-zinc-500 font-medium">Gia Sư Trực Tuyến AI</div>
+              {/* Motto Banner */}
+              <div className="pt-6 border-t border-zinc-200">
+                <div className="p-3.5 rounded-2xl bg-white border border-zinc-200 shadow-xs flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-red-600 block">Triết Lý Giáo Dục E-V-E</span>
+                    <h3 className="text-sm md:text-base font-bold text-zinc-900 leading-tight">
+                      Học bằng niềm vui và trải nghiệm
+                    </h3>
+                  </div>
                 </div>
               </div>
             </div>
@@ -314,7 +299,7 @@ export default function Home() {
                           : "bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700 text-zinc-200"
                       }`}
                     >
-                      A. print() {demoPairSolved && "✓ Đúng (+50c)"}
+                      A. print() {demoPairSolved && " Đúng (+50c)"}
                     </button>
 
                     <button
@@ -418,11 +403,8 @@ export default function Home() {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-zinc-200 flex items-center justify-between font-mono text-xs">
+                  <div className="pt-3 border-t border-zinc-200 font-mono text-xs">
                     <span className="text-zinc-500 text-[11px]">{tile.stat}</span>
-                    <span className="text-red-600 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                      Chi tiết <ChevronRight className="w-3.5 h-3.5" />
-                    </span>
                   </div>
                 </div>
               );
@@ -558,7 +540,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {/* Student Card */}
             <div className="p-6 rounded-2xl bg-white border-2 border-zinc-200 hover:border-red-600 transition-all flex flex-col justify-between space-y-6 shadow-sm">
               <div className="space-y-4">
@@ -624,39 +606,6 @@ export default function Home() {
                 </button>
               </Link>
             </div>
-
-            {/* Admin Card */}
-            <div className="p-6 rounded-2xl bg-white border-2 border-zinc-200 hover:border-red-600 transition-all flex flex-col justify-between space-y-6 shadow-sm">
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-zinc-100 text-zinc-800 flex items-center justify-center font-bold">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-wider block">Dành Cho</span>
-                  <h3 className="text-xl font-black text-zinc-950 uppercase">Quản Trị (Admin)</h3>
-                </div>
-                <ul className="space-y-2.5 text-xs text-zinc-600 font-medium">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-zinc-800 shrink-0" />
-                    <span>Phê duyệt tài khoản giáo viên đăng ký</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-zinc-800 shrink-0" />
-                    <span>Kiểm duyệt bài học, lộ trình và Minigame</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-zinc-800 shrink-0" />
-                    <span>Toàn quyền quản trị nội dung & bảo mật</span>
-                  </li>
-                </ul>
-              </div>
-
-              <Link href="/login" className="w-full">
-                <button className="w-full py-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border border-zinc-300 font-mono text-xs uppercase font-bold tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-2">
-                  Cổng Quản Trị <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </Link>
-            </div>
           </div>
         </div>
       </section>
@@ -685,14 +634,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-zinc-500">
-            <div>
-              © 2026 E-V-E • MindX TTCM Teaching K18. All rights reserved.
-            </div>
-            <div className="flex items-center gap-2 text-zinc-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>SYSTEM ALL SYSTEMS OPERATIONAL</span>
-            </div>
+          <div className="font-mono text-[11px] text-zinc-500 text-center sm:text-left">
+            © 2026 E-V-E. All rights reserved.
           </div>
         </div>
       </footer>

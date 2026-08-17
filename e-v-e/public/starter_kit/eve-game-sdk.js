@@ -1,20 +1,22 @@
 /**
  * ==============================================================================
- * E-V-E GAME ENGINE SDK (v2.0.0 - Official Production Standard)
+ * E-V-E GAME ENGINE SDK (v2.1.0 - Official Production Standard)
  * ==============================================================================
  * Thư viện Javascript chuẩn bắt buộc dành cho mọi Trò Chơi Giáo Dục trên E-V-E.
  * 
- * QUY TẮC BẢO MẬT & VẬN HÀNH:
- * 1. REALTIME PRODUCTION MODE (Khi chạy trên máy chủ E-V-E):
- *    - Game bắt buộc phải import: <script src="/eve-game-sdk.js"></script>
- *    - SDK được nạp trực tiếp từ máy chủ E-V-E, KHÔNG cho phép tải từ nguồn ngoài.
- *    - Tự động kết nối Realtime 2 chiều qua postMessage và REST API (/api/games/init, /progress, /finish).
- *    - Dữ liệu câu hỏi & giải thích chi tiết (JSON Pairs) được nạp trực tiếp từ khóa học thực tế.
- *    - Điểm số & Coins được bảo vệ bằng chữ ký số chống gian lận (Anti-Cheat Token).
+ * TÍNH NĂNG TÍCH HỢP:
+ * 1. REALTIME PRODUCTION ENGINE:
+ *    - Tự động giao tiếp 2 chiều qua postMessage và REST API (/api/games/init, /progress, /finish).
+ *    - Tự động nạp dữ liệu bài học (JSON Pairs) từ hệ thống LMS.
+ *    - Tích hợp Chữ ký số Chống gian lận (Anti-Cheat Token).
  * 
- * 2. OFFLINE SIMULATOR MODE (Khi Thầy/Cô chạy test cục bộ trong Starter Kit):
- *    - Nếu không kết nối được máy chủ E-V-E (mở file:// hoặc localhost độc lập), SDK tự động
- *      kích hoạt chế độ Giả Lập Mẫu (Mock Simulator) với 5 câu hỏi có sẵn để test giao diện và âm thanh.
+ * 2. BUILT-IN STOPWATCH TIMER (BỘ ĐẾM THỜI GIAN CHƠI CHÍNH XÁC):
+ *    - Tích hợp sẵn bộ đếm thời gian: startTimer(), getElapsedTime(), pauseTimer(), resumeTimer(), resetTimer().
+ *    - Tự động tính toán số giây chơi thực tế khi học sinh hoàn thành màn chơi.
+ * 
+ * 3. XỬ LÝ DỮ LIỆU KHI VỪA CHƠI XONG (INSTANT LEADERBOARD SYNC):
+ *    - Tự động gửi điểm, độ chính xác và thời gian chơi lên server ngay khi gọi finishGame().
+ *    - Gửi thông báo EVE_GAME_FINISHED lên Host container để làm mới Bảng Xếp Hạng tức thì.
  */
 (function (global) {
   "use strict";
@@ -65,7 +67,7 @@
 
   class EVEGameSDK {
     constructor(config = {}) {
-      this.version = "2.0.0";
+      this.version = "2.1.0";
       this.gameId = config.gameId || this._getUrlParam("gameId") || "starter_quiz_game";
       this.courseId = config.courseId || this._getUrlParam("courseId") || "crs_coding_basics";
       this.userId = config.userId || this._getUrlParam("userId") || "student_user";
@@ -79,7 +81,13 @@
       this.onResumeCallback = null;
       this.audioCtx = null;
 
-      console.log(`%c[E-V-E Game SDK v${this.version}]%c Initializing SDK Core...`, "color: #06b6d4; font-weight: bold", "color: #94a3b8");
+      // ── Built-in Stopwatch Timer State ──
+      this._timerStartTime = null;
+      this._timerElapsedTime = 0;
+      this._timerInterval = null;
+      this._isTimerRunning = false;
+
+      console.log(`%c[E-V-E Game SDK v${this.version}]%c Initializing SDK Core with Built-in Timer...`, "color: #06b6d4; font-weight: bold", "color: #94a3b8");
       this._listenParentMessages();
     }
 
@@ -101,7 +109,7 @@
 
         // Xử lý nạp dữ liệu từ LMS Host Container
         if (event.data.type === "EVE_INIT_GAME_DATA") {
-          console.log("[E-V-E SDK] ⚡ Nhận dữ liệu bài học Realtime từ Host qua postMessage:", event.data.payload);
+          console.log("[E-V-E SDK] Nhận dữ liệu bài học Realtime từ Host qua postMessage:", event.data.payload);
           this.gameData = event.data.payload;
           this.isRealtimeConnected = true;
           if (event.data.payload?.sessionToken) {
@@ -111,11 +119,73 @@
             this.onDataReadyCallback(this.gameData);
           }
         } else if (event.data.type === "EVE_GAME_PAUSE") {
+          this.pauseTimer();
           if (typeof this.onPauseCallback === "function") this.onPauseCallback();
         } else if (event.data.type === "EVE_GAME_RESUME") {
+          this.resumeTimer();
           if (typeof this.onResumeCallback === "function") this.onResumeCallback();
         }
       });
+    }
+
+    // ── 1. BUILT-IN STOPWATCH TIMER METHODS ──
+    /**
+     * Bắt đầu tính thời gian chơi (Stopwatch)
+     */
+    startTimer() {
+      this._timerStartTime = Date.now();
+      this._timerElapsedTime = 0;
+      this._isTimerRunning = true;
+      if (this._timerInterval) clearInterval(this._timerInterval);
+      this._timerInterval = setInterval(() => {
+        if (this._isTimerRunning && this._timerStartTime) {
+          this._timerElapsedTime = Math.floor((Date.now() - this._timerStartTime) / 1000);
+        }
+      }, 1000);
+      return this;
+    }
+
+    /**
+     * Lấy số giây chơi thực tế đã trôi qua
+     */
+    getElapsedTime() {
+      if (this._isTimerRunning && this._timerStartTime) {
+        return Math.max(1, Math.floor((Date.now() - this._timerStartTime) / 1000));
+      }
+      return Math.max(1, this._timerElapsedTime || 1);
+    }
+
+    /**
+     * Tạm dừng đếm thời gian
+     */
+    pauseTimer() {
+      if (this._isTimerRunning && this._timerStartTime) {
+        this._timerElapsedTime = Math.floor((Date.now() - this._timerStartTime) / 1000);
+        this._isTimerRunning = false;
+      }
+      return this._timerElapsedTime;
+    }
+
+    /**
+     * Tiếp tục đếm thời gian
+     */
+    resumeTimer() {
+      if (!this._isTimerRunning) {
+        this._timerStartTime = Date.now() - (this._timerElapsedTime * 1000);
+        this._isTimerRunning = true;
+      }
+      return this;
+    }
+
+    /**
+     * Đặt lại bộ đếm thời gian
+     */
+    resetTimer() {
+      this._timerStartTime = null;
+      this._timerElapsedTime = 0;
+      this._isTimerRunning = false;
+      if (this._timerInterval) clearInterval(this._timerInterval);
+      return this;
     }
 
     /**
@@ -136,19 +206,15 @@
     }
 
     /**
-     * 1. Khởi tạo phiên chơi: Tự động lấy câu hỏi Realtime từ server E-V-E
-     * Nếu chạy Offline không có server, tự động kích hoạt Mock Simulator
-     */
-    /**
-     * 1. Khởi tạo phiên chơi (Session Initialization)
-     * Tự động nhận diện môi trường:
-     * - Nếu chạy trong iframe E-V-E LMS: Giao tiếp qua postMessage & API Realtime
-     * - Nếu chạy Offline cục bộ (file://): Kích hoạt ngay Offline Mock Simulator không gây lỗi CORS
+     * 2. Khởi tạo phiên chơi (Session Initialization)
      */
     async initSession(customConfig = {}) {
       if (customConfig.gameId) this.gameId = customConfig.gameId;
       if (customConfig.courseId) this.courseId = customConfig.courseId;
       if (customConfig.userId) this.userId = customConfig.userId;
+
+      // Tự động khởi động bộ đếm thời gian
+      this.startTimer();
 
       // Nếu đã nhận data từ postMessage của LMS Host
       if (this.gameData && this.gameData.pairs && this.gameData.pairs.length > 0) {
@@ -157,9 +223,9 @@
 
       const isHttp = typeof window !== "undefined" && window.location && window.location.protocol.startsWith("http");
 
-      // Nếu chạy file:// cục bộ, nạp thẳng Offline Mock Simulator (tránh CORS fetch đỏ trên console)
+      // Nếu chạy file:// cục bộ, nạp thẳng Offline Mock Simulator
       if (!isHttp) {
-        console.log("[E-V-E SDK] 🧪 Phát hiện môi trường Offline Local (file://). Kích hoạt Mock Simulator thành công với 5 câu hỏi mẫu.");
+        console.log("[E-V-E SDK] Phát hiện môi trường Offline Local (file://). Kích hoạt Mock Simulator thành công với 5 câu hỏi mẫu.");
         this.gameData = OFFLINE_MOCK_DATA;
         this.sessionToken = OFFLINE_MOCK_DATA.sessionToken;
         this.isRealtimeConnected = false;
@@ -171,7 +237,6 @@
       }
 
       try {
-        // Thử kết nối API máy chủ E-V-E
         const response = await fetch(`${this.apiBase}/init`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -187,7 +252,7 @@
           this.gameData = result;
           this.sessionToken = result.sessionToken || null;
           this.isRealtimeConnected = true;
-          console.log("[E-V-E SDK] ✅ Đã kết nối Realtime với máy chủ E-V-E. Số câu hỏi:", result.pairs.length);
+          console.log("[E-V-E SDK] Đã kết nối Realtime với máy chủ E-V-E. Số câu hỏi:", result.pairs.length);
 
           if (typeof this.onDataReadyCallback === "function") {
             this.onDataReadyCallback(result);
@@ -196,8 +261,7 @@
         }
         throw new Error(result.error || "Không thể lấy dữ liệu khóa học");
       } catch (err) {
-        // Kích hoạt Offline Simulator Mode dự phòng
-        console.warn("[E-V-E SDK] ⚠️ Chạy trong môi trường Offline / Simulator. Tự động nạp bộ câu hỏi mẫu:", err.message);
+        console.warn("[E-V-E SDK] Chạy trong môi trường Offline / Simulator. Tự động nạp bộ câu hỏi mẫu:", err.message);
         this.gameData = OFFLINE_MOCK_DATA;
         this.sessionToken = OFFLINE_MOCK_DATA.sessionToken;
         this.isRealtimeConnected = false;
@@ -209,9 +273,6 @@
       }
     }
 
-    /**
-     * Helper kiểm tra iframe an toàn
-     */
     _isEmbedded() {
       try {
         return typeof window !== "undefined" && window.self !== window.top && window.parent;
@@ -221,10 +282,9 @@
     }
 
     /**
-     * 2. Báo cáo tiến độ chơi thời gian thực (Live Progress)
+     * 3. Báo cáo tiến độ chơi thời gian thực (Live Progress)
      */
     async updateProgress({ score = 0, currentStreak = 0, progressPercent = 0, currentQuestion = 0, totalQuestions = 0 }) {
-      // Báo cáo qua postMessage lên LMS Container nếu đang nhúng trong iframe
       if (this._isEmbedded()) {
         try {
           window.parent.postMessage(
@@ -237,6 +297,7 @@
                 progressPercent,
                 currentQuestion,
                 totalQuestions,
+                playTimeSeconds: this.getElapsedTime(),
               },
             },
             "*"
@@ -244,7 +305,6 @@
         } catch (e) {}
       }
 
-      // Gửi API lên máy chủ E-V-E (nếu có kết nối HTTP)
       if (this.isRealtimeConnected) {
         try {
           await fetch(`${this.apiBase}/progress`, {
@@ -260,67 +320,64 @@
               progressPercent,
             }),
           });
-        } catch (e) {
-          // Bỏ qua lỗi mạng nền
-        }
+        } catch (e) {}
       }
     }
 
     /**
-     * 3. Hoàn thành trò chơi, ghi nhận điểm số & thưởng Coins
+     * 4. Hoàn thành trò chơi, ghi nhận điểm số, độ chính xác & thời gian chơi
+     * Tự động gửi dữ liệu lên máy chủ và Host container để cập nhật Bảng Xếp Hạng ngay lập tức
      */
-    async finishGame({ score = 100, isWin = true, accuracyPercent = 100, playTimeSeconds = 60, details = {} }) {
+    async finishGame({ score = 100, isWin = true, accuracyPercent = 100, playTimeSeconds = null, details = {} }) {
+      const actualTime = playTimeSeconds !== null && playTimeSeconds !== undefined
+        ? Number(playTimeSeconds)
+        : this.getElapsedTime();
+
+      this.pauseTimer();
+
       if (isWin) {
         this.playSound("win");
       }
 
-      // Gửi qua postMessage nếu đang nhúng iframe
+      const payload = {
+        gameId: this.gameId,
+        courseId: this.courseId,
+        pathId: this.pathId,
+        userId: this.userId,
+        sessionToken: this.sessionToken,
+        score: Number(score) || 0,
+        isWin: Boolean(isWin),
+        accuracyPercent: Number(accuracyPercent) || 100,
+        playTimeSeconds: actualTime,
+        details,
+      };
+
+      // Gửi qua postMessage lên LMS Container nếu đang nhúng iframe để Host cập nhật UI & Ranking tức thì
       if (this._isEmbedded()) {
         try {
           window.parent.postMessage(
             {
               type: "EVE_GAME_FINISHED",
-              payload: {
-                gameId: this.gameId,
-                courseId: this.courseId,
-                pathId: this.pathId,
-                sessionToken: this.sessionToken,
-                score,
-                isWin,
-                accuracyPercent,
-                playTimeSeconds,
-                details,
-              },
+              payload,
             },
             "*"
           );
         } catch (e) {}
       }
 
-      // Gửi API lên máy chủ nếu có kết nối
-      if (this.isRealtimeConnected) {
+      // Gửi API lên máy chủ E-V-E
+      if (this.isRealtimeConnected || (typeof window !== "undefined" && window.location && window.location.protocol.startsWith("http"))) {
         try {
           const response = await fetch(`${this.apiBase}/finish`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              gameId: this.gameId,
-              courseId: this.courseId,
-              pathId: this.pathId,
-              userId: this.userId,
-              sessionToken: this.sessionToken,
-              score,
-              isWin,
-              accuracyPercent,
-              playTimeSeconds,
-              details,
-            }),
+            body: JSON.stringify(payload),
           });
 
           const data = await response.json();
           return data;
         } catch (err) {
-          // fallback
+          console.warn("[E-V-E SDK] finishGame API warning:", err);
         }
       }
 
@@ -328,15 +385,37 @@
         success: true,
         isOfflineSimulated: true,
         data: {
-          earnedCoins: isWin ? 50 : 10,
+          earnedCoins: isWin ? Math.round(score * 0.4) : 10,
           score,
+          accuracyPercent: payload.accuracyPercent,
+          playTimeSeconds: actualTime,
           message: "Hoàn thành trong chế độ Offline Simulator.",
         },
       };
     }
 
     /**
-     * 4. Hệ thống âm thanh hiệu ứng Web Audio Synthesis (Không cần tải file ngoài)
+     * 5. Lấy Bảng Xếp Hạng của trò chơi hiện tại
+     */
+    async getLeaderboard(params = {}) {
+      const targetGameId = params.gameId || this.gameId;
+      const targetCourseId = params.courseId || this.courseId;
+
+      try {
+        const res = await fetch(`${this.apiBase}/leaderboard?gameId=${encodeURIComponent(targetGameId)}&courseId=${encodeURIComponent(targetCourseId)}`);
+        const data = await res.json();
+        return data;
+      } catch (err) {
+        return {
+          success: false,
+          error: "Không thể kết nối đến Bảng Xếp Hạng.",
+          rankings: [],
+        };
+      }
+    }
+
+    /**
+     * 6. Hệ thống âm thanh hiệu ứng Web Audio Synthesis (Không cần tải file ngoài)
      */
     playSound(soundType = "correct") {
       if (typeof window === "undefined") return;
@@ -356,7 +435,6 @@
         const now = this.audioCtx.currentTime;
 
         if (soundType === "correct") {
-          // Âm thanh Trả lời Đúng (Chord tăng dần)
           const osc1 = this.audioCtx.createOscillator();
           const osc2 = this.audioCtx.createOscillator();
           const gain = this.audioCtx.createGain();
@@ -381,7 +459,6 @@
           osc1.stop(now + 0.3);
           osc2.stop(now + 0.3);
         } else if (soundType === "wrong") {
-          // Âm thanh Trả lời Sai (Buzz trầm giảm dần)
           const osc = this.audioCtx.createOscillator();
           const gain = this.audioCtx.createGain();
 
@@ -398,7 +475,6 @@
           osc.start(now);
           osc.stop(now + 0.25);
         } else if (soundType === "win") {
-          // Âm thanh Chiến thắng / Hoàn thành bài
           const notes = [523.25, 659.25, 783.99, 1046.5]; // C - E - G - C6
           notes.forEach((freq, i) => {
             const osc = this.audioCtx.createOscillator();
@@ -417,7 +493,6 @@
             osc.stop(now + i * 0.1 + 0.3);
           });
         } else if (soundType === "coin") {
-          // Âm thanh Nhận thưởng Coins
           const osc = this.audioCtx.createOscillator();
           const gain = this.audioCtx.createGain();
 
@@ -434,13 +509,11 @@
           osc.start(now);
           osc.stop(now + 0.35);
         }
-      } catch (e) {
-        // Fallback im lặng nếu trình duyệt không hỗ trợ Web Audio
-      }
+      } catch (e) {}
     }
 
     /**
-     * 5. Helper Bật / Tắt Toàn Màn Hình
+     * 7. Helper Bật / Tắt Toàn Màn Hình
      */
     toggleFullscreen(element = null) {
       if (typeof document === "undefined") return;

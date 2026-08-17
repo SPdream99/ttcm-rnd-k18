@@ -28,9 +28,11 @@ import {
   Clock,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, getDocs, query, collection, where } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
 import { CourseContentPair } from "@/core/entities/Course";
+import { ProfileHoverCard } from "@/components/ProfileHoverCard";
 
 interface PlayPageProps {
   params: Promise<{
@@ -128,32 +130,6 @@ const FALLBACK_COURSE_DATA: Record<string, { title: string; pairs: CourseContent
 };
 
 const GAME_METADATA: Record<string, { title: string; subtitle: string; category: string; description: string; author: string; controls: string; instructions: string[] }> = {
-  game_space_quiz_3d: {
-    title: "Quiz Runner 3D - Trắc Nghiệm Tốc Độ",
-    subtitle: "Thử Thách Phản Xạ & Kiểm Tra Kiến Thức",
-    category: "Action Quiz 3D",
-    description: "Trò chơi trắc nghiệm tốc độ: Đọc kỹ câu hỏi trích xuất từ bài học và chọn đáp án chính xác nhất để ghi điểm và tích lũy Coins thưởng.",
-    author: "Ban Học Thuật E-V-E",
-    controls: "Sử dụng Chuột hoặc Phím Số (1, 2, 3, 4) để chọn đáp án.",
-    instructions: [
-      "Mỗi câu hỏi có 1 đáp án đúng và các phương án gây nhiễu.",
-      "Trả lời đúng liên tiếp để kích hoạt chuỗi Combo.",
-      "Hoàn thành toàn bộ câu hỏi để qua bài.",
-    ],
-  },
-  game_hardware_3d_lab: {
-    title: "Phòng Thí Nghiệm Lắp Ráp Máy Tính 3D",
-    subtitle: "Mô Phỏng Kiến Trúc Phần Cứng Trực Quan",
-    category: "3D Hardware Assembly",
-    description: "Khám phá cấu tạo máy tính: Chọn linh kiện (CPU, RAM, GPU, SSD, PSU) và lắp ráp chuẩn xác vào bo mạch chủ.",
-    author: "ThS. Phạm Hoàng Nam",
-    controls: "Nhấp chuột chọn linh kiện và ấn 'Lắp Vào Bo Mạch'.",
-    instructions: [
-      "Chọn linh kiện từ danh sách bên trái.",
-      "Bấm 'Lắp Vào Bo Mạch' để đưa linh kiện vào đúng khe cắm.",
-      "Lắp đủ 5 linh kiện và bấm 'Kích Hoạt Nguồn & Khởi Động'.",
-    ],
-  },
   game_card_match_vr: {
     title: "Ghép Cặp Thẻ Bài Thuật Toán (Memory Match)",
     subtitle: "Luyện Trí Nhớ & Khắc Sâu Định Nghĩa",
@@ -181,18 +157,11 @@ interface MemoryCardItem {
   isMatched: boolean;
 }
 
-interface HardwareComponent {
-  id: string;
-  name: string;
-  type: "cpu" | "gpu" | "ram" | "ssd" | "psu";
-  specs: string;
-  desc: string;
-  isInstalled: boolean;
-}
-
 interface LeaderboardRecord {
   id?: string;
   rank: number;
+  userId: string;
+  userName?: string;
   name: string;
   score: number;
   playTime: string;
@@ -206,8 +175,15 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const { game_id: gameId, course_id: courseId } = resolvedParams;
 
   const { currentUser, profile } = useAuthAdapter();
-  const uid = currentUser?.uid || profile?.uid || "usr_student";
-  const studentName = currentUser?.name || profile?.fullName || "Học Viên E-V-E";
+  const studentName =
+    currentUser?.name ||
+    (currentUser as any)?.displayName ||
+    profile?.fullName ||
+    (profile as any)?.name ||
+    (currentUser as any)?.email?.split("@")[0] ||
+    "Học Viên E-V-E";
+  const userRole = currentUser?.role || profile?.role || "student";
+  const uid = currentUser?.uid || profile?.uid || auth.currentUser?.uid || "";
 
   const currentGameMeta = GAME_METADATA[gameId] || {
     title: gameId.replace(/_/g, " ").toUpperCase(),
@@ -224,7 +200,11 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const [courseTitle, setCourseTitle] = useState("Đang tải bài học...");
   const [pairs, setPairs] = useState<CourseContentPair[]>([]);
   const [score, setScore] = useState(0);
+  // scoreRef: tracks live score synchronously to avoid stale closure in setTimeout
+  const scoreRef = useRef(0);
   const [streak, setStreak] = useState(0);
+  const streakRef = useRef(0);
+  const livesRef = useRef(5);
   const [lives, setLives] = useState(5);
   const [isGameOver, setIsGameOver] = useState(false);
   const [earnedCoins, setEarnedCoins] = useState(0);
@@ -236,8 +216,11 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const [rankingList, setRankingList] = useState<LeaderboardRecord[]>([]);
   const [activeTab, setActiveTab] = useState<"game" | "leaderboard" | "guide">("game");
 
-  const isCardMatchingEngine = gameId.includes("card") || gameId.includes("matrix") || gameId.includes("match");
-  const is3DHardwareLabEngine = gameId.includes("hardware") || gameId.includes("computer") || gameId.includes("3d_lab") || courseId.includes("computer");
+  const [customGameUrl, setCustomGameUrl] = useState<string | null>(null);
+  const [customGameTitle, setCustomGameTitle] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const isCardMatchingEngine = !customGameUrl && (gameId.includes("card") || gameId.includes("matrix") || gameId.includes("match"));
+  const displayGameTitle = customGameTitle || currentGameMeta.title;
 
   // Memory Match state
   const [cards, setCards] = useState<MemoryCardItem[]>([]);
@@ -246,23 +229,25 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const [previewTimer, setPreviewTimer] = useState(0);
   const [matchedPairsCount, setMatchedPairsCount] = useState(0);
 
-  // Hardware state
-  const [hardwareParts, setHardwareParts] = useState<HardwareComponent[]>([
-    { id: "p_cpu", name: "CPU Vi Xử Lý Trung Tâm", type: "cpu", specs: "16 Cores, 32 Threads", desc: "Bộ não thực thi mọi phép toán của hệ thống", isInstalled: false },
-    { id: "p_ram", name: "RAM 32GB Bộ Nhớ Đệm", type: "ram", specs: "Dual Channel DDR5", desc: "Bộ nhớ lưu trữ tạm tốc độ cao", isInstalled: false },
-    { id: "p_gpu", name: "GPU Xử Lý Đồ Họa", type: "gpu", specs: "16384 CUDA Cores", desc: "Xử lý đồ họa 3D & tính toán", isInstalled: false },
-    { id: "p_ssd", name: "SSD 2TB Ổ Lưu Trữ", type: "ssd", specs: "PCIe 4.0 NVMe", desc: "Lưu trữ hệ điều hành và dữ liệu vĩnh cửu", isInstalled: false },
-    { id: "p_psu", name: "Bộ Nguồn PSU 850W", type: "psu", specs: "80 Plus Gold", desc: "Cung cấp điện áp ổn định cho toàn bộ máy", isInstalled: false },
-  ]);
-  const [selectedHardware, setSelectedHardware] = useState<HardwareComponent | null>(hardwareParts[0]);
-  const [systemPowerOn, setSystemPowerOn] = useState(false);
-  const [bootingProgress, setBootingProgress] = useState(0);
-
   // Quiz state
   const [currentPairIdx, setCurrentPairIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
+
+  // Extra Data Preloader States & Session
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [dataStatus, setDataStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [loadProgress, setLoadProgress] = useState(25);
+  const [loadStepMessage, setLoadStepMessage] = useState("1/2: Đang kết nối máy chủ và xác thực...");
+  const [loadErrorDetails, setLoadErrorDetails] = useState<string | null>(null);
+
+  // Live Performance & Metric Tracking
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [finalPlayTime, setFinalPlayTime] = useState(0);
+  const [finalAccuracy, setFinalAccuracy] = useState(100);
+  const [quizAttempts, setQuizAttempts] = useState(0);
+  const [quizCorrects, setQuizCorrects] = useState(0);
 
   // Background audio
   useEffect(() => {
@@ -279,48 +264,143 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
   useEffect(() => {
     if (!audioRef.current) return;
-    if (isSoundMuted || gameState === "menu") {
+    if (isSoundMuted || gameState === "menu" || dataStatus !== "ready") {
       audioRef.current.pause();
     } else {
       audioRef.current.play().catch(() => {});
     }
-  }, [isSoundMuted, gameState]);
+  }, [isSoundMuted, gameState, dataStatus]);
 
-  // Load Course data
+  // Active game stopwatch timer
   useEffect(() => {
-    async function loadCourse() {
-      try {
-        const res = await fetch("/api/games/init", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ gameId, courseId, userId: uid }),
-        });
-        const data = await res.json();
-        if (data.success && Array.isArray(data.pairs) && data.pairs.length > 0) {
-          setCourseTitle(data.courseTitle || "Khóa Học E-V-E");
-          setPairs(data.pairs);
-          return;
-        }
-      } catch {}
+    if (gameState !== "playing" || isGameOver || previewTimer > 0) return;
+    const interval = setInterval(() => {
+      setElapsedSeconds((s) => s + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [gameState, isGameOver, previewTimer]);
+
+  // Load Course Extra Data
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadCourseExtraData(targetUid: string) {
+      setDataStatus("loading");
+      setLoadProgress(35);
+      setLoadStepMessage("1/2: Đang xác thực quyền truy cập và tải học liệu Extra Data...");
 
       try {
-        const cSnap = await getDoc(doc(db, "course", courseId));
-        if (cSnap.exists()) {
-          const data = cSnap.data();
-          setCourseTitle(data.title || "Khóa Học E-V-E");
-          const loadedPairs = Array.isArray(data.pairs) ? data.pairs : [];
-          if (loadedPairs.length > 0) {
-            setPairs(loadedPairs);
+        if (isCancelled) return;
+
+        let loadedPairs: CourseContentPair[] = [];
+        let loadedTitle = "Khóa Học E-V-E";
+
+        // 1. Gọi API khởi tạo Session & lấy dữ liệu phía Server
+        try {
+          const res = await fetch("/api/games/init", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ gameId, courseId, userId: targetUid || "anonymous" }),
+          });
+          const data = await res.json();
+
+          if (data.success && Array.isArray(data.pairs) && data.pairs.length > 0) {
+            loadedTitle = data.courseTitle || loadedTitle;
+            loadedPairs = data.pairs;
+            if (data.sessionToken) {
+              setSessionToken(data.sessionToken);
+            }
+          } else if (!data.success) {
+            setDataStatus("error");
+            setLoadErrorDetails(
+              data.message ||
+                (data.error === "not_approved"
+                  ? "Bài học này chưa được Quản trị viên phê duyệt hoặc đã bị hủy duyệt. Không thể sử dụng trong trò chơi."
+                  : data.error === "not_enrolled_or_unapproved"
+                  ? "Lộ trình hoặc bài học này chưa được phê duyệt (hoặc có bài học con chưa duyệt). Không thể sử dụng trong trò chơi."
+                  : "Không thể khởi chạy trò chơi với bài học này.")
+            );
             return;
           }
+        } catch (apiErr) {
+          console.warn("API init fetch warning:", apiErr);
         }
-      } catch {}
 
-      const fallback = FALLBACK_COURSE_DATA[courseId] || FALLBACK_COURSE_DATA["crs_coding_basics"];
-      setCourseTitle(fallback.title);
-      setPairs(fallback.pairs);
+        // 2. Nếu API chưa nạp được pairs, thử tra cứu Firestore trực tiếp
+        if (loadedPairs.length === 0) {
+          try {
+            const cSnap = await getDoc(doc(db, "courses", courseId));
+            if (cSnap.exists()) {
+              const data = cSnap.data();
+              loadedTitle = data.title || loadedTitle;
+              const cp = Array.isArray(data.contentData)
+                ? data.contentData
+                : data.contentData?.pairs || data.content_data?.pairs || data.pairs || [];
+              if (cp.length > 0) {
+                loadedPairs = cp;
+              }
+            }
+          } catch (dbErr) {
+            console.warn("Firestore fetch warning:", dbErr);
+          }
+        }
+
+        // 3. Fallback sang dữ liệu mẫu chuẩn nếu cần
+        if (loadedPairs.length === 0) {
+          const fallback = FALLBACK_COURSE_DATA[courseId];
+          if (fallback && Array.isArray(fallback.pairs) && fallback.pairs.length > 0) {
+            loadedTitle = fallback.title;
+            loadedPairs = fallback.pairs;
+          }
+        }
+
+        // 4. Lấy thông tin Game Engine từ Firestore (Kiểm tra xem là Game HTML5 giải nén hay Game Native)
+        try {
+          const gSnap = await getDoc(doc(db, "game_info", gameId));
+          if (gSnap.exists()) {
+            const gData = gSnap.data();
+            if (gData.gameUrl) {
+              setCustomGameUrl(gData.gameUrl);
+            }
+            if (gData.title) {
+              setCustomGameTitle(gData.title);
+            }
+          }
+        } catch (gErr) {
+          console.warn("Lỗi khi tải thông tin game:", gErr);
+        }
+
+        // 5. Nếu sau mọi bước mà Extra Data vẫn trống -> Báo lỗi
+        if (loadedPairs.length === 0) {
+          setDataStatus("error");
+          setLoadErrorDetails("Khóa học này chưa có dữ liệu câu hỏi / học liệu (Extra Data trống). Không thể nạp và khởi chạy trò chơi!");
+          return;
+        }
+
+        if (isCancelled) return;
+
+        setCourseTitle(loadedTitle);
+        setPairs(loadedPairs);
+        setLoadProgress(100);
+        setDataStatus("ready");
+      } catch (err: any) {
+        console.error("Lỗi tải Extra Data:", err);
+        if (isCancelled) return;
+        setDataStatus("error");
+        setLoadErrorDetails(err?.message || "Không thể tải dữ liệu câu hỏi Extra Data của bài học.");
+      }
     }
-    loadCourse();
+
+    // Lắng nghe Auth trạng thái chuẩn để không bị nháy lỗi chưa đăng nhập
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      const activeUid = user?.uid || uid;
+      loadCourseExtraData(activeUid);
+    });
+
+    return () => {
+      isCancelled = true;
+      unsubAuth();
+    };
   }, [gameId, courseId, uid]);
 
   const loadLeaderboard = async () => {
@@ -335,7 +415,52 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
   useEffect(() => {
     loadLeaderboard();
-  }, [gameId, courseId]);
+
+    // Lắng nghe sự kiện kết thúc game từ E-V-E Game SDK nhúng qua iframe
+    const handleSdkMessage = async (event: MessageEvent) => {
+      if (!event.data) return;
+      if (event.data.type === "EVE_GAME_FINISHED") {
+        const p = event.data.payload || {};
+        const finishedScore = Number(p.score) || 0;
+        const finishedAccuracy = Number(p.accuracyPercent ?? p.accuracy) || 100;
+        const finishedTime = Number(p.playTimeSeconds) || 30;
+
+        if (p.score !== undefined) setScore(finishedScore);
+        if (p.playTimeSeconds !== undefined) setFinalPlayTime(finishedTime);
+        setFinalAccuracy(finishedAccuracy);
+        setIsGameOver(true);
+
+        // Host chủ động ghi kết quả lên server với userId thật của user đang login
+        // để đảm bảo leaderboard cập nhật chính xác (SDK trong iframe có thể không có UID đúng)
+        try {
+          await fetch("/api/games/finish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              gameId,
+              courseId,
+              userId: uid,
+              userName: studentName,
+              score: finishedScore,
+              isWin: true,
+              accuracyPercent: finishedAccuracy,
+              playTimeSeconds: finishedTime,
+              sessionToken: sessionToken,
+            }),
+          });
+        } catch (e) {
+          console.warn("[Host] Ghi kết quả game lỗi:", e);
+        }
+
+        // Reload leaderboard SAU KHI đã ghi DB xong
+        loadLeaderboard();
+        setTimeout(loadLeaderboard, 1200);
+      }
+    };
+
+    window.addEventListener("message", handleSdkMessage);
+    return () => window.removeEventListener("message", handleSdkMessage);
+  }, [gameId, courseId, uid, studentName, sessionToken]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -422,11 +547,18 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     setSelectedAnswer(null);
     setIsCorrect(null);
     setMovesCount(0);
-    setSystemPowerOn(false);
-    setBootingProgress(0);
+    setElapsedSeconds(0);
+    setQuizAttempts(0);
+    setQuizCorrects(0);
 
     if (isCardMatchingEngine) {
       initializeMemoryDeck();
+    } else if (pairs.length > 0) {
+      const current = pairs[0];
+      const correct = current?.description || (current as any)?.rightAnswer || "Đáp án đúng";
+      const distractions = current?.distractions || ["Lựa chọn A", "Lựa chọn B", "Lựa chọn C"];
+      const opts = [correct, ...distractions].sort(() => Math.random() - 0.5);
+      setShuffledOptions(opts);
     }
   };
 
@@ -451,13 +583,18 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
             )
           );
           setSelectedCards([]);
-          setScore((s) => s + 30);
-          setStreak((st) => st + 1);
+          setScore((s) => { const n = s + 35; scoreRef.current = n; return n; });
+          setStreak((st) => { const n = st + 1; streakRef.current = n; return n; });
           setMatchedPairsCount((m) => {
             const nextCount = m + 1;
             const totalPairsCount = cards.length / 2;
             if (nextCount >= totalPairsCount) {
-              handleGameWin(score + 30 + lives * 10);
+              const actualTime = Math.max(1, elapsedSeconds);
+              const moves = movesCount + 1;
+              const accuracy = moves > 0 ? Math.min(100, Math.max(15, Math.round((totalPairsCount / moves) * 100))) : 100;
+              // Use scoreRef.current (synchronous) instead of stale `score` state
+              const finalScore = scoreRef.current + (livesRef.current * 15) + Math.max(0, 100 - actualTime * 2);
+              handleGameWin(finalScore, accuracy, actualTime);
             }
             return nextCount;
           });
@@ -470,8 +607,10 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           );
           setSelectedCards([]);
           setStreak(0);
+          streakRef.current = 0;
           setLives((l) => {
             const nextLives = Math.max(0, l - 1);
+            livesRef.current = nextLives;
             if (nextLives === 0) {
               // Game Over
               setIsGameOver(true);
@@ -483,38 +622,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     }
   };
 
-  const handleInstallPart = (part: HardwareComponent) => {
-    if (part.isInstalled) return;
-
-    setHardwareParts((prev) =>
-      prev.map((p) => (p.id === part.id ? { ...p, isInstalled: true } : p))
-    );
-    setScore((s) => s + 20);
-
-    const nextUninstalled = hardwareParts.find((p) => !p.isInstalled && p.id !== part.id);
-    if (nextUninstalled) {
-      setSelectedHardware(nextUninstalled);
-    }
-  };
-
-  const handlePowerOn = () => {
-    const allInstalled = hardwareParts.every((p) => p.isInstalled);
-    if (!allInstalled) return;
-
-    setSystemPowerOn(true);
-    let prog = 0;
-    const interval = setInterval(() => {
-      prog += 20;
-      setBootingProgress(prog);
-      if (prog >= 100) {
-        clearInterval(interval);
-        handleGameWin(100);
-      }
-    }, 400);
-  };
-
   useEffect(() => {
-    if (!isCardMatchingEngine && !is3DHardwareLabEngine && pairs.length > 0) {
+    if (!isCardMatchingEngine && pairs.length > 0) {
       const current = pairs[currentPairIdx];
       if (current) {
         const correct = current.description || (current as any).rightAnswer || "Đáp án đúng";
@@ -525,7 +634,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         setIsCorrect(null);
       }
     }
-  }, [pairs, currentPairIdx, isCardMatchingEngine, is3DHardwareLabEngine]);
+  }, [pairs, currentPairIdx, isCardMatchingEngine]);
 
   const handleSelectQuizAnswer = (option: string) => {
     if (selectedAnswer !== null) return;
@@ -536,26 +645,46 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     const correctBool = option === correct;
     setIsCorrect(correctBool);
 
+    const newAttempts = quizAttempts + 1;
+    const newCorrects = quizCorrects + (correctBool ? 1 : 0);
+    setQuizAttempts(newAttempts);
+    setQuizCorrects(newCorrects);
+
     if (correctBool) {
-      setScore((s) => s + 25);
-      setStreak((st) => st + 1);
+      const gained = 30 + streakRef.current * 5;
+      // Update scoreRef FIRST (synchronous), then schedule React state update
+      scoreRef.current += gained;
+      setScore(scoreRef.current);
+      setStreak((st) => { const n = st + 1; streakRef.current = n; return n; });
     } else {
       setStreak(0);
+      streakRef.current = 0;
     }
 
     setTimeout(() => {
       if (currentPairIdx + 1 < pairs.length) {
         setCurrentPairIdx((i) => i + 1);
       } else {
-        handleGameWin(score + (correctBool ? 25 : 0));
+        const actualTime = Math.max(1, elapsedSeconds);
+        const accuracy = newAttempts > 0 ? Math.min(100, Math.max(10, Math.round((newCorrects / newAttempts) * 100))) : 100;
+        // Use scoreRef.current — the accurate live score — not stale `score` state
+        handleGameWin(scoreRef.current, accuracy, actualTime);
       }
     }, 1500);
   };
 
-  const handleGameWin = async (finalScoreValue: number) => {
+  const handleGameWin = async (finalScoreValue: number, customAccuracy?: number, customTime?: number) => {
     setIsGameOver(true);
-    const coinsWon = Math.round(finalScoreValue * 0.5);
+    const coinsWon = Math.round(finalScoreValue * 0.4);
     setEarnedCoins(coinsWon);
+
+    const actualPlayTime = customTime !== undefined ? customTime : Math.max(1, elapsedSeconds);
+    const actualAccuracy = customAccuracy !== undefined ? customAccuracy : (
+      movesCount > 0 ? Math.min(100, Math.max(15, Math.round((matchedPairsCount / movesCount) * 100))) : 100
+    );
+
+    setFinalPlayTime(actualPlayTime);
+    setFinalAccuracy(actualAccuracy);
 
     try {
       const res = await fetch("/api/games/finish", {
@@ -566,35 +695,43 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           courseId,
           userId: uid,
           userName: studentName,
+          sessionToken,
           score: finalScoreValue,
           isWin: true,
-          accuracyPercent: 100,
-          playTimeSeconds: 45,
+          accuracyPercent: actualAccuracy,
+          playTimeSeconds: actualPlayTime,
         }),
       });
       const data = await res.json();
       if (data.success && data.data?.earnedCoins) {
         setEarnedCoins(data.data.earnedCoins);
       }
-    } catch {}
+    } catch (err) {
+      console.warn("Could not save game result:", err);
+    }
 
-    setTimeout(() => {
-      loadLeaderboard();
-    }, 1000);
+    // Tự động cập nhật Bảng Xếp Hạng ngay tức thì
+    loadLeaderboard();
+    setTimeout(loadLeaderboard, 600);
+    setTimeout(loadLeaderboard, 1500);
   };
 
   const handleRestart = () => {
     setGameState("menu");
     setIsGameOver(false);
     setScore(0);
+    scoreRef.current = 0;
     setStreak(0);
+    streakRef.current = 0;
     setLives(5);
+    livesRef.current = 5;
     setCurrentPairIdx(0);
     setSelectedAnswer(null);
     setIsCorrect(null);
     setMovesCount(0);
-    setSystemPowerOn(false);
-    setBootingProgress(0);
+    setMatchedPairsCount(0);
+    setQuizAttempts(0);
+    setQuizCorrects(0);
   };
 
   const currentPair = pairs[currentPairIdx];
@@ -615,7 +752,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           <div className="flex items-center gap-2 flex-wrap text-xs">
             <span className="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 font-bold flex items-center gap-1.5">
               <Gamepad2 className="w-3.5 h-3.5 text-red-600" />
-              Trò chơi: {currentGameMeta.title}
+              Trò chơi: {displayGameTitle}
             </span>
             <span className="text-zinc-400">▶</span>
             <span className="px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-800 font-bold flex items-center gap-1.5 truncate max-w-md">
@@ -651,7 +788,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         </div>
       </div>
 
-      {/* 2. Navigation Tabs */}
+      {/* 2. Navigation Tabs (LUÔN HIỂN THỊ) */}
       <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
         <button
           onClick={() => setActiveTab("game")}
@@ -697,6 +834,129 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
               isFullscreen ? "p-6 md:p-10 min-h-screen" : "p-5 md:p-8 min-h-[580px]"
             }`}
           >
+            {/* PRELOADER SCREEN BÊN TRONG CONTAINER CỦA GAME */}
+            {dataStatus === "loading" && (
+              <div className="my-auto py-10 text-center space-y-7 relative z-10">
+                {/* Top Engine Badge */}
+                <div className="flex items-center justify-center gap-2">
+                  <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-bold uppercase tracking-widest">
+                    <span className="w-2 h-2 rounded-full bg-red-600 animate-ping" />
+                    Đang Preload Dữ Liệu Bài Học • {loadProgress}%
+                  </span>
+                </div>
+
+                {/* Center Graphic */}
+                <div className="relative inline-block mx-auto">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-red-600 to-red-500 border-2 border-red-400 flex items-center justify-center text-white shadow-xl shadow-red-600/20">
+                    <Gamepad2 className="w-10 h-10 animate-pulse" />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 px-2 py-0.5 rounded bg-zinc-900 text-[10px] font-mono font-bold text-white">
+                    v2.4
+                  </div>
+                </div>
+
+                {/* Title & Info */}
+                <div className="space-y-1.5 max-w-md mx-auto">
+                  <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-zinc-900">
+                    Đang Chuẩn Bị Màn Chơi...
+                  </h2>
+                  <p className="text-xs text-zinc-500 font-mono">
+                    Bài học: <span className="text-red-600 font-bold">{courseTitle || "Đang nạp dữ liệu..."}</span>
+                  </p>
+                </div>
+
+                {/* Interactive Loading Bar */}
+                <div className="max-w-lg mx-auto space-y-3.5 bg-zinc-50 border border-zinc-200 p-5 rounded-2xl shadow-sm">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="flex items-center gap-2 text-zinc-700 font-bold">
+                      <Sparkles className="w-4 h-4 text-red-600 animate-spin" /> {loadStepMessage}
+                    </span>
+                    <span className="text-xs font-black font-mono text-red-600 px-2 py-0.5 rounded bg-red-50 border border-red-200">
+                      {loadProgress}%
+                    </span>
+                  </div>
+
+                  {/* Progress Bar Container */}
+                  <div className="w-full h-3.5 rounded-full bg-zinc-200 overflow-hidden p-0.5">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-400 transition-all duration-300 relative shadow-sm"
+                      style={{ width: `${Math.max(5, loadProgress)}%` }}
+                    >
+                      <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                    </div>
+                  </div>
+
+                  {/* Visual Milestones */}
+                  <div className="grid grid-cols-3 gap-2 pt-1 text-[10px] md:text-[11px] font-mono text-left">
+                    <div className={`p-2 rounded-xl border flex items-center gap-1.5 transition-colors ${loadProgress >= 30 ? "bg-red-50 border-red-200 text-red-700 font-bold" : "bg-white border-zinc-200 text-zinc-400"}`}>
+                      <Check className={`w-3.5 h-3.5 flex-shrink-0 ${loadProgress >= 30 ? "text-red-600" : "text-zinc-300"}`} />
+                      <span className="truncate">1. Token Session</span>
+                    </div>
+                    <div className={`p-2 rounded-xl border flex items-center gap-1.5 transition-colors ${loadProgress >= 70 ? "bg-red-50 border-red-200 text-red-700 font-bold" : "bg-white border-zinc-200 text-zinc-400"}`}>
+                      <Check className={`w-3.5 h-3.5 flex-shrink-0 ${loadProgress >= 70 ? "text-red-600" : "text-zinc-300"}`} />
+                      <span className="truncate">2. Extra Data</span>
+                    </div>
+                    <div className={`p-2 rounded-xl border flex items-center gap-1.5 transition-colors ${loadProgress >= 100 ? "bg-red-50 border-red-200 text-red-700 font-bold" : "bg-white border-zinc-200 text-zinc-400"}`}>
+                      <Check className={`w-3.5 h-3.5 flex-shrink-0 ${loadProgress >= 100 ? "text-red-600" : "text-zinc-300"}`} />
+                      <span className="truncate">3. Khởi Chạy</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ERROR RECOVERY SCREEN BÊN TRONG CONTAINER CỦA GAME */}
+            {dataStatus === "error" && (
+              <div className="my-auto py-10 text-center space-y-6 relative z-10 max-w-md mx-auto">
+                <div className="w-16 h-16 rounded-2xl bg-red-100 border-2 border-red-300 flex items-center justify-center mx-auto text-red-600 shadow-sm">
+                  <XCircle className="w-8 h-8 text-red-600" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-mono font-bold text-red-600 uppercase tracking-widest px-3 py-1 rounded-full bg-red-50 border border-red-200">
+                    Cảnh Báo Lỗi Tải Dữ Liệu
+                  </span>
+                  <h2 className="text-xl font-black uppercase tracking-tight text-zinc-900 mt-2">
+                    Không Thể Nạp Extra Data Của Bài Học
+                  </h2>
+                  <p className="text-xs text-zinc-500 leading-relaxed font-mono">
+                    {loadErrorDetails || "Đã xảy ra lỗi kết nối khi lấy bộ câu hỏi bài học từ máy chủ. Vui lòng bấm Tải Lại Trang bên dưới để thử lại."}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  <Link href="/student/classes">
+                    <button
+                      type="button"
+                      className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
+                    >
+                      <BookOpen className="w-4 h-4" /> Lớp Học Của Tôi
+                    </button>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-900 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
+                  >
+                    <RotateCcw className="w-4 h-4" /> Tải Lại (Refresh)
+                  </button>
+
+                  <Link href="/student/games">
+                    <button
+                      type="button"
+                      className="px-5 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-300 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" /> Kho Trò Chơi
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* MÀN CHƠI GAME & HUD KHI DỮ LIỆU ĐÃ SẴN SÀNG */}
+            {dataStatus === "ready" && (
+              <>
             {/* Top HUD Bar */}
             <div className="flex items-center justify-between gap-3 pb-4 border-b border-zinc-100 relative z-10">
               <div className="space-y-0.5">
@@ -704,7 +964,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                   <span className="w-2 h-2 rounded-full bg-red-600" />
                   {currentGameMeta.category} • {courseTitle}
                 </div>
-                <h2 className="text-lg md:text-xl font-black text-zinc-900">{currentGameMeta.title}</h2>
+                <h2 className="text-lg md:text-xl font-black text-zinc-900">{displayGameTitle}</h2>
               </div>
 
               {/* Lives & Streak HUD */}
@@ -771,8 +1031,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                       <span className="font-bold text-zinc-900 truncate max-w-[200px]">{courseTitle}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-zinc-500 font-medium">Học liệu nạp vào card:</span>
-                      <span className="font-bold text-red-600">{pairs.length} Cặp ({pairs.length * 2} Thẻ bài)</span>
+                      <span className="text-zinc-500 font-medium">Học liệu nạp vào trò chơi:</span>
+                      <span className="font-bold text-red-600">{pairs.length}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-zinc-500 font-medium">Phần thưởng tối đa:</span>
@@ -812,14 +1072,22 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-zinc-50 border border-zinc-200 text-center">
                     <div>
                       <div className="text-[10px] text-zinc-500 uppercase font-bold">Tổng Điểm</div>
-                      <div className="text-xl font-black text-zinc-900 font-mono">{score} PTS</div>
+                      <div className="text-lg font-black text-zinc-900 font-mono">{score} PTS</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-zinc-500 uppercase font-bold">Thời Gian</div>
+                      <div className="text-lg font-black text-zinc-900 font-mono">{finalPlayTime || elapsedSeconds}s</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-emerald-600 uppercase font-bold">Độ Chính Xác</div>
+                      <div className="text-lg font-black text-emerald-700 font-mono">{finalAccuracy}%</div>
                     </div>
                     <div>
                       <div className="text-[10px] text-red-600 uppercase font-bold">Coins Thưởng</div>
-                      <div className="text-xl font-black text-red-600 font-mono">+{earnedCoins} </div>
+                      <div className="text-lg font-black text-red-600 font-mono">+{earnedCoins}</div>
                     </div>
                   </div>
 
@@ -838,14 +1106,74 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                     </button>
                   </div>
                 </div>
+              ) : customGameUrl ? (
+                /* STATE 3C: PLAYING CUSTOM UPLOADED HTML5 / SDK GAME IN IFRAME (AUTO SCALED & RESPONSIVE) */
+                <div className="w-full space-y-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs bg-zinc-50 p-3 rounded-xl border border-zinc-200">
+                    <div className="flex items-center gap-2 font-bold text-zinc-800">
+                      <Gamepad2 className="w-4 h-4 text-red-600" />
+                      <span>{displayGameTitle}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-zinc-500 text-[11px]">
+                      <span>✦ Nạp Extra Data ({pairs.length} câu hỏi)</span>
+                      <button
+                        onClick={toggleFullscreen}
+                        className="px-2.5 py-1 rounded-lg bg-zinc-200 hover:bg-zinc-300 text-zinc-800 font-bold transition flex items-center gap-1 cursor-pointer"
+                        title="Phóng to toàn màn hình"
+                      >
+                        <Maximize2 className="w-3 h-3" /> Toàn màn hình
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="w-full h-[78vh] min-h-[580px] max-h-[900px] rounded-2xl overflow-hidden border-2 border-zinc-300 shadow-2xl bg-black relative flex items-center justify-center">
+                    <iframe
+                      ref={iframeRef}
+                      src={`${customGameUrl}?gameId=${encodeURIComponent(gameId)}&courseId=${encodeURIComponent(courseId)}&userId=${encodeURIComponent(uid || "student")}&sessionToken=${encodeURIComponent(sessionToken || "")}&apiBase=${encodeURIComponent("/api/games")}`}
+                      className="w-full h-full border-0 block"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                      }}
+                      allow="autoplay; fullscreen; accelerometer; gyroscope"
+                      onLoad={() => {
+                        if (iframeRef.current && iframeRef.current.contentWindow) {
+                          const initPayload = {
+                            gameId,
+                            courseId,
+                            courseTitle,
+                            pairs,
+                            sessionToken,
+                            userId: uid,
+                            userName: studentName,
+                          };
+                          // Hỗ trợ cả 2 chuẩn event name của SDK
+                          iframeRef.current.contentWindow.postMessage(
+                            { type: "EVE_INIT_GAME_DATA", payload: initPayload },
+                            "*"
+                          );
+                          iframeRef.current.contentWindow.postMessage(
+                            { type: "EVE_INIT_DATA", payload: initPayload },
+                            "*"
+                          );
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               ) : isCardMatchingEngine ? (
-                /* STATE 3: PLAYING MEMORY CARD MATCH */
+                /* STATE 3A: PLAYING MEMORY CARD MATCH ENGINE */
                 <div className="space-y-6">
                   {/* Status Banner */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-zinc-50 p-3.5 rounded-xl border border-zinc-200">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 flex-wrap">
                       <span>Lượt lật: <strong className="text-zinc-900">{movesCount}</strong></span>
-                      <span>Đã ghép: <strong className="text-red-600">{matchedPairsCount} / {cards.length / 2} cặp</strong></span>
+                      <span>Đã ghép: <strong className="text-red-600">{matchedPairsCount} / {Math.max(1, Math.floor(cards.length / 2))} cặp</strong></span>
+                      <span>Thời gian: <strong className="text-zinc-900">{elapsedSeconds}s</strong></span>
+                      {movesCount > 0 && (
+                        <span>Chính xác: <strong className="text-emerald-700">{Math.min(100, Math.max(10, Math.round((matchedPairsCount / movesCount) * 100)))}%</strong></span>
+                      )}
                     </div>
 
                     {previewTimer > 0 ? (
@@ -909,146 +1237,124 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                     })}
                   </div>
                 </div>
-              ) : is3DHardwareLabEngine ? (
-                /* Engine 2: 3D Hardware Assembly */
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-                    <div className="space-y-2.5">
-                      <div className="text-xs text-red-600 uppercase font-bold">Khay Linh Kiện ({hardwareParts.filter((p) => p.isInstalled).length}/5)</div>
-                      {hardwareParts.map((part) => (
-                        <button
-                          key={part.id}
-                          onClick={() => setSelectedHardware(part)}
-                          className={`w-full p-3 rounded-xl text-left text-xs transition-colors flex items-center justify-between border cursor-pointer ${
-                            selectedHardware?.id === part.id
-                              ? "bg-red-50 border-red-600 text-red-700 font-bold shadow-sm"
-                              : part.isInstalled
-                              ? "bg-zinc-50 border-zinc-200 text-zinc-500"
-                              : "bg-white border-zinc-200 text-zinc-700 hover:border-zinc-300"
-                          }`}
-                        >
-                          <div className="truncate font-bold">{part.name}</div>
-                          {part.isInstalled ? <Check className="w-4 h-4 text-red-600 shrink-0" /> : <Layers className="w-4 h-4 text-zinc-400 shrink-0" />}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="md:col-span-2 p-6 rounded-2xl bg-zinc-50 border border-zinc-200 shadow-sm text-center space-y-4">
-                      <div className="text-xs text-zinc-500 font-bold">
-                        Bo Mạch Chủ Motherboard
-                      </div>
-
-                      <div className="p-6 rounded-xl bg-white border border-zinc-200 grid grid-cols-3 gap-3 min-h-[180px] items-center">
-                        <div className={`p-3 rounded-xl border text-xs font-bold ${hardwareParts.find((p) => p.id === "p_cpu")?.isInstalled ? "bg-red-50 border-red-600 text-red-700" : "border-dashed border-zinc-300 text-zinc-400"}`}>
-                          [Socket CPU] {hardwareParts.find((p) => p.id === "p_cpu")?.isInstalled ? " Đã Lắp CPU" : "Trống"}
-                        </div>
-                        <div className={`p-3 rounded-xl border text-xs font-bold ${hardwareParts.find((p) => p.id === "p_ram")?.isInstalled ? "bg-red-50 border-red-600 text-red-700" : "border-dashed border-zinc-300 text-zinc-400"}`}>
-                          [Khe RAM] {hardwareParts.find((p) => p.id === "p_ram")?.isInstalled ? " Đã Lắp RAM" : "Trống"}
-                        </div>
-                        <div className={`p-3 rounded-xl border text-xs font-bold ${hardwareParts.find((p) => p.id === "p_ssd")?.isInstalled ? "bg-red-50 border-red-600 text-red-700" : "border-dashed border-zinc-300 text-zinc-400"}`}>
-                          [Khe SSD] {hardwareParts.find((p) => p.id === "p_ssd")?.isInstalled ? " Đã Lắp SSD" : "Trống"}
-                        </div>
-                        <div className={`col-span-2 p-3 rounded-xl border text-xs font-bold ${hardwareParts.find((p) => p.id === "p_gpu")?.isInstalled ? "bg-red-50 border-red-600 text-red-700" : "border-dashed border-zinc-300 text-zinc-400"}`}>
-                          [Khe GPU] {hardwareParts.find((p) => p.id === "p_gpu")?.isInstalled ? " Đã Lắp Card Đồ Họa" : "Trống"}
-                        </div>
-                        <div className={`p-3 rounded-xl border text-xs font-bold ${hardwareParts.find((p) => p.id === "p_psu")?.isInstalled ? "bg-red-50 border-red-600 text-red-700" : "border-dashed border-zinc-300 text-zinc-400"}`}>
-                          [Cấp Nguồn PSU] {hardwareParts.find((p) => p.id === "p_psu")?.isInstalled ? " Đã Cắm PSU" : "Trống"}
-                        </div>
-                      </div>
-
-                      {selectedHardware && !selectedHardware.isInstalled && (
-                        <div className="p-4 rounded-xl bg-white border border-zinc-200 flex items-center justify-between gap-3 shadow-sm">
-                          <div className="text-left">
-                            <div className="font-bold text-xs text-zinc-900">{selectedHardware.name}</div>
-                            <div className="text-[11px] text-zinc-500">{selectedHardware.desc}</div>
-                          </div>
-                          <button
-                            onClick={() => handleInstallPart(selectedHardware)}
-                            className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors cursor-pointer shrink-0 shadow-sm"
-                          >
-                            + Lắp Vào Bo Mạch
-                          </button>
-                        </div>
-                      )}
-
-                      {hardwareParts.every((p) => p.isInstalled) && !systemPowerOn && (
-                        <button
-                          onClick={handlePowerOn}
-                          className="w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-2"
-                        >
-                          <Power className="w-5 h-5" /> KÍCH HOẠT NGUỒN & KHỞI ĐỘNG
-                        </button>
-                      )}
-
-                      {systemPowerOn && (
-                        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 space-y-2 font-bold text-xs">
-                          <div>Đang khởi động hệ thống... ({bootingProgress}%)</div>
-                          <div className="w-full bg-zinc-200 rounded-full h-2 overflow-hidden">
-                            <div className="bg-red-600 h-full transition-all duration-300" style={{ width: `${bootingProgress}%` }} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
               ) : (
-                /* Engine 3: Quiz Runner */
+                /* STATE 3B: PLAYING BOSS BATTLE / INTERACTIVE QUIZ ENGINE */
                 <div className="max-w-2xl mx-auto space-y-6">
-                  <div className="flex items-center justify-between text-xs text-zinc-500 font-bold">
-                    <span>Câu hỏi: <strong className="text-zinc-900">{currentPairIdx + 1}</strong> / {pairs.length}</span>
-                    <span>Tiến độ: <strong className="text-red-600">{Math.round(((currentPairIdx + 1) / pairs.length) * 100)}%</strong></span>
+                  {/* Status Bar */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-zinc-50 p-3.5 rounded-xl border border-zinc-200">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <span className="font-bold text-red-600">
+                        Câu {currentPairIdx + 1} / {pairs.length}
+                      </span>
+                      <span>Điểm: <strong className="text-zinc-900">{score} PTS</strong></span>
+                      <span>Thời gian: <strong className="text-zinc-900">{elapsedSeconds}s</strong></span>
+                      {streak > 1 && (
+                        <span className="text-amber-600 font-bold flex items-center gap-1">
+                          <Flame className="w-3.5 h-3.5 fill-amber-500" /> Combo x{streak}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-zinc-500">
+                      Độ chính xác: <strong className="text-emerald-700">
+                        {quizAttempts > 0 ? `${Math.round((quizCorrects / quizAttempts) * 100)}%` : "100%"}
+                      </strong>
+                    </div>
                   </div>
 
-                  {currentPair && (
-                    <div className="p-6 md:p-8 rounded-2xl bg-zinc-50 border border-zinc-200 shadow-sm space-y-6">
-                      <h3 className="text-base md:text-lg font-bold text-zinc-900 text-center leading-relaxed">
-                        {currentPair.title}
-                      </h3>
+                  {/* Question Container */}
+                  {pairs[currentPairIdx] && (
+                    <div className="p-6 md:p-8 rounded-3xl bg-white border-2 border-red-100 shadow-xl space-y-6">
+                      {/* Question Header & Progress */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-xs font-mono">
+                          <span className="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 font-bold flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-red-600" /> THỬ THÁCH HỌC LIỆU #{currentPairIdx + 1}
+                          </span>
+                          <span className="text-zinc-400 font-bold">
+                            {Math.round(((currentPairIdx + 1) / pairs.length) * 100)}% Hoàn thành
+                          </span>
+                        </div>
 
-                      <div className="grid grid-cols-1 gap-3">
-                        {shuffledOptions.map((option, idx) => {
-                          const isPicked = selectedAnswer === option;
-                          const isRightAnswer = option === (currentPair.description || (currentPair as any).rightAnswer);
+                        <h3 className="text-lg md:text-xl font-black text-zinc-900 leading-snug">
+                          {pairs[currentPairIdx].title}
+                        </h3>
 
-                          let style = "bg-white hover:bg-zinc-100 border-zinc-200 text-zinc-800";
+                        {/* Progress line */}
+                        <div className="w-full h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                          <div
+                            className="h-full bg-red-600 transition-all duration-300 rounded-full"
+                            style={{ width: `${((currentPairIdx + 1) / pairs.length) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Options Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                        {shuffledOptions.map((opt, optIdx) => {
+                          const optionLetters = ["A", "B", "C", "D"];
+                          const isSelected = selectedAnswer === opt;
+                          const currentCorrect = pairs[currentPairIdx]?.description || (pairs[currentPairIdx] as any)?.rightAnswer;
+                          const isActualCorrect = opt === currentCorrect;
+
+                          let optionClass = "bg-zinc-50 border-zinc-200 text-zinc-800 hover:border-red-400 hover:bg-red-50/50";
                           if (selectedAnswer !== null) {
-                            if (isRightAnswer) {
-                              style = "bg-emerald-50 border-emerald-500 text-emerald-800 font-bold";
-                            } else if (isPicked) {
-                              style = "bg-red-50 border-red-500 text-red-700 font-bold";
+                            if (isActualCorrect) {
+                              optionClass = "bg-emerald-50 border-emerald-500 text-emerald-900 font-bold ring-2 ring-emerald-200 shadow-sm";
+                            } else if (isSelected && !isCorrect) {
+                              optionClass = "bg-red-50 border-red-500 text-red-900 font-bold ring-2 ring-red-200";
                             } else {
-                              style = "bg-zinc-50 border-zinc-200 text-zinc-400 opacity-50";
+                              optionClass = "bg-zinc-50 border-zinc-200 text-zinc-400 opacity-60";
                             }
                           }
 
                           return (
                             <button
-                              key={idx}
+                              key={optIdx}
                               disabled={selectedAnswer !== null}
-                              onClick={() => handleSelectQuizAnswer(option)}
-                              className={`p-4 rounded-xl border text-left text-xs md:text-sm font-medium transition-colors flex items-center justify-between gap-3 cursor-pointer ${style}`}
+                              onClick={() => handleSelectQuizAnswer(opt)}
+                              className={`p-4 rounded-2xl border-2 text-left text-xs md:text-sm font-medium transition-all duration-200 flex items-start gap-3 cursor-pointer select-none active:scale-98 ${optionClass}`}
                             >
-                              <div className="flex items-center gap-3">
-                                <span className="w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center font-bold text-xs shrink-0 text-zinc-700">
-                                  {String.fromCharCode(65 + idx)}
-                                </span>
-                                <span>{option}</span>
-                              </div>
-                              {selectedAnswer !== null && isRightAnswer && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
-                              {selectedAnswer !== null && isPicked && !isRightAnswer && <XCircle className="w-5 h-5 text-red-600 shrink-0" />}
+                              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
+                                selectedAnswer !== null && isActualCorrect
+                                  ? "bg-emerald-600 text-white"
+                                  : isSelected && !isCorrect
+                                  ? "bg-red-600 text-white"
+                                  : "bg-zinc-200 text-zinc-700"
+                              }`}>
+                                {optionLetters[optIdx % 4]}
+                              </span>
+                              <span className="flex-1 leading-relaxed">{opt}</span>
                             </button>
                           );
                         })}
                       </div>
 
-                      {selectedAnswer !== null && (currentPair.explanation || (currentPair as any).explain) && (
-                        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs space-y-1">
-                          <div className="font-bold text-[11px] text-red-700 flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-red-600" /> Giải thích kiến thức:
+                      {/* Explanation Feedback Box */}
+                      {selectedAnswer !== null && (
+                        <div className={`p-4 rounded-2xl border transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 ${
+                          isCorrect
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                            : "bg-red-50 border-red-200 text-red-900"
+                        }`}>
+                          <div className="flex items-center gap-2 font-bold text-xs mb-1">
+                            {isCorrect ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                <span>Chính Xác! +30 Điểm thưởng</span>
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="w-4 h-4 text-red-600" />
+                                <span>Chưa Chính Xác! Cùng xem giải thích bên dưới:</span>
+                              </>
+                            )}
                           </div>
-                          <p className="leading-relaxed">
-                            {currentPair.explanation || (currentPair as any).explain}
-                          </p>
+                          {pairs[currentPairIdx]?.explanation && (
+                            <p className="text-xs text-zinc-600 mt-1 leading-relaxed pl-6 border-l-2 border-current">
+                              {pairs[currentPairIdx].explanation}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1070,6 +1376,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                 <RotateCcw className="w-3.5 h-3.5" /> Về Menu
               </button>
             </div>
+              </>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -1082,7 +1390,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
               </div>
 
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-zinc-900">{currentGameMeta.title}</h3>
+                <h3 className="text-base font-bold text-zinc-900">{displayGameTitle}</h3>
                 <p className="text-xs text-zinc-600 leading-relaxed">
                   {currentGameMeta.description}
                 </p>
@@ -1109,22 +1417,34 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
               <div className="space-y-2 text-xs">
                 {rankingList.slice(0, 4).map((rec, idx) => (
-                  <div
+                  <ProfileHoverCard
                     key={rec.id || idx}
-                    className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
-                      idx === 0
-                        ? "bg-red-50 border-red-200 text-red-700 font-bold"
-                        : "bg-zinc-50 border-zinc-200 text-zinc-700"
-                    }`}
+                    user={{
+                      id: rec.userId,
+                      name: rec.name,
+                      rank: idx + 1,
+                      score: rec.score,
+                      accuracy: rec.accuracy,
+                      isMe: rec.userId === uid,
+                    }}
+                    className="w-full"
                   >
-                    <div className="flex items-center gap-2 truncate">
-                      <span className="font-bold w-4 text-center">
-                        {idx === 0 ? "#1" : idx === 1 ? "#2" : idx === 2 ? "#3" : `#${idx + 1}`}
-                      </span>
-                      <span className="truncate">{rec.name}</span>
+                    <div
+                      className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 hover:border-red-500 hover:shadow-xs transition-all ${
+                        idx === 0
+                          ? "bg-red-50 border-red-200 text-red-700 font-bold"
+                          : "bg-zinc-50 border-zinc-200 text-zinc-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="font-bold w-4 text-center">
+                          {idx === 0 ? "#1" : idx === 1 ? "#2" : idx === 2 ? "#3" : `#${idx + 1}`}
+                        </span>
+                        <span className="truncate font-semibold">{rec.name}</span>
+                      </div>
+                      <span className="font-bold text-zinc-900 shrink-0 font-mono">{rec.score} pts</span>
                     </div>
-                    <span className="font-bold text-zinc-900 shrink-0 font-mono">{rec.score} pts</span>
-                  </div>
+                  </ProfileHoverCard>
                 ))}
               </div>
             </div>
@@ -1141,7 +1461,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                 <Trophy className="w-4 h-4" /> Bảng Xếp Hạng Thành Tích Riêng
               </div>
               <h2 className="text-xl md:text-2xl font-bold text-zinc-900 mt-1">
-                {currentGameMeta.title} • {courseTitle}
+                {displayGameTitle} • {courseTitle}
               </h2>
             </div>
 
@@ -1166,36 +1486,115 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {rankingList.map((record, index) => (
-                  <tr
-                    key={record.id || index}
-                    className={`hover:bg-zinc-50 transition-colors ${
-                      index === 0
-                        ? "bg-red-50 text-red-700 font-bold"
-                        : "text-zinc-700"
-                    }`}
-                  >
-                    <td className="py-3 px-4 font-bold">
-                      {index === 0 ? "Hạng 1" : index === 1 ? "Hạng 2" : index === 2 ? "Hạng 3" : `#${index + 1}`}
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-zinc-900 flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-red-600" />
-                      {record.name}
-                    </td>
-                    <td className="py-3 px-4 text-center font-bold font-mono text-zinc-900">
-                      {record.score} pts
-                    </td>
-                    <td className="py-3 px-4 text-center text-zinc-500">
-                      {record.playTime}
-                    </td>
-                    <td className="py-3 px-4 text-center text-emerald-700 font-bold">
-                      {record.accuracy}%
-                    </td>
-                    <td className="py-3 px-4 text-right text-zinc-500">
-                      {record.date}
-                    </td>
-                  </tr>
-                ))}
+                {rankingList.map((record, index) => {
+                  const isMe = record.userId === uid;
+                  return (
+                    <tr
+                      key={record.id || index}
+                      className={`transition-colors group/row ${
+                        isMe
+                          ? "bg-red-50/80 border-l-2 border-red-600 font-bold"
+                          : index === 0
+                          ? "bg-amber-50/50 font-bold"
+                          : "hover:bg-zinc-50 text-zinc-700"
+                      }`}
+                    >
+                      <td className="py-3 px-4 font-bold">
+                        <ProfileHoverCard
+                          user={{
+                            id: record.userId,
+                            name: record.name,
+                            rank: index + 1,
+                            score: record.score,
+                            accuracy: record.accuracy,
+                            isMe,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{index === 0 ? "Hạng 1" : index === 1 ? "Hạng 2" : index === 2 ? "Hạng 3" : `#${index + 1}`}</span>
+                        </ProfileHoverCard>
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-zinc-900">
+                        <ProfileHoverCard
+                          user={{
+                            id: record.userId,
+                            name: record.name,
+                            rank: index + 1,
+                            score: record.score,
+                            accuracy: record.accuracy,
+                            isMe,
+                          }}
+                          className="w-full block"
+                        >
+                          <div className="inline-flex items-center gap-2 cursor-pointer hover:text-red-600 transition-colors">
+                            <User className="w-3.5 h-3.5 text-red-600" />
+                            <span>{record.name}{isMe ? " (Bạn)" : ""}</span>
+                          </div>
+                        </ProfileHoverCard>
+                      </td>
+                      <td className="py-3 px-4 text-center font-bold font-mono text-zinc-900">
+                        <ProfileHoverCard
+                          user={{
+                            id: record.userId,
+                            name: record.name,
+                            rank: index + 1,
+                            score: record.score,
+                            accuracy: record.accuracy,
+                            isMe,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{record.score} pts</span>
+                        </ProfileHoverCard>
+                      </td>
+                      <td className="py-3 px-4 text-center text-zinc-500">
+                        <ProfileHoverCard
+                          user={{
+                            id: record.userId,
+                            name: record.name,
+                            rank: index + 1,
+                            score: record.score,
+                            accuracy: record.accuracy,
+                            isMe,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{record.playTime}</span>
+                        </ProfileHoverCard>
+                      </td>
+                      <td className="py-3 px-4 text-center text-emerald-700 font-bold">
+                        <ProfileHoverCard
+                          user={{
+                            id: record.userId,
+                            name: record.name,
+                            rank: index + 1,
+                            score: record.score,
+                            accuracy: record.accuracy,
+                            isMe,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{record.accuracy}%</span>
+                        </ProfileHoverCard>
+                      </td>
+                      <td className="py-3 px-4 text-right text-zinc-500">
+                        <ProfileHoverCard
+                          user={{
+                            id: record.userId,
+                            name: record.name,
+                            rank: index + 1,
+                            score: record.score,
+                            accuracy: record.accuracy,
+                            isMe,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{record.date}</span>
+                        </ProfileHoverCard>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

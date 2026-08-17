@@ -20,6 +20,7 @@ import {
   Users,
   Shield,
   MessageSquare,
+  Lock,
 } from "lucide-react";
 import {
   collection,
@@ -73,10 +74,14 @@ export default function StudentClassDetailPage({
 
   const [path, setPath] = useState<LearningPath | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
+  const [coursePlayCounts, setCoursePlayCounts] = useState<Record<string, number>>({});
+  const [approvedCourses, setApprovedCourses] = useState<string[]>([]);
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockReason, setLockReason] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -98,23 +103,38 @@ export default function StudentClassDetailPage({
 
         const enrollmentSnapshot = await getDocs(enrollmentQuery);
 
+        let studentApprovedCourses: string[] = [];
         if (!enrollmentSnapshot.empty) {
-          const docItem = enrollmentSnapshot.docs[0];
-          const enrollmentData = docItem.data();
+          const docData = enrollmentSnapshot.docs[0].data();
+          studentApprovedCourses = Array.isArray(docData.approved_courses)
+            ? docData.approved_courses
+            : Array.isArray(docData.approvedCourses)
+            ? docData.approvedCourses
+            : [];
           setEnrollment({
-            docId: docItem.id,
-            progress: Number(enrollmentData.progress) || 0,
-            status: (enrollmentData.status === "paused" ? "paused" : "active") as "active" | "paused",
+            docId: enrollmentSnapshot.docs[0].id,
+            progress: Number(docData.progress) || 0,
+            status: (docData.status === "paused" ? "paused" : "active") as "active" | "paused",
           });
         }
+        setApprovedCourses(studentApprovedCourses);
 
-        // 2. Learning Path
-        const pathQuery = query(
-          collection(db, "learning_path"),
-          where("__name__", "==", pathId)
-        );
+        // 2. Learning Path & Course Approval Checking
+        const [pathSnapshot, coursesSnapshot] = await Promise.all([
+          getDocs(query(collection(db, "learning_path"), where("__name__", "==", pathId))),
+          getDocs(collection(db, "courses")),
+        ]);
 
-        const pathSnapshot = await getDocs(pathQuery);
+        const acceptedCourseIds = new Set<string>();
+        coursesSnapshot.docs.forEach((d) => {
+          const cd = d.data();
+          if (cd.isAccepted ?? cd.is_accepted) {
+            acceptedCourseIds.add(d.id);
+          }
+        });
+
+        let pDocData: any = null;
+        let pDocId = "";
 
         if (pathSnapshot.empty) {
           const fallbackQ = query(
@@ -127,27 +147,45 @@ export default function StudentClassDetailPage({
             setLoading(false);
             return;
           }
-          const pDoc = fallbackSnap.docs[0];
-          const data = pDoc.data();
-          await setPathState(pDoc.id, data);
+          pDocData = fallbackSnap.docs[0].data();
+          pDocId = fallbackSnap.docs[0].id;
         } else {
-          const pDoc = pathSnapshot.docs[0];
-          const data = pDoc.data();
-          await setPathState(pDoc.id, data);
+          pDocData = pathSnapshot.docs[0].data();
+          pDocId = pathSnapshot.docs[0].id;
         }
+
+        const isPathAccepted = Boolean(pDocData.is_accepted ?? pDocData.isAccepted);
+        const pathCourses: string[] = Array.isArray(pDocData.courses) ? pDocData.courses : [];
+        const allCoursesApproved = pathCourses.length > 0 && pathCourses.every((cId: any) => acceptedCourseIds.has(typeof cId === "string" ? cId : cId.id));
+
+        if (!isPathAccepted || !allCoursesApproved) {
+          setIsLocked(true);
+          setLockReason("Lớp học này hiện đang bị tạm khóa do có 1 hoặc nhiều bài học trong lộ trình chưa được Quản trị viên phê duyệt.");
+          setLoading(false);
+          return;
+        }
+
+        await setPathState(pDocId, pDocData);
 
         // 3. Class Members
         try {
           const membersSnap = await getDocs(collection(db, "class_members"));
           const memberList: MemberItem[] = [];
+          const seenKeys = new Set<string>();
+
           membersSnap.docs.forEach((d) => {
             const m = d.data();
-            memberList.push({
-              id: m.student_id || d.id,
-              name: m.student_name || "Thành viên lớp",
-              role: m.role || "Student",
-              email: m.student_email || "member@eve.edu.vn",
-            });
+            const memberId = m.student_id || d.id;
+            const uniqueKey = `${m.class_id || ""}_${memberId}`;
+            if (!seenKeys.has(memberId)) {
+              seenKeys.add(memberId);
+              memberList.push({
+                id: memberId,
+                name: m.student_name || "Thành viên lớp",
+                role: m.role || "Student",
+                email: m.student_email || "member@eve.edu.vn",
+              });
+            }
           });
           setMembers(memberList);
         } catch {
@@ -165,6 +203,24 @@ export default function StudentClassDetailPage({
               email: "dat@gmail.com",
             },
           ]);
+        }
+
+        // 4. Lấy dữ liệu lượt chơi (game_results) để mở khóa tuần tự từng chặng
+        try {
+          const resultsSnap = await getDocs(
+            query(collection(db, "game_results"), where("user_id", "==", user.uid))
+          );
+          const counts: Record<string, number> = {};
+          resultsSnap.docs.forEach((d) => {
+            const resData = d.data();
+            const crs = resData.course_id || resData.courseId;
+            if (crs) {
+              counts[crs] = (counts[crs] || 0) + 1;
+            }
+          });
+          setCoursePlayCounts(counts);
+        } catch (resErr) {
+          console.warn("Could not load game_results:", resErr);
         }
       } catch (err) {
         console.error("Error loading class detail:", err);
@@ -261,6 +317,29 @@ export default function StudentClassDetailPage({
     );
   }
 
+  if (isLocked) {
+    return (
+      <div className="min-h-[65vh] flex flex-col items-center justify-center p-6 text-center font-sans max-w-lg mx-auto">
+        <div className="w-16 h-16 rounded-2xl bg-zinc-100 border-2 border-zinc-300 text-zinc-600 flex items-center justify-center mb-4 shadow-sm">
+          <Lock className="w-8 h-8 text-zinc-600" />
+        </div>
+        <span className="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold uppercase tracking-wider mb-2">
+          Lộ Trình Tạm Khóa
+        </span>
+        <h1 className="text-xl font-black text-zinc-900 mb-2">Lớp Học Chưa Được Phê Duyệt Hoàn Tất</h1>
+        <p className="text-xs text-zinc-600 leading-relaxed mb-6">
+          {lockReason || "Lớp học này hiện đang bị tạm khóa do có 1 hoặc nhiều bài học trong lộ trình chưa được Quản trị viên phê duyệt. Bạn không thể truy cập nội dung bài học lúc này."}
+        </p>
+        <Link
+          href="/student/classes"
+          className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách lớp học
+        </Link>
+      </div>
+    );
+  }
+
   if (!path) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center font-sans">
@@ -276,47 +355,66 @@ export default function StudentClassDetailPage({
     );
   }
 
-  const progress = Math.min(enrollment?.progress || 0, 100);
   const isPaused = enrollment?.status === "paused";
 
+  const safePathCourses = Array.isArray(path?.courses) && path.courses.length > 0
+    ? path.courses
+    : ["crs_coding_basics", "crs_python_foundation", "crs_data_structures"];
+
+  const completedCoursesList = safePathCourses.filter(
+    (cId) => (coursePlayCounts[cId] || 0) >= 1
+  );
+
+  const dynamicProgress = safePathCourses.length > 0
+    ? Math.round((completedCoursesList.length / safePathCourses.length) * 100)
+    : (enrollment?.progress || 0);
+
+  const displayProgress = enrollment?.progress ? Math.max(enrollment.progress, dynamicProgress) : dynamicProgress;
+
   return (
-    <div className="space-y-8 pb-12 font-sans">
-      {/* ── HEADER BANNER ── */}
-      <section className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 shadow-sm">
-        <div className="flex items-center justify-between gap-4 mb-6">
+    <div className="space-y-8 font-sans pb-12">
+      {/* ── TOP BREADCRUMB & ACTIONS ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <Link
             href="/student/classes"
-            className="inline-flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-red-600 transition"
+            className="p-2.5 rounded-xl bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-zinc-300 shadow-xs transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Quay lại Lớp Học Của Tôi
+            <ArrowLeft className="w-5 h-5" />
           </Link>
-
-          {/* Dừng Học / Tiếp Tục Học Button */}
-          {isPaused ? (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
-            >
-              <PlayCircle className="w-4 h-4" /> Tiếp Tục Học Lớp Này
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-zinc-100 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 border border-zinc-200 text-zinc-700 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer"
-            >
-              <PauseCircle className="w-4 h-4 text-amber-600" /> Dừng Học & Bảo Lưu
-            </button>
-          )}
+          <div>
+            <div className="text-xs text-zinc-500 font-medium">Lớp Học Trực Tuyến</div>
+            <h2 className="text-lg font-bold text-zinc-900 line-clamp-1">{path.title}</h2>
+          </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          {/* Main Info */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="px-3 py-1 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
-                {path.category}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            {isPaused ? (
+              <>
+                <PlayCircle className="w-4 h-4 text-emerald-600" /> Kích Hoạt Lại Lớp
+              </>
+            ) : (
+              <>
+                <PauseCircle className="w-4 h-4 text-amber-600" /> Tạm Dừng / Bảo Lưu
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* ── BANNER HERO ── */}
+      <section className="rounded-3xl border-2 border-zinc-200 bg-white p-6 md:p-8 shadow-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+          <div className="lg:col-span-2">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="px-2.5 py-0.5 rounded-md bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-1">
+                <GraduationCap className="w-3.5 h-3.5" /> {path.category}
               </span>
-              <span className="px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-600 text-xs font-medium">
+              <span className="px-2.5 py-0.5 rounded-md bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-bold">
                 {path.difficulty}
               </span>
               {isPaused && (
@@ -342,7 +440,7 @@ export default function StudentClassDetailPage({
 
               <span className="flex items-center gap-1.5 font-medium">
                 <BookOpen className="w-4 h-4 text-zinc-400" />
-                {path.courses.length} Khóa học (Courses)
+                {safePathCourses.length} Khóa học (Courses)
               </span>
 
               {path.estimated_hours > 0 && (
@@ -362,7 +460,7 @@ export default function StudentClassDetailPage({
               <div className="flex justify-between items-center text-xs mb-2">
                 <span className="font-bold text-zinc-700 uppercase tracking-wider">Tiến Độ Lớp Học</span>
                 <span className={`text-base font-black ${isPaused ? "text-amber-600" : "text-red-600"}`}>
-                  {progress}%
+                  {displayProgress}%
                 </span>
               </div>
 
@@ -371,34 +469,41 @@ export default function StudentClassDetailPage({
                   className={`h-full rounded-full transition-all duration-500 ${
                     isPaused ? "bg-amber-500" : "bg-red-600"
                   }`}
-                  style={{ width: `${progress}%` }}
+                  style={{ width: `${displayProgress}%` }}
                 />
               </div>
 
               <p className="mt-3 text-xs text-zinc-600">
                 {isPaused
                   ? "Lớp học đang ở trạng thái bảo lưu. Bạn có thể kích hoạt lại bất kỳ lúc nào."
-                  : progress >= 100
+                  : displayProgress >= 100
                   ? "Bạn đã hoàn thành toàn bộ lộ trình!"
-                  : "Hoàn thành các minigame để nâng cao tiến độ học tập."}
+                  : `Đã hoàn thành ${completedCoursesList.length}/${safePathCourses.length} chặng bài học.`}
               </p>
             </div>
 
-            <Link
-              href={
-                path.courses && path.courses.length > 0
-                  ? `/student/play/game_card_match_vr/${path.courses[0]}`
-                  : `/student/play/game_card_match_vr/crs_coding_basics`
-              }
-              className={`mt-4 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold text-white shadow-sm transition-all ${
-                isPaused
-                  ? "bg-amber-600 hover:bg-amber-700"
-                  : "bg-red-600 hover:bg-red-700"
-              }`}
-            >
-              <span>{isPaused ? "Chơi Game Thực Hành" : "Tiếp Tục Bài Học"}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            {isPaused ? (
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold text-white shadow-sm transition-all bg-amber-600 hover:bg-amber-700 cursor-pointer"
+              >
+                <span>Kích Hoạt Lại Lớp Để Tiếp Tục Học</span>
+                <PlayCircle className="w-4 h-4" />
+              </button>
+            ) : (
+              <Link
+                href={
+                  safePathCourses.length > 0
+                    ? `/student/play/game_card_match_vr/${safePathCourses[Math.min(completedCoursesList.length, safePathCourses.length - 1)]}`
+                    : `/student/play/game_card_match_vr/crs_coding_basics`
+                }
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold text-white shadow-sm transition-all bg-red-600 hover:bg-red-700"
+              >
+                <span>Tiếp Tục Chặng Hiện Tại</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -418,8 +523,13 @@ export default function StudentClassDetailPage({
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <LearningPathMap
-            courses={Array.isArray(path?.courses) && path.courses.length > 0 ? path.courses : ["crs_coding_basics", "crs_python_foundation", "crs_data_structures"]}
-            completedCourses={enrollment?.status === "active" && enrollment.progress > 50 ? ["crs_coding_basics"] : []}
+            courses={safePathCourses}
+            completedCourses={completedCoursesList}
+            approvedCourses={approvedCourses}
+            coursePlayCounts={coursePlayCounts}
+            requiredPlaysPerStage={1}
+            isPaused={isPaused}
+            isEnrolled={enrollment !== null}
           />
         </div>
       </section>
@@ -438,11 +548,11 @@ export default function StudentClassDetailPage({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {members.map((m) => {
+          {members.map((m, idx) => {
             const isTeacher = m.role === "Teacher";
             return (
               <div
-                key={m.id}
+                key={`${m.id}_${idx}`}
                 className={`p-5 rounded-2xl border flex items-center justify-between gap-3 shadow-sm transition-all ${
                   isTeacher
                     ? "bg-red-50/60 border-red-200"
@@ -491,8 +601,8 @@ export default function StudentClassDetailPage({
               </h3>
               <p className="text-xs text-zinc-600 leading-relaxed">
                 {isPaused
-                  ? `Bạn muốn tiếp tục theo học lớp "${path.title}" với tiến độ (${progress}%) đã bảo lưu trước đó?`
-                  : `Bạn có chắc chắn muốn tạm dừng theo học lớp "${path.title}"? Toàn bộ tiến độ hoàn thành (${progress}%) và bài học đã qua của bạn sẽ được bảo lưu an toàn.`}
+                  ? `Bạn muốn tiếp tục theo học lớp "${path.title}" với tiến độ (${enrollment?.progress || 0}%) đã bảo lưu trước đó?`
+                  : `Bạn có chắc chắn muốn tạm dừng theo học lớp "${path.title}"? Toàn bộ tiến độ hoàn thành (${enrollment?.progress || 0}%) và bài học đã qua của bạn sẽ được bảo lưu an toàn.`}
               </p>
             </div>
 

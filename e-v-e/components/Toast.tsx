@@ -63,30 +63,31 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 // HOOK
 // ============================================================
 
-export function useToast() {
+export interface ToastHelpers {
+  success: (message: string, title?: string) => void;
+  error: (message: string, title?: string) => void;
+  info: (message: string, title?: string) => void;
+  warning: (message: string, title?: string) => void;
+}
+
+export type ToastHookReturn = ToastHelpers & { toast: ToastHelpers };
+
+export function useToast(): ToastHookReturn {
   const ctx = useContext(ToastContext);
-  if (!ctx) {
-    return {
-      toast: {
-        success: (message: string, title?: string) => console.log("[Toast Success]", title, message),
-        error: (message: string, title?: string) => console.error("[Toast Error]", title, message),
-        info: (message: string, title?: string) => console.info("[Toast Info]", title, message),
-        warning: (message: string, title?: string) => console.warn("[Toast Warning]", title, message),
-      },
-    };
-  }
+  const helpers: ToastHelpers = {
+    success: (message: string, title?: string) =>
+      ctx ? ctx.addToast({ type: "success", message, title }) : console.log("[Toast Success]", title, message),
+    error: (message: string, title?: string) =>
+      ctx ? ctx.addToast({ type: "error", message, title }) : console.error("[Toast Error]", title, message),
+    info: (message: string, title?: string) =>
+      ctx ? ctx.addToast({ type: "info", message, title }) : console.info("[Toast Info]", title, message),
+    warning: (message: string, title?: string) =>
+      ctx ? ctx.addToast({ type: "warning", message, title }) : console.warn("[Toast Warning]", title, message),
+  };
 
   return {
-    toast: {
-      success: (message: string, title?: string) =>
-        ctx.addToast({ type: "success", message, title }),
-      error: (message: string, title?: string) =>
-        ctx.addToast({ type: "error", message, title }),
-      info: (message: string, title?: string) =>
-        ctx.addToast({ type: "info", message, title }),
-      warning: (message: string, title?: string) =>
-        ctx.addToast({ type: "warning", message, title }),
-    },
+    ...helpers,
+    toast: helpers,
   };
 }
 

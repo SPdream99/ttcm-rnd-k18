@@ -19,27 +19,23 @@ export async function executeEveSkill(
   try {
     switch (toolName) {
       case "search_games": {
-        const q = query(
-          collection(db, "game_info"),
-          where("is_accepted", "==", true)
-        );
-        let snap = await getDocs(q);
-        // Fallback if no is_accepted yet
-        if (snap.empty) {
-          snap = await getDocs(collection(db, "game_info"));
-        }
-
-        let games = snap.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            title: data.title || data.name || "Trò chơi E-V-E",
-            description: data.description || "Trò chơi thực hành rèn luyện tư duy.",
-            authors: Array.isArray(data.authors) ? data.authors : [],
-            coursesAllowed: data.courses_allowed || data.coursesAllowed || [],
-            sourceUrl: data.source_url || `/student/games`,
-          };
-        });
+        const snap = await getDocs(collection(db, "game_info"));
+        let games = snap.docs
+          .filter((d) => {
+            const data = d.data();
+            return Boolean(data.isAccepted ?? data.is_accepted ?? (data.status === "approved" || data.status === "active"));
+          })
+          .map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              title: data.title || data.name || "Trò chơi E-V-E",
+              description: data.description || "Trò chơi thực hành rèn luyện tư duy.",
+              authors: Array.isArray(data.authors) ? data.authors : [],
+              coursesAllowed: data.courses_allowed || data.coursesAllowed || [],
+              sourceUrl: data.source_url || `/student/games`,
+            };
+          });
 
         if (args.keyword) {
           const kw = String(args.keyword).toLowerCase().trim();
@@ -57,24 +53,37 @@ export async function executeEveSkill(
       }
 
       case "get_learning_paths": {
-        const q = query(
-          collection(db, "learning_path"),
-          where("is_accepted", "==", true)
-        );
-        let snap = await getDocs(q);
-        if (snap.empty) {
-          snap = await getDocs(collection(db, "learning_path"));
-        }
+        const [pathSnap, coursesSnap] = await Promise.all([
+          getDocs(collection(db, "learning_path")),
+          getDocs(collection(db, "courses")),
+        ]);
 
-        let paths = snap.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            title: data.title || "Lộ trình học tập",
-            description: data.description || "Lộ trình đào tạo toàn diện.",
-            totalCourses: Array.isArray(data.courses) ? data.courses.length : 0,
-          };
+        const acceptedCourseIds = new Set<string>();
+        coursesSnap.docs.forEach((d) => {
+          const cData = d.data();
+          if (cData.isAccepted ?? cData.is_accepted) {
+            acceptedCourseIds.add(d.id);
+          }
         });
+
+        let paths = pathSnap.docs
+          .filter((d) => {
+            const data = d.data();
+            const isPathAccepted = Boolean(data.isAccepted ?? data.is_accepted);
+            if (!isPathAccepted) return false;
+
+            const pCourses = Array.isArray(data.courses) ? data.courses : [];
+            return pCourses.length > 0 && pCourses.every((cId: any) => acceptedCourseIds.has(typeof cId === "string" ? cId : cId.id));
+          })
+          .map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              title: data.title || "Lộ trình học tập",
+              description: data.description || "Lộ trình đào tạo toàn diện.",
+              totalCourses: Array.isArray(data.courses) ? data.courses.length : 0,
+            };
+          });
 
         if (args.keyword) {
           const kw = String(args.keyword).toLowerCase().trim();
@@ -92,28 +101,24 @@ export async function executeEveSkill(
       }
 
       case "search_courses": {
-        const q = query(
-          collection(db, "courses"),
-          where("is_accepted", "==", true),
-          firestoreLimit(15)
-        );
-        let snap = await getDocs(q);
-        if (snap.empty) {
-          snap = await getDocs(query(collection(db, "courses"), firestoreLimit(15)));
-        }
-
-        let courses = snap.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            title: data.title || "Khóa học E-V-E",
-            subtitle: data.subtitle || "",
-            description: data.description || "Nội dung đào tạo thực chiến.",
-            tags: Array.isArray(data.tags) ? data.tags : [],
-            totalDuration: data.total_duration || "Linh hoạt",
-            studentsCount: data.students_count || 0,
-          };
-        });
+        const snap = await getDocs(collection(db, "courses"));
+        let courses = snap.docs
+          .filter((d) => {
+            const data = d.data();
+            return Boolean(data.isAccepted ?? data.is_accepted ?? false);
+          })
+          .map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              title: data.title || "Khóa học E-V-E",
+              subtitle: data.subtitle || "",
+              description: data.description || "Nội dung đào tạo thực chiến.",
+              tags: Array.isArray(data.tags) ? data.tags : [],
+              totalDuration: data.total_duration || "Linh hoạt",
+              studentsCount: data.students_count || 0,
+            };
+          });
 
         if (args.keyword) {
           const kw = String(args.keyword).toLowerCase().trim();

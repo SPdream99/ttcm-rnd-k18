@@ -28,7 +28,7 @@ import {
   getMaskedAIKey,
 } from "@/lib/secureKeyStorage";
 
-import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/components/Toast";
 import { cacheService } from "@/lib/cacheService";
@@ -41,8 +41,9 @@ export default function StudentProfilePage() {
   const displayCoins = currentUser?.coins ?? profile?.coins ?? 250;
   const userUid = currentUser?.uid || profile?.uid || "usr_student";
 
-  const [activeFrame, setActiveFrame] = useState("frame_supernova_gold");
-  const [activeBadge, setActiveBadge] = useState("badge_cosmic_legend");
+  const [activeFrame, setActiveFrame] = useState("frame_default");
+  const [activeBadge, setActiveBadge] = useState("badge_default");
+  const [userDecorations, setUserDecorations] = useState<string[]>([]);
 
   // Courses Progress State
   const [activeCoursesList, setActiveCoursesList] = useState<any[]>([]);
@@ -56,7 +57,7 @@ export default function StudentProfilePage() {
   const [maskedKeyDisplay, setMaskedKeyDisplay] = useState("");
 
   // ── 2FA Security State ──
-  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [is2FAEnabled, setIs2FAEnabled] = useState(true);
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [otpInput, setOtpInput] = useState("");
   const [isSending2FA, setIsSending2FA] = useState(false);
@@ -71,16 +72,35 @@ export default function StudentProfilePage() {
       setMaskedKeyDisplay(getMaskedAIKey());
     }
 
-    if (currentUser?.twoFactorEnabled) {
-      setIs2FAEnabled(true);
+    if (currentUser?.twoFactorEnabled !== undefined) {
+      setIs2FAEnabled(currentUser.twoFactorEnabled !== false);
     }
 
-    // Fetch user courses progress
-    async function loadStudentCourses() {
+    // Fetch user decorations & courses progress from database
+    async function loadUserData() {
       try {
         setLoadingCourses(true);
         const user = auth.currentUser;
         if (user) {
+          // 1. Fetch user profile data from Firestore
+          const uSnap = await getDoc(doc(db, "users", user.uid));
+          if (uSnap.exists()) {
+            const uData = uSnap.data();
+            const decs: string[] =
+              uData.profile_decorations ||
+              uData.profileDecorations ||
+              uData.inventory ||
+              [];
+            setUserDecorations(decs);
+            if (uData.equippedFrame) {
+              setActiveFrame(uData.equippedFrame);
+            }
+            if (uData.equippedBadge) {
+              setActiveBadge(uData.equippedBadge);
+            }
+          }
+
+          // 2. Fetch enrollments
           const enrollSnap = await getDocs(
             query(collection(db, "student_learning_path"), where("student_id", "==", user.uid))
           );
@@ -90,6 +110,9 @@ export default function StudentProfilePage() {
 
           for (const d of enrollSnap.docs) {
             const eData = d.data();
+            if (eData.status === "paused") {
+              continue;
+            }
             const pDoc = await getDoc(doc(db, "learning_path", eData.learning_path_id));
             if (pDoc.exists()) {
               const pData = pDoc.data();
@@ -111,26 +134,36 @@ export default function StudentProfilePage() {
           setCompletedCoursesList(done);
         }
       } catch (err) {
-        console.error("Error loading profile courses:", err);
+        console.error("Error loading profile data:", err);
       } finally {
         setLoadingCourses(false);
       }
     }
 
-    loadStudentCourses();
+    loadUserData();
   }, [currentUser]);
 
-  const ownedFrames = [
-    { id: "frame_supernova_gold", name: "Khung Đỏ Danh Dự", ringClass: "ring-4 ring-red-600 shadow-sm" },
-    { id: "frame_nebula_violet", name: "Khung Bạc Tinh Tế", ringClass: "ring-4 ring-zinc-400 shadow-sm" },
-    { id: "frame_cyber_matrix", name: "Khung Đen Sang Trọng", ringClass: "ring-4 ring-zinc-800 shadow-sm" },
+  // Toàn bộ danh mục Khung Avatar & Huy hiệu trong hệ thống
+  const ALL_AVATAR_FRAMES = [
+    { id: "frame_default", name: "Khung Mặc Định", ringClass: "ring-2 ring-zinc-300 shadow-xs", isDefault: true },
+    { id: "frame_supernova_gold", name: "Khung Avatar Đỏ Danh Dự", ringClass: "ring-4 ring-red-600 shadow-sm" },
+    { id: "frame_quantum_neon", name: "Khung Avatar Đen Sang Trọng", ringClass: "ring-4 ring-zinc-900 shadow-sm" },
   ];
 
-  const ownedBadges = [
-    { id: "badge_cosmic_legend", name: "#1 Học Viên Tiêu Biểu" },
-    { id: "badge_master_coder", name: " Chuyên Gia Lập Trình" },
-    { id: "badge_quantum_quizzer", name: " Vua Giải Đố Minigame" },
+  const ALL_BADGES = [
+    { id: "badge_default", name: "Học Viên E-V-E", isDefault: true },
+    { id: "badge_cosmic_legend", name: "Huy Hiệu Thủ Khoa Xuất Sắc" },
+    { id: "badge_flame_streak", name: "Huy Hiệu Chuyên Cần & Bứt Phá" },
   ];
+
+  // Chỉ hiển thị các khung và huy hiệu mà người dùng ĐÃ SỞ HỮU (hoặc mặc định)
+  const ownedFrames = ALL_AVATAR_FRAMES.filter(
+    (f) => f.isDefault || userDecorations.includes(f.id)
+  );
+
+  const ownedBadges = ALL_BADGES.filter(
+    (b) => b.isDefault || userDecorations.includes(b.id)
+  );
 
   const handleSaveAIKey = (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,8 +183,20 @@ export default function StudentProfilePage() {
     toast.info("Đã xóa khóa API.", "API Key");
   };
 
-  const handleSaveEquipment = () => {
-    toast.success("Đã lưu thiết lập danh hiệu & khung trang trí thành công!", "Trang Bị");
+  const handleSaveEquipment = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        await updateDoc(doc(db, "users", user.uid), {
+          equippedFrame: activeFrame,
+          equippedBadge: activeBadge,
+        });
+      }
+      toast.success("Đã lưu thiết lập danh hiệu & khung trang trí thành công!", "Trang Bị");
+    } catch (err) {
+      console.error("Lỗi khi lưu trang bị:", err);
+      toast.error("Không thể lưu thiết lập. Vui lòng thử lại!", "Trang Bị");
+    }
   };
 
   // 2FA Handlers
@@ -392,137 +437,22 @@ export default function StudentProfilePage() {
       </div>
 
       {/* ── CARD BẢO MẬT 2 LỚP (2FA QUA EMAIL) ── */}
-      <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200">
+      <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-red-600" /> Xác Thực 2 Bước (2FA Qua Email)
             </h3>
             <p className="text-xs text-zinc-600">
-              Bảo vệ tài khoản: Mỗi khi đăng nhập từ thiết bị mới, hệ thống sẽ gửi mã OTP 6 số vào email <strong className="text-zinc-900">{displayEmail}</strong>.
+              Tính năng xác thực 2 bước (2FA OTP qua email) đang được <strong>tạm tắt trên toàn hệ thống</strong> để phục vụ kiểm thử và truy cập nhanh chóng.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-bold ${
-                is2FAEnabled
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  : "bg-zinc-100 text-zinc-600 border border-zinc-200"
-              }`}
-            >
-              {is2FAEnabled ? "2FA ĐANG BẬT" : "2FA ĐANG TẮT"}
-            </span>
-
-            <button
-              type="button"
-              disabled={isSending2FA || isVerifying2FA}
-              onClick={handleInitiate2FAToggle}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 ${
-                is2FAEnabled
-                  ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200"
-                  : "bg-red-600 hover:bg-red-700 text-white"
-              }`}
-            >
-              {isSending2FA || isVerifying2FA ? (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              ) : is2FAEnabled ? (
-                "Tắt 2FA"
-              ) : (
-                "Bật 2FA Ngay"
-              )}
-            </button>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-zinc-700">
-          <div>
-            <span className="text-zinc-500 block mb-1">Phương thức:</span>
-            <strong className="text-zinc-900">Email OTP (6 Chữ Số)</strong>
-          </div>
-          <div>
-            <span className="text-zinc-500 block mb-1">Hộp thư nhận OTP:</span>
-            <strong className="text-red-600">{displayEmail}</strong>
-          </div>
-          <div>
-            <span className="text-zinc-500 block mb-1">Thời hạn mã:</span>
-            <strong className="text-zinc-900">5 Phút / Lần gửi</strong>
-          </div>
+          <span className="px-3 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-600 border border-zinc-200 shrink-0 self-start sm:self-auto">
+            TẠM TẮT TOÀN HỆ THỐNG
+          </span>
         </div>
       </div>
-
-      {/* ── 2FA ACTIVATION MODAL ── */}
-      {show2FAModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-          <div className="bg-white border-2 border-red-600 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-5 text-center relative">
-            <button
-              onClick={() => setShow2FAModal(false)}
-              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-900 p-1"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-xl font-bold">
-              
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-zinc-900">Xác Nhận Bật 2FA Email</h3>
-              <p className="text-xs text-zinc-600">
-                Nhập mã OTP 6 số được gửi tới <strong className="text-zinc-900">{displayEmail}</strong> để xác nhận.
-              </p>
-            </div>
-
-            {demoOtpHint && (
-              <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center justify-between">
-                <span>Mã OTP: <strong>{demoOtpHint}</strong></span>
-                <button
-                  type="button"
-                  onClick={() => setOtpInput(demoOtpHint)}
-                  className="px-2 py-0.5 rounded bg-red-200 text-[10px] font-bold"
-                >
-                  Điền nhanh 
-                </button>
-              </div>
-            )}
-
-            <form onSubmit={handleConfirmEnable2FA} className="space-y-4">
-              <input
-                type="text"
-                maxLength={6}
-                value={otpInput}
-                onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ""))}
-                placeholder="••••••"
-                className="w-full text-center font-mono text-2xl tracking-[8px] bg-zinc-50 border-2 border-zinc-300 focus:border-red-600 rounded-xl py-3 text-zinc-900 focus:outline-none"
-                required
-                autoFocus
-              />
-
-              {modalMsg && (
-                <div className="text-xs font-bold text-red-600">{modalMsg}</div>
-              )}
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShow2FAModal(false)}
-                  className="flex-1 py-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition-colors cursor-pointer"
-                >
-                  Hủy Bỏ
-                </button>
-                <button
-                  type="submit"
-                  disabled={isVerifying2FA || otpInput.length !== 6}
-                  className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  {isVerifying2FA ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                  Xác Nhận Kích Hoạt
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* ── CARD QUẢN LÝ MÃ HÓA AI KEY ── */}
       <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-5">
@@ -654,6 +584,15 @@ export default function StudentProfilePage() {
                 {activeFrame === frame.id && <CheckCircle2 className="w-4 h-4 text-red-600" />}
               </label>
             ))}
+
+            {ownedFrames.length <= 1 && (
+              <div className="p-3 rounded-xl bg-zinc-50 border border-dashed border-zinc-300 text-center space-y-1.5 mt-2">
+                <p className="text-[11px] text-zinc-500">Chưa mua khung avatar nào từ Cửa Hàng.</p>
+                <Link href="/student/shop" className="text-xs text-red-600 font-bold hover:underline block">
+                  Đổi Khung Avatar Mới Tại Shop →
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
@@ -678,6 +617,15 @@ export default function StudentProfilePage() {
                 {activeBadge === b.id && <CheckCircle2 className="w-4 h-4 text-red-600" />}
               </label>
             ))}
+
+            {ownedBadges.length <= 1 && (
+              <div className="p-3 rounded-xl bg-zinc-50 border border-dashed border-zinc-300 text-center space-y-1.5 mt-2">
+                <p className="text-[11px] text-zinc-500">Chưa mua huy hiệu nào từ Cửa Hàng.</p>
+                <Link href="/student/shop" className="text-xs text-red-600 font-bold hover:underline block">
+                  Đổi Huy Hiệu Danh Giá Tại Shop →
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

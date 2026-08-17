@@ -16,6 +16,7 @@ import {
   Info,
   ShieldAlert,
   Download,
+  Search,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { useToast } from "@/components/Toast";
@@ -62,13 +63,15 @@ export default function TeacherUploadCenterPage() {
   // 3. Upload Game State
   const [gameTitle, setGameTitle] = useState("");
   const [gameDesc, setGameDesc] = useState("");
+  const [gameRules, setGameRules] = useState("");
   const [gameVisibility, setGameVisibility] = useState<"private" | "public" | "free_to_share" | "free_to_use">("public");
   const [gameZipFile, setGameZipFile] = useState<File | null>(null);
   const [needExtraData, setNeedExtraData] = useState(true);
-  const DAILY_GAME_LIMIT = 2;
+  const DAILY_GAME_LIMIT = 9999; // Tạm tắt giới hạn
   const [todayGameUploads, setTodayGameUploads] = useState<number>(0);
   const [whitelistMode, setWhitelistMode] = useState<"all" | "custom">("all");
   const [allowedCourses, setAllowedCourses] = useState<string[]>([]);
+  const [courseSearchQuery, setCourseSearchQuery] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -86,12 +89,13 @@ export default function TeacherUploadCenterPage() {
         const data = d.data();
         const docAuthor = data.authorId || data.author_id || data.instructorId || data.instructor_id;
         const isOwn = docAuthor === teacherUid;
-        const isShareable = data.visibility === "free_to_share" || data.visibility === "free_to_use";
+        const isCourseAccepted = Boolean(data.isAccepted ?? data.is_accepted ?? false);
+        const isShareable = (data.visibility === "free_to_share" || data.visibility === "free_to_use" || data.visibility === "public") && isCourseAccepted;
         if (isOwn || isShareable) {
           myCourses.push({
             id: d.id,
             title: isOwn
-              ? `${data.title || "Khóa học"} (Của bạn)`
+              ? `${data.title || "Khóa học"} (Của bạn${!isCourseAccepted ? " - Chờ duyệt" : ""})`
               : `${data.title || "Khóa học"} (Chia sẻ từ ${data.authorName || "GV khác"})`,
           });
         }
@@ -294,91 +298,79 @@ export default function TeacherUploadCenterPage() {
       return;
     }
 
-    setIsUploading(true);
-    setUploadProgress(10);
-    setUploadStepText("1/4: Đang đọc và kiểm tra tính toàn vẹn file nén .zip...");
-
-    await new Promise((r) => setTimeout(r, 600));
-    setUploadProgress(35);
-    setUploadStepText("2/4: Phân tích cấu trúc thư mục (index.html, eve-game-sdk.js)...");
-
-    await new Promise((r) => setTimeout(r, 700));
-    setUploadProgress(70);
-    setUploadStepText("3/4: Đăng ký Game lên hệ thống E-V-E...");
-
-    const gameGeneratedId = `game_${Date.now()}`;
-    const slugName = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-    const zipName = gameZipFile ? gameZipFile.name.toLowerCase() : "";
-    let downloadUrl = "/memory_matching_game.zip";
-    if (zipName.includes("boss")) {
-      downloadUrl = "/boss_battle_quiz.zip";
-    } else if (zipName.includes("starter")) {
-      downloadUrl = "/eve_game_starter_kit.zip";
-    } else if (zipName.includes("memory") || zipName.includes("match")) {
-      downloadUrl = "/memory_matching_game.zip";
+    if (!gameZipFile) {
+      toast.warning("Vui lòng đính kèm file nén (.zip) của trò chơi.", "Thiếu File Game");
+      return;
     }
 
-    const payload = {
-      id: gameGeneratedId,
-      gameId: gameGeneratedId,
-      title: gameTitle,
-      description: gameDesc || "Trò chơi tương tác học tập tích hợp E-V-E Game SDK.",
-      authorId: teacherUid,
-      author_id: teacherUid,
-      uploaderId: teacherUid,
-      uploader_id: teacherUid,
-      authorName: teacherName,
-      authors: [teacherName],
-      visibility: gameVisibility,
-      needExtraData,
-      need_extra_data: needExtraData,
-      coursesAllowed: whitelistMode === "all" ? "all" : allowedCourses,
-      courses_allowed: whitelistMode === "all" ? "all" : allowedCourses,
-      coursesBlocked: [],
-      courses_blocked: [],
-      gameUrl: `/games/${slugName}/index.html`,
-      sourceUrl: `/games/${slugName}/index.html`,
-      source_url: `/games/${slugName}/index.html`,
-      downloadUrl,
-      download_url: downloadUrl,
-      downloadSourceUrl: downloadUrl,
-      download_source_url: downloadUrl,
-      fileName: gameZipFile ? gameZipFile.name : "memory_matching_game.zip",
-      file_name: gameZipFile ? gameZipFile.name : "memory_matching_game.zip",
-      fileSize: gameZipFile ? `${(gameZipFile.size / 1024).toFixed(1)} KB` : "19.5 KB",
-      isAccepted: false,
-      is_accepted: false,
-      playsCount: 0,
-      plays_count: 0,
-      createdAt: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-    };
+    setIsUploading(true);
+    setUploadProgress(15);
+    setUploadStepText("1/4: Đang đọc và kiểm tra tính toàn vẹn file nén .zip...");
+
+    const gameGeneratedId = `game_${Date.now()}`;
+    const formData = new FormData();
+    formData.append("file", gameZipFile);
+    formData.append("gameId", gameGeneratedId);
+    formData.append("title", gameTitle.trim());
+    formData.append("description", gameDesc.trim());
+    formData.append("rules", gameRules.trim());
+    formData.append("authorId", teacherUid);
+    formData.append("authorName", teacherName);
+    formData.append("visibility", gameVisibility);
+    formData.append("needExtraData", String(needExtraData));
+    formData.append("coursesAllowed", JSON.stringify(whitelistMode === "all" ? "all" : allowedCourses));
 
     try {
-      await setDoc(doc(db, "game_info", gameGeneratedId), payload);
-    } catch {}
+      setUploadProgress(40);
+      setUploadStepText("2/4: Đang gửi file .zip lên máy host lưu trữ...");
 
-    try {
-      const prevStored = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
-      const updatedList = [payload, ...prevStored.filter((g: any) => g.id !== payload.id && g.title !== payload.title)];
-      localStorage.setItem("eve_uploaded_games", JSON.stringify(updatedList));
-      window.dispatchEvent(new Event("eve_games_updated"));
-    } catch {}
+      const res = await fetch("/api/games/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-    cacheService.clearFullAppCache(true);
+      setUploadProgress(75);
+      setUploadStepText("3/4: Đăng ký Metadata vào Firestore...");
 
-    await new Promise((r) => setTimeout(r, 600));
-    setUploadProgress(100);
-    setUploadStepText("4/4: Hoàn tất 100%! Game đã được chuyển tới hàng chờ Admin duyệt.");
+      const resData = await res.json();
+      if (!resData.success) {
+        if (resData.violations && Array.isArray(resData.violations)) {
+          const detail = resData.violations.slice(0, 3).join("\n• ");
+          throw new Error(`Phát hiện mã độc/lệnh nguy hiểm trong file .zip:\n• ${detail}`);
+        }
+        throw new Error(resData.message || resData.error || "Không thể tải lên game.");
+      }
 
-    await new Promise((r) => setTimeout(r, 400));
-    setIsUploading(false);
-    toast.success(`Đã tải lên Game "${gameTitle}" (.zip) thành công!`, "Tải Lên Game");
-    setGameTitle("");
-    setGameDesc("");
-    setGameZipFile(null);
-    setUploadProgress(0);
-    setUploadStepText("");
+      const payload = resData.data;
+
+      try {
+        const prevStored = JSON.parse(localStorage.getItem("eve_uploaded_games") || "[]");
+        const updatedList = [payload, ...prevStored.filter((g: any) => g.id !== payload.id && g.title !== payload.title)];
+        localStorage.setItem("eve_uploaded_games", JSON.stringify(updatedList));
+        window.dispatchEvent(new Event("eve_games_updated"));
+      } catch {}
+
+      cacheService.clearFullAppCache(true);
+
+      setUploadProgress(100);
+      setUploadStepText("4/4: Hoàn tất 100%! Tệp .zip đã được lưu an toàn trên máy host và chuyển tới hàng chờ Admin duyệt.");
+
+      await new Promise((r) => setTimeout(r, 400));
+      setIsUploading(false);
+      toast.success(`Đã tải lên Game "${gameTitle}" (.zip) thành công và gửi Admin phê duyệt!`, "Tải Lên Game");
+      setGameTitle("");
+      setGameDesc("");
+      setGameRules("");
+      setGameZipFile(null);
+      setUploadProgress(0);
+      setUploadStepText("");
+    } catch (err: any) {
+      console.error("Lỗi khi upload game:", err);
+      setIsUploading(false);
+      setUploadProgress(0);
+      setUploadStepText("");
+      toast.error(err?.message || "Đã xảy ra lỗi khi tải lên tệp game.", "Lỗi Tải Lên");
+    }
   };
 
   return (
@@ -703,10 +695,10 @@ export default function TeacherUploadCenterPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
               {[
-                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "🔒" },
-                { id: "public", title: "Public (Công khai)", desc: "Học sinh & mọi người xem, học và làm bài", icon: "🌐" },
-                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được đưa vào lộ trình học", icon: "🔄" },
-                { id: "free_to_use", title: "Free to Use", desc: "Cho phép tải tài liệu & câu hỏi về máy", icon: "📥" },
+                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "" },
+                { id: "public", title: "Public (Công khai)", desc: "Học sinh & mọi người xem, học và làm bài", icon: "" },
+                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được đưa vào lộ trình học", icon: "" },
+                { id: "free_to_use", title: "Free to Use", desc: "Cho phép tải tài liệu & câu hỏi về máy", icon: "" },
               ].map((lvl) => (
                 <button
                   key={lvl.id}
@@ -830,10 +822,10 @@ export default function TeacherUploadCenterPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
               {[
-                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "🔒" },
-                { id: "public", title: "Public (Công khai)", desc: "Học sinh tham gia học theo chặng bản đồ", icon: "🌐" },
-                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được áp dụng vào lớp học", icon: "🔄" },
-                { id: "free_to_use", title: "Free to Use", desc: "Cho phép xuất và tải tài nguyên về máy", icon: "📥" },
+                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "" },
+                { id: "public", title: "Public (Công khai)", desc: "Học sinh tham gia học theo chặng bản đồ", icon: "" },
+                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được áp dụng vào lớp học", icon: "" },
+                { id: "free_to_use", title: "Free to Use", desc: "Cho phép xuất và tải tài nguyên về máy", icon: "" },
               ].map((lvl) => (
                 <button
                   key={lvl.id}
@@ -872,40 +864,70 @@ export default function TeacherUploadCenterPage() {
       {/* TAB 3: UPLOAD GAME */}
       {activeTab === "game" && (
         <form onSubmit={handleSubmitGame} className="space-y-6">
-          <div className="p-4 rounded-2xl border border-red-200 bg-red-50 flex items-center justify-between text-xs text-red-700">
-            <div className="flex items-center gap-2 font-bold">
-              <ShieldAlert className="w-5 h-5 text-red-600" />
-              <span>Hạn mức đăng tải: Tối đa {DAILY_GAME_LIMIT} Game/ngày</span>
-            </div>
-            <span className="font-bold">Đã đăng hôm nay: {todayGameUploads}/{DAILY_GAME_LIMIT}</span>
-          </div>
-
           <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">
             <h3 className="font-bold text-base text-zinc-900 flex items-center gap-2">
               <Gamepad2 className="w-5 h-5 text-red-600" /> Thông Tin Trò Chơi
             </h3>
 
             <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-900 uppercase tracking-wider">Thông Tin & Cấu Hình Trò Chơi</label>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">Điền tên, mô tả và hướng dẫn luật chơi chi tiết cho học sinh.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!gameTitle) setGameTitle("Boss Slayer Marathon Quiz - Đấu Trùm Thuật Toán");
+                    setGameDesc("Trò chơi nhập vai học thuật 3D. Học sinh vào vai hiệp sĩ vượt tháp thử thách, mỗi câu hỏi trả lời chính xác sẽ kích hoạt đòn đánh tiêu hao sinh lực của Boss quái vật.");
+                    setGameRules("1. Mỗi màn chơi gồm 10 câu hỏi/khái niệm tương ứng với bài học được chọn.\n2. Trả lời đúng trong 5s đầu: +100 điểm & tạo đòn đánh Chí Mạng (Critical Hit x2) lên Boss.\n3. Trả lời sai hoặc quá 15s: Bị Boss phản đòn trừ 20 HP nhân vật.\n4. Tiêu diệt Boss trước khi hết 100 HP nhân vật để chiến thắng và nhận thưởng Coins.");
+                    toast.success("Đã điền sẵn khung mẫu Mô tả & Luật chơi!", "Mẫu Tham Khảo");
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition-colors flex items-center gap-1.5 border border-red-200 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" /> Áp Dụng Mẫu Chuẩn
+                </button>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-zinc-700 mb-1">Tên Trò Chơi</label>
                 <input
                   type="text"
                   value={gameTitle}
                   onChange={(e) => setGameTitle(e.target.value)}
-                  placeholder="VD: Memory Matching Game"
-                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2 text-xs text-zinc-900 focus:outline-none"
+                  placeholder="VD: Boss Slayer Marathon Quiz (Đấu Trùm Phản Xạ) hoặc Memory Match 3D"
+                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2.5 text-xs text-zinc-900 focus:outline-none placeholder:text-zinc-400 placeholder:italic"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-700 mb-1">Mô Tả Trò Chơi & Luật Chơi</label>
+                <label className="block text-xs font-bold text-zinc-700 mb-1">
+                  Mô Tả Tổng Quan Trò Chơi (Khái quát nội dung & phong cách trải nghiệm)
+                </label>
                 <textarea
                   rows={3}
                   value={gameDesc}
                   onChange={(e) => setGameDesc(e.target.value)}
-                  placeholder="Mô tả cách học sinh tương tác..."
-                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2 text-xs text-zinc-900 focus:outline-none"
+                  placeholder={"VD: Trò chơi lật thẻ tương tác 3D đa chiều. Học sinh thực hành ôn luyện ghi nhớ các khái niệm, định nghĩa và thuật ngữ lập trình thông qua việc quan sát và lật mở các ô thẻ bí ẩn trong không gian ma trận số..."}
+                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2.5 text-xs text-zinc-900 focus:outline-none placeholder:text-zinc-400 placeholder:italic leading-relaxed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 mb-1">
+                  Luật Chơi & Hướng Dẫn Tính Điểm (Chi tiết từng bước, cơ chế thưởng/phạt)
+                </label>
+                <textarea
+                  rows={5}
+                  value={gameRules}
+                  onChange={(e) => setGameRules(e.target.value)}
+                  placeholder={`VD MẪU LUẬT CHƠI:
+- Mục tiêu: Tìm và ghép đúng tất cả các cặp thẻ (Khái niệm ↔ Định nghĩa) trước khi hết giờ.
+- Cơ chế thao tác: Mỗi lượt lật 2 thẻ. Khớp đúng nhận +50 điểm và hiệu ứng ánh sáng; sai thì 2 thẻ tự úp lại sau 1.2s.
+- Combo điểm thưởng: Đúng liên tiếp 3 câu kích hoạt Fever Mode x2 điểm và +10 Coins.
+- Điều kiện thắng: Hoàn thành 100% cặp câu hỏi trong thời gian quy định.`}
+                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2.5 text-xs text-zinc-900 focus:outline-none placeholder:text-zinc-400 placeholder:italic font-mono text-[11px] leading-relaxed whitespace-pre-line"
                 />
               </div>
 
@@ -1002,6 +1024,195 @@ export default function TeacherUploadCenterPage() {
             </div>
           )}
 
+          {/* 4. Target Courses Whitelist Selection */}
+          <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                Phạm Vi Áp Dụng Bài Học (Course Target)
+              </label>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Chọn danh sách các khóa học / bài học được phép liên kết và nạp vào trò chơi này.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setWhitelistMode("all");
+                  setAllowedCourses([]);
+                }}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                  whitelistMode === "all"
+                    ? "border-red-600 bg-red-50/50 ring-2 ring-red-200"
+                    : "border-zinc-200 bg-zinc-50 hover:bg-white"
+                }`}
+              >
+                <div>
+                  <strong className="text-xs text-zinc-900 font-bold block">Tất Cả Khóa Học (Toàn Hệ Thống)</strong>
+                  <span className="text-[11px] text-zinc-500">Mọi khóa học đều có thể mở và chơi game này</span>
+                </div>
+                {whitelistMode === "all" && (
+                  <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                    Đang chọn
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWhitelistMode("custom")}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                  whitelistMode === "custom"
+                    ? "border-red-600 bg-red-50/50 ring-2 ring-red-200"
+                    : "border-zinc-200 bg-zinc-50 hover:bg-white"
+                }`}
+              >
+                <div>
+                  <strong className="text-xs text-zinc-900 font-bold block">Tùy Chọn Khóa Học Cụ Thể</strong>
+                  <span className="text-[11px] text-zinc-500">Chỉ một số khóa học được chỉ định mới mở được game</span>
+                </div>
+                {whitelistMode === "custom" && (
+                  <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                    Đang chọn
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {whitelistMode === "custom" && (
+              <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 space-y-3 mt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <span className="font-bold text-zinc-700">Chọn các khóa học áp dụng ({allowedCourses.length} đã chọn):</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAllowedCourses(availableCourses.map((c) => c.id))}
+                      className="text-[11px] text-red-600 hover:underline font-bold cursor-pointer"
+                    >
+                      Chọn tất cả ({availableCourses.length})
+                    </button>
+                    <span className="text-zinc-300">•</span>
+                    <button
+                      type="button"
+                      onClick={() => setAllowedCourses([])}
+                      className="text-[11px] text-zinc-500 hover:underline cursor-pointer"
+                    >
+                      Bỏ chọn tất cả
+                    </button>
+                  </div>
+                </div>
+
+                {/* Ô tìm kiếm khóa học */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={courseSearchQuery}
+                    onChange={(e) => setCourseSearchQuery(e.target.value)}
+                    placeholder="Tìm kiếm bài học theo tên, mã khóa học..."
+                    className="w-full bg-white border border-zinc-300 focus:border-red-600 rounded-lg pl-8 pr-3 py-1.5 text-xs text-zinc-900 focus:outline-none placeholder:text-zinc-400"
+                  />
+                  {courseSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setCourseSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-400 hover:text-zinc-600 font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Danh sách khóa học lọc theo từ khóa */}
+                {(() => {
+                  const filtered = availableCourses.filter(
+                    (c) =>
+                      c.title.toLowerCase().includes(courseSearchQuery.toLowerCase()) ||
+                      c.id.toLowerCase().includes(courseSearchQuery.toLowerCase())
+                  );
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="p-4 text-center text-xs text-zinc-400">
+                        Không tìm thấy bài học nào khớp với từ khóa "{courseSearchQuery}".
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto p-1">
+                      {filtered.map((c) => {
+                        const isSelected = allowedCourses.includes(c.id);
+                        return (
+                          <label
+                            key={c.id}
+                            className={`flex items-center gap-2.5 p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                              isSelected
+                                ? "bg-white border-red-600 shadow-xs text-zinc-900 font-bold"
+                                : "bg-zinc-100/60 border-zinc-200 text-zinc-600 hover:bg-white"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setAllowedCourses((prev) => [...prev, c.id]);
+                                } else {
+                                  setAllowedCourses((prev) => prev.filter((id) => id !== c.id));
+                                }
+                              }}
+                              className="w-4 h-4 rounded text-red-600 focus:ring-red-500 border-zinc-300"
+                            />
+                            <span className="truncate">{c.title}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+
+          {/* 5. Extra Data Requirement Toggle */}
+          <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-900 uppercase tracking-wider">
+                  Sử Dụng Dữ Liệu Bài Học Động (Extra Data)
+                </label>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Trò chơi có cần hệ thống tự động nạp câu hỏi, thuật ngữ và định nghĩa từ bài học qua E-V-E SDK hay không?
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setNeedExtraData(!needExtraData)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  needExtraData ? "bg-red-600" : "bg-zinc-300"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    needExtraData ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="text-[11px] p-3 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-600 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-red-600 shrink-0" />
+              <span>
+                {needExtraData
+                  ? "BẬT: Trò chơi sẽ nhận bộ câu hỏi/học liệu JSON của từng Course qua SDK (Khuyến nghị cho Quiz, Card Match, RPG Trivia)."
+                  : "TẮT: Trò chơi độc lập, không yêu cầu bài học phải có bộ câu hỏi (Game giải trí, Minigame phản xạ vật lý thuần)."}
+              </span>
+            </div>
+          </div>
+
           {/* Visibility / Licensing Selector */}
           <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
             <div>
@@ -1015,10 +1226,10 @@ export default function TeacherUploadCenterPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
               {[
-                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "🔒" },
-                { id: "public", title: "Public (Công khai)", desc: "Học sinh chơi và tính điểm xếp hạng", icon: "🌐" },
-                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được nạp câu hỏi bài họ vào", icon: "🔄" },
-                { id: "free_to_use", title: "Free to Use", desc: "Cho phép tải gói mã nguồn .zip về máy", icon: "📥" },
+                { id: "private", title: "Private (Riêng tư)", desc: "Không ai thấy trừ bản thân & Admin", icon: "" },
+                { id: "public", title: "Public (Công khai)", desc: "Học sinh chơi và tính điểm xếp hạng", icon: "" },
+                { id: "free_to_share", title: "Free to Share", desc: "Giáo viên khác được nạp câu hỏi bài họ vào", icon: "" },
+                { id: "free_to_use", title: "Free to Use", desc: "Cho phép tải gói mã nguồn .zip về máy", icon: "" },
               ].map((lvl) => (
                 <button
                   key={lvl.id}
@@ -1047,7 +1258,7 @@ export default function TeacherUploadCenterPage() {
 
           <button
             type="submit"
-            disabled={isUploading || todayGameUploads >= DAILY_GAME_LIMIT}
+            disabled={isUploading}
             className="w-full py-3.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white cursor-pointer disabled:opacity-50 shadow-sm"
           >
             {isUploading ? (

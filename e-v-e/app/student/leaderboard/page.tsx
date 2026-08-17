@@ -15,6 +15,7 @@ import {
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { cacheService } from "@/lib/cacheService";
+import { ProfileHoverCard } from "@/components/ProfileHoverCard";
 
 interface StudentRank {
   rank: number;
@@ -60,16 +61,15 @@ export default function StudentLeaderboardPage() {
           if (!cachedStudents.isStale && !cachedTeachers.isStale) return;
         }
 
-        // 1. Fetch users from Firestore
-        const userSnap = await getDocs(collection(db, "users"));
+        // Fetch users, game_results, and courses in parallel
+        const [userSnap, gameResSnap, coursesSnap] = await Promise.all([
+          getDocs(collection(db, "users")),
+          getDocs(collection(db, "game_results")),
+          getDocs(collection(db, "courses")),
+        ]);
+
         const allUsers: any[] = userSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-        // 2. Fetch game results
-        const gameResSnap = await getDocs(collection(db, "game_results"));
         const gameResults: any[] = gameResSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-        // 3. Fetch courses
-        const coursesSnap = await getDocs(collection(db, "courses"));
         const courses: any[] = coursesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
         // Student Rankings
@@ -258,7 +258,20 @@ export default function StudentLeaderboardPage() {
                   #{st.rank}
                 </div>
 
-                <h3 className="text-lg font-black text-zinc-900">{st.name}</h3>
+                <ProfileHoverCard
+                  user={{
+                    id: st.id,
+                    name: st.name,
+                    rank: st.rank,
+                    score: st.score,
+                    coins: st.coins,
+                    title: st.title,
+                    gamesWon: st.gamesWon,
+                    streakDays: st.streakDays,
+                  }}
+                >
+                  <h3 className="text-lg font-black text-zinc-900 hover:text-red-600 transition-colors">{st.name}</h3>
+                </ProfileHoverCard>
                 <span className="px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-xs font-bold mt-1.5 mb-4">
                   {st.badge}
                 </span>
@@ -301,34 +314,122 @@ export default function StudentLeaderboardPage() {
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {students.map((st) => (
-                    <tr key={st.id} className="hover:bg-zinc-50 transition-colors">
+                    <tr key={st.id} className="hover:bg-zinc-50 transition-colors group/row">
                       <td className="py-4 px-6 font-mono font-bold text-zinc-700">
-                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-black ${
-                          st.rank === 1
-                            ? "bg-amber-100 text-amber-900 border border-amber-300"
-                            : st.rank === 2
-                            ? "bg-zinc-100 text-zinc-800 border border-zinc-300"
-                            : st.rank === 3
-                            ? "bg-red-100 text-red-800 border border-red-200"
-                            : "text-zinc-600"
-                        }`}>
-                          #{st.rank}
-                        </span>
+                        <ProfileHoverCard
+                          user={{
+                            id: st.id,
+                            name: st.name,
+                            rank: st.rank,
+                            score: st.score,
+                            coins: st.coins,
+                            title: st.title,
+                            gamesWon: st.gamesWon,
+                            streakDays: st.streakDays,
+                          }}
+                          className="w-full block"
+                        >
+                          <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-black ${
+                            st.rank === 1
+                              ? "bg-amber-100 text-amber-900 border border-amber-300"
+                              : st.rank === 2
+                              ? "bg-zinc-100 text-zinc-800 border border-zinc-300"
+                              : st.rank === 3
+                              ? "bg-red-100 text-red-800 border border-red-200"
+                              : "text-zinc-600"
+                          }`}>
+                            #{st.rank}
+                          </span>
+                        </ProfileHoverCard>
                       </td>
-                      <td className="py-4 px-6 font-bold text-zinc-900">{st.name}</td>
+                      <td className="py-4 px-6 font-bold text-zinc-900">
+                        <ProfileHoverCard
+                          user={{
+                            id: st.id,
+                            name: st.name,
+                            rank: st.rank,
+                            score: st.score,
+                            coins: st.coins,
+                            title: st.title,
+                            gamesWon: st.gamesWon,
+                            streakDays: st.streakDays,
+                          }}
+                          className="w-full block"
+                        >
+                          <span className="cursor-pointer group-hover/row:text-red-600 transition-colors">
+                            {st.name}
+                          </span>
+                        </ProfileHoverCard>
+                      </td>
                       <td className="py-4 px-6">
-                        <span className="text-xs text-zinc-600 font-medium px-2.5 py-1 rounded-md bg-zinc-100 border border-zinc-200">
-                          {st.title}
-                        </span>
+                        <ProfileHoverCard
+                          user={{
+                            id: st.id,
+                            name: st.name,
+                            rank: st.rank,
+                            score: st.score,
+                            coins: st.coins,
+                            title: st.title,
+                            gamesWon: st.gamesWon,
+                            streakDays: st.streakDays,
+                          }}
+                          className="w-full block"
+                        >
+                          <span className="text-xs text-zinc-600 font-medium px-2.5 py-1 rounded-md bg-zinc-100 border border-zinc-200">
+                            {st.title}
+                          </span>
+                        </ProfileHoverCard>
                       </td>
                       <td className="py-4 px-6 text-center font-mono font-bold text-zinc-700">
-                        {st.gamesWon}
+                        <ProfileHoverCard
+                          user={{
+                            id: st.id,
+                            name: st.name,
+                            rank: st.rank,
+                            score: st.score,
+                            coins: st.coins,
+                            title: st.title,
+                            gamesWon: st.gamesWon,
+                            streakDays: st.streakDays,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{st.gamesWon}</span>
+                        </ProfileHoverCard>
                       </td>
                       <td className="py-4 px-6 text-center font-mono font-bold text-amber-600">
-                        {st.coins}
+                        <ProfileHoverCard
+                          user={{
+                            id: st.id,
+                            name: st.name,
+                            rank: st.rank,
+                            score: st.score,
+                            coins: st.coins,
+                            title: st.title,
+                            gamesWon: st.gamesWon,
+                            streakDays: st.streakDays,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{st.coins}</span>
+                        </ProfileHoverCard>
                       </td>
                       <td className="py-4 px-6 text-right font-mono font-black text-red-600 text-base">
-                        {st.score.toLocaleString()}
+                        <ProfileHoverCard
+                          user={{
+                            id: st.id,
+                            name: st.name,
+                            rank: st.rank,
+                            score: st.score,
+                            coins: st.coins,
+                            title: st.title,
+                            gamesWon: st.gamesWon,
+                            streakDays: st.streakDays,
+                          }}
+                          className="w-full block"
+                        >
+                          <span>{st.score.toLocaleString()}</span>
+                        </ProfileHoverCard>
                       </td>
                     </tr>
                   ))}
@@ -355,7 +456,20 @@ export default function StudentLeaderboardPage() {
               </div>
 
               <div>
-                <h3 className="font-black text-lg text-zinc-900">{tc.name}</h3>
+                <ProfileHoverCard
+                  user={{
+                    id: tc.id,
+                    name: tc.name,
+                    rank: tc.rank,
+                    role: "teacher",
+                    title: tc.title,
+                    score: tc.playsCount,
+                  }}
+                >
+                  <h3 className="font-black text-lg text-zinc-900 cursor-pointer hover:text-red-600 transition-colors">
+                    {tc.name}
+                  </h3>
+                </ProfileHoverCard>
                 <p className="text-xs text-zinc-500 mt-0.5">{tc.title}</p>
               </div>
 

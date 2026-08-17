@@ -64,14 +64,7 @@ export default function Navbar() {
           <span>E-V-E</span>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-bold">
-          <Link href="/">
-            <span className="text-red-600 border-b-2 border-red-600 pb-0.5 hover:text-red-700 transition-colors cursor-pointer">
-              Trang Chủ
-            </span>
-          </Link>
-        </nav>
+
 
         {/* Actions / User Profile Section */}
         <div className="flex items-center gap-4">

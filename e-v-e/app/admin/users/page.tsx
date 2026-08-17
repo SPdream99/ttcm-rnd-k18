@@ -18,6 +18,8 @@ import {
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/components/Toast";
+import { useAuthAdapter } from "@/hooks/useAuthAdapter";
+import { formatDisplayDate } from "@/lib/dateUtils";
 
 interface AdminUserItem {
   id: string;
@@ -42,91 +44,64 @@ interface ConfirmModalData {
 
 export default function AdminUsersPage() {
   const { toast } = useToast();
+  const { currentUser, profile } = useAuthAdapter();
+  const currentAdminUid = currentUser?.uid || currentUser?.id || profile?.uid || profile?.id || "";
+  const currentAdminEmail = currentUser?.email || profile?.email || "";
+
   const [users, setUsers] = useState<AdminUserItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<"all" | "pending" | "teacher" | "student">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [confirmPrompt, setConfirmPrompt] = useState<ConfirmModalData | null>(null);
 
+  /** Kiểm tra user có phải admin không */
+  const isAdminUser = (user: AdminUserItem) =>
+    user.role === "admin" || user.role === "school";
+
+  /** Kiểm tra user có phải chính admin đang đăng nhập không */
+  const isSelf = (user: AdminUserItem) =>
+    (currentAdminUid && (user.id === currentAdminUid || user.uid === currentAdminUid)) ||
+    (currentAdminEmail && user.email.toLowerCase() === currentAdminEmail.toLowerCase());
+
   useEffect(() => {
     async function fetchUsers() {
       let list: AdminUserItem[] = [];
       try {
-        const snap = await getDocs(collection(db, "users"));
-        if (!snap.empty) {
-          list = snap.docs.map((d) => {
-            const data = d.data();
-            return {
-              id: d.id,
-              uid: data.uid || d.id,
-              name: data.name || data.fullName || "User",
-              fullName: data.fullName || data.name || "User",
-              email: data.email || "",
-              role: data.role || "student",
-              status: data.status || "active",
-              departmentOrClass: data.departmentOrClass || (data.schoolCode ? `Mã trường: ${data.schoolCode}` : ""),
-              coins: Number(data.coins) || 0,
-              createdAt: data.createdAt || "2026",
-            };
-          });
+        const res = await fetch("/api/admin/users");
+        const data = await res.json();
+        if (data.success && Array.isArray(data.users)) {
+          list = data.users;
+          if (data.deletedOrphanCount > 0) {
+            console.log(`[Auto-Sync] Đã tự động dọn dẹp ${data.deletedOrphanCount} tài khoản mồ côi không tồn tại trong Authentication.`);
+          }
         }
       } catch (err) {
-        console.warn("Error fetching real users:", err);
+        console.warn("API /api/admin/users fetch warning, falling back to Firestore client:", err);
       }
 
-      try {
-        if (typeof window !== "undefined") {
-          const localList = JSON.parse(localStorage.getItem("eve_registered_users") || "[]");
-          localList.forEach((lu: any) => {
-            const idx = list.findIndex((u) => u.email === lu.email || (lu.uid && u.uid === lu.uid));
-            if (idx === -1) {
-              list.push({
-                id: lu.id || lu.uid || `usr_${Date.now()}`,
-                uid: lu.uid || lu.id,
-                name: lu.name || lu.fullName || "Giáo viên mới",
-                fullName: lu.fullName || lu.name || "Giáo viên mới",
-                email: lu.email,
-                role: lu.role || "teacher",
-                status: lu.status || "pending",
-                departmentOrClass: lu.departmentOrClass || (lu.schoolCode ? `Mã trường: ${lu.schoolCode}` : ""),
-                coins: Number(lu.coins) || 0,
-                createdAt: lu.createdAt || "Hôm nay",
-              });
-            } else {
-              list[idx] = { ...list[idx], ...lu };
-            }
-          });
+      if (list.length === 0) {
+        try {
+          const snap = await getDocs(collection(db, "users"));
+          if (!snap.empty) {
+            list = snap.docs.map((d) => {
+              const data = d.data();
+              return {
+                id: d.id,
+                uid: data.uid || d.id,
+                name: data.name || data.fullName || "User",
+                fullName: data.fullName || data.name || "User",
+                email: data.email || "",
+                role: data.role || "student",
+                status: data.status || "active",
+                departmentOrClass: data.departmentOrClass || (data.schoolCode ? `Mã trường: ${data.schoolCode}` : ""),
+                coins: Number(data.coins) || 0,
+                createdAt: formatDisplayDate(data.createdAt || data.created_at, "2026"),
+              };
+            });
+          }
+        } catch (err) {
+          console.warn("Error fetching real users:", err);
         }
-      } catch {}
-
-      if (!list.some((u) => u.email === "dat1@gmail.com")) {
-        list.push({
-          id: "usr_teacher_demo",
-          uid: "usr_teacher_demo",
-          name: "Nguyễn Văn Đạt (Teacher Demo)",
-          fullName: "Nguyễn Văn Đạt (Teacher Demo)",
-          email: "dat1@gmail.com",
-          role: "teacher",
-          status: "active",
-          departmentOrClass: "Tổ Bộ Môn Công Nghệ & AI",
-          coins: 500,
-          createdAt: "2026-08-01",
-        });
-      }
-
-      if (!list.some((u) => u.email === "dat@gmail.com")) {
-        list.push({
-          id: "usr_student_demo",
-          uid: "usr_student_demo",
-          name: "Trần Đạt (Student Demo)",
-          fullName: "Trần Đạt (Student Demo)",
-          email: "dat@gmail.com",
-          role: "student",
-          status: "active",
-          departmentOrClass: "Lớp 10A1",
-          coins: 1250,
-          createdAt: "2026-08-10",
-        });
       }
 
       setUsers(list);
@@ -136,6 +111,17 @@ export default function AdminUsersPage() {
   }, []);
 
   const handlePromptUpdateStatus = (user: AdminUserItem, newStatus: "active" | "banned") => {
+    // Bảo vệ: Admin không được khóa chính mình
+    if (newStatus === "banned" && isSelf(user)) {
+      toast.error("Không thể khóa tài khoản của chính bạn.");
+      return;
+    }
+    // Bảo vệ: Admin không được khóa admin khác
+    if (newStatus === "banned" && isAdminUser(user)) {
+      toast.error("Không thể khóa tài khoản quản trị viên khác.");
+      return;
+    }
+
     const actionText = newStatus === "active" ? "phê duyệt / mở khóa" : "từ chối / khóa";
     setConfirmPrompt({
       title: `Xác Nhận ${newStatus === "active" ? "Duyệt" : "Khóa"} Tài Khoản`,
@@ -369,7 +355,12 @@ export default function AdminUsersPage() {
                     {/* Actions */}
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {user.status === "pending" ? (
+                        {/* Admin / chính mình: không hiển thị nút khóa */}
+                        {(isAdminUser(user) || isSelf(user)) ? (
+                          <span className="text-[11px] text-zinc-400 italic">
+                            {isSelf(user) ? "Tài khoản của bạn" : "Quản trị viên"}
+                          </span>
+                        ) : user.status === "pending" ? (
                           <>
                             <button
                               onClick={() => handlePromptUpdateStatus(user, "active")}

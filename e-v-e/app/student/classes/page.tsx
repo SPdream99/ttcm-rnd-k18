@@ -15,6 +15,7 @@ import {
   PauseCircle,
   PlayCircle,
   AlertCircle,
+  Lock,
 } from "lucide-react";
 import {
   collection,
@@ -24,6 +25,7 @@ import {
   doc,
   updateDoc,
   setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
@@ -48,28 +50,35 @@ interface ClassItem {
   difficulty: string;
   category: string;
   status: "active" | "paused";
+  isLockedOrUnapproved?: boolean;
 }
 
 export default function StudentClassPage() {
   const { toast } = useToast();
-  const [classes, setClasses] = useState<ClassItem[]>(() => {
-    return cacheService.get<ClassItem[]>("student_classes_page")?.data || [];
-  });
-  const [loading, setLoading] = useState<boolean>(() => {
-    return !cacheService.get<ClassItem[]>("student_classes_page");
-  });
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "paused">("all");
+  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "paused">("active");
   const [modalAction, setModalAction] = useState<{ cls: ClassItem; targetStatus: "active" | "paused" } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchClasses = async (userUid: string) => {
     try {
-      const enrollmentQuery = query(
-        collection(db, "student_learning_path"),
-        where("student_id", "==", userUid)
-      );
-      const enrollmentSnapshot = await getDocs(enrollmentQuery);
+      // Chạy song song toàn bộ dữ liệu cần thiết
+      const [enrollmentSnapshot, pathSnapshot, usersSnapshot, coursesSnapshot] = await Promise.all([
+        getDocs(query(collection(db, "student_learning_path"), where("student_id", "==", userUid))),
+        getDocs(collection(db, "learning_path")),
+        getDocs(collection(db, "users")),
+        getDocs(collection(db, "courses")),
+      ]);
+
+      const acceptedCourseIds = new Set<string>();
+      coursesSnapshot.docs.forEach((d) => {
+        const cd = d.data();
+        if (cd.isAccepted ?? cd.is_accepted) {
+          acceptedCourseIds.add(d.id);
+        }
+      });
 
       const enrollments: StudentLearningPath[] = enrollmentSnapshot.docs
         .map((docSnap) => {
@@ -83,57 +92,66 @@ export default function StudentClassPage() {
         })
         .filter((item) => item.learning_path_id);
 
+      // In-memory maps
+      const pathMap = new Map<string, any>();
+      pathSnapshot.docs.forEach((d) => pathMap.set(d.id, d.data()));
+
+      const userMap = new Map<string, any>();
+      usersSnapshot.docs.forEach((d) => userMap.set(d.id, d.data()));
+
       const classList: ClassItem[] = [];
+      const seenPathIds = new Set<string>();
 
       for (const enrollment of enrollments) {
-        const pathQuery = query(
-          collection(db, "learning_path"),
-          where("__name__", "==", enrollment.learning_path_id)
-        );
-        const pathSnapshot = await getDocs(pathQuery);
+        if (seenPathIds.has(enrollment.learning_path_id)) {
+          continue;
+        }
+        seenPathIds.add(enrollment.learning_path_id);
 
-        if (pathSnapshot.empty) continue;
+        const pathData = pathMap.get(enrollment.learning_path_id);
+        if (!pathData) continue;
 
-        const pathDoc = pathSnapshot.docs[0];
-        const pathData = pathDoc.data();
-
-        let teacherName = "ThS. Nguyễn Thành Đạt";
-        if (pathData.author_id) {
-          const teacherQuery = query(
-            collection(db, "users"),
-            where("id", "==", pathData.author_id)
-          );
-          const teacherSnapshot = await getDocs(teacherQuery);
-          if (!teacherSnapshot.empty) {
-            const teacherData = teacherSnapshot.docs[0].data();
-            teacherName = teacherData.name || teacherData.displayName || "ThS. Nguyễn Thành Đạt";
-          }
+        let teacherName = pathData.authorName || pathData.teacherName || "ThS. Nguyễn Thành Đạt";
+        if (pathData.author_id && userMap.has(pathData.author_id)) {
+          const u = userMap.get(pathData.author_id);
+          teacherName = u.name || u.displayName || u.fullName || teacherName;
         }
 
+        const isPathAccepted = Boolean(pathData.is_accepted ?? pathData.isAccepted);
+        const pathCourses: string[] = Array.isArray(pathData.courses) ? pathData.courses : [];
+        const allCoursesApproved = pathCourses.length > 0 && pathCourses.every((cId: any) => acceptedCourseIds.has(typeof cId === "string" ? cId : cId.id));
+        const isLockedOrUnapproved = !isPathAccepted || !allCoursesApproved;
+
         classList.push({
-          id: pathDoc.id,
-          enrollmentDocId: enrollment.id || `${userUid}_${pathDoc.id}`,
+          id: enrollment.learning_path_id,
+          enrollmentDocId: enrollment.id || `${userUid}_${enrollment.learning_path_id}`,
           title: pathData.title || "Lớp Học",
           description: pathData.description || "",
           instructor: teacherName,
-          coursesCount: Array.isArray(pathData.courses) ? pathData.courses.length : 0,
-          progress: Math.min(enrollment.progress, 100),
-          difficulty: pathData.difficulty || "Beginner",
-          category: pathData.category || "General",
-          status: (enrollment.status === "paused" ? "paused" : "active") as "active" | "paused",
+          coursesCount: pathCourses.length,
+          progress: enrollment.progress,
+          difficulty: pathData.difficulty || "Trung bình",
+          category: pathData.category || "Công nghệ & Lập trình",
+          status: enrollment.status === "paused" ? "paused" : "active",
+          isLockedOrUnapproved,
         });
       }
 
       setClasses(classList);
-      cacheService.set("student_classes_page", classList, 60000);
     } catch (error) {
-      console.error("Error loading classes:", error);
+      console.error("Lỗi khi tải danh sách lớp học:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    const cached = cacheService.get<ClassItem[]>("student_classes_page");
+    if (cached?.data && cached.data.length > 0) {
+      setClasses(cached.data);
+      setLoading(false);
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setClasses([]);
@@ -151,8 +169,20 @@ export default function StudentClassPage() {
     setActionLoading(true);
     try {
       const userUid = auth.currentUser?.uid || "usr_student";
-      const targetDocId =
-        modalAction.cls.enrollmentDocId || `${userUid}_${modalAction.cls.id}`;
+      const targetDocId = `${userUid}_${modalAction.cls.id}`;
+
+      // Xóa các document trùng lặp nếu có
+      const checkQ = query(
+        collection(db, "student_learning_path"),
+        where("student_id", "==", userUid),
+        where("learning_path_id", "==", modalAction.cls.id)
+      );
+      const existingSnap = await getDocs(checkQ);
+      for (const d of existingSnap.docs) {
+        if (d.id !== targetDocId) {
+          await deleteDoc(d.ref).catch(() => {});
+        }
+      }
 
       const docRef = doc(db, "student_learning_path", targetDocId);
       await setDoc(
@@ -307,95 +337,135 @@ export default function StudentClassPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredClasses.map((cls) => (
-            <div
-              key={cls.id}
-              className={`group flex flex-col justify-between rounded-2xl bg-white border p-6 shadow-sm transition-all duration-200 ${
-                cls.status === "paused"
-                  ? "border-amber-300 bg-amber-50/10"
-                  : "border-zinc-200 hover:border-red-600 hover:shadow-md"
-              }`}
-            >
-              <div>
-                {/* Badges & Status */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="px-2.5 py-1 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
-                    {cls.category}
-                  </span>
-                  {cls.status === "paused" ? (
-                    <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold flex items-center gap-1">
-                      <PauseCircle className="w-3.5 h-3.5" /> Đã Bảo Lưu
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Đang Học
-                    </span>
-                  )}
-                </div>
+          {filteredClasses.map((cls, idx) => {
+            const isLocked = Boolean(cls.isLockedOrUnapproved);
 
-                {/* Title & Description */}
-                <h3 className="mt-4 text-lg font-black text-zinc-900 group-hover:text-red-600 transition-colors line-clamp-1">
-                  {cls.title}
-                </h3>
-                <p className="mt-1.5 text-xs text-zinc-600 line-clamp-2 leading-relaxed">
-                  {cls.description}
-                </p>
-
-                {/* Instructor */}
-                <div className="mt-4 flex items-center gap-2 text-xs text-zinc-500 font-medium">
-                  <User className="w-4 h-4 text-zinc-400" />
-                  <span>GV: <strong className="text-zinc-800">{cls.instructor}</strong></span>
-                </div>
-              </div>
-
-              {/* Progress & Actions */}
-              <div className="mt-6 pt-4 border-t border-zinc-100 space-y-4">
+            return (
+              <div
+                key={`${cls.enrollmentDocId || cls.id}_${idx}`}
+                className={`group flex flex-col justify-between rounded-2xl border p-6 shadow-sm transition-all duration-200 ${
+                  isLocked
+                    ? "bg-zinc-100/90 border-zinc-300 opacity-60 grayscale-[0.85] cursor-not-allowed select-none"
+                    : cls.status === "paused"
+                    ? "bg-white border-amber-300 bg-amber-50/10"
+                    : "bg-white border-zinc-200 hover:border-red-600 hover:shadow-md"
+                }`}
+              >
                 <div>
-                  <div className="flex items-center justify-between text-xs font-bold mb-1.5">
-                    <span className="text-zinc-500">Tiến độ hoàn thành:</span>
-                    <span className="text-zinc-900 font-mono font-extrabold">{cls.progress}%</span>
+                  {/* Badges & Status */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`px-2.5 py-1 rounded-lg border text-xs font-bold ${
+                      isLocked
+                        ? "bg-zinc-200 border-zinc-300 text-zinc-600"
+                        : "bg-red-50 border-red-200 text-red-700"
+                    }`}>
+                      {cls.category}
+                    </span>
+                    {isLocked ? (
+                      <span className="px-2.5 py-1 rounded-lg bg-zinc-200 border border-zinc-300 text-zinc-600 text-xs font-bold flex items-center gap-1">
+                        <Lock className="w-3.5 h-3.5 text-zinc-500" /> Tạm Khóa (Chờ Duyệt)
+                      </span>
+                    ) : cls.status === "paused" ? (
+                      <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold flex items-center gap-1">
+                        <PauseCircle className="w-3.5 h-3.5" /> Đã Bảo Lưu
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Đang Học
+                      </span>
+                    )}
                   </div>
-                  <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        cls.status === "paused" ? "bg-amber-500" : "bg-red-600"
-                      }`}
-                      style={{ width: `${cls.progress}%` }}
-                    />
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between gap-2 pt-1">
-                  {/* Pause / Resume Button */}
-                  {cls.status === "active" ? (
-                    <button
-                      onClick={() => setModalAction({ cls, targetStatus: "paused" })}
-                      className="px-3 py-2 rounded-xl bg-zinc-100 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 border border-zinc-200 text-xs font-bold text-zinc-600 transition-colors flex items-center gap-1.5 cursor-pointer"
-                      title="Dừng học và bảo lưu tiến độ"
-                    >
-                      <PauseCircle className="w-3.5 h-3.5" /> Dừng Học
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setModalAction({ cls, targetStatus: "active" })}
-                      className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
-                      title="Tiếp tục học lớp này"
-                    >
-                      <PlayCircle className="w-3.5 h-3.5" /> Tiếp Tục Học
-                    </button>
+                  {/* Title & Description */}
+                  <h3 className={`mt-4 text-lg font-black line-clamp-1 transition-colors ${
+                    isLocked ? "text-zinc-500" : "text-zinc-900 group-hover:text-red-600"
+                  }`}>
+                    {cls.title}
+                  </h3>
+                  <p className="mt-1.5 text-xs text-zinc-600 line-clamp-2 leading-relaxed">
+                    {cls.description}
+                  </p>
+
+                  {isLocked && (
+                    <p className="mt-2 text-[11px] text-red-600 font-semibold italic flex items-center gap-1 bg-red-50 p-2 rounded-lg border border-red-200">
+                      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 text-red-600" />
+                      Lộ trình có bài học chưa được phê duyệt. Tạm thời không thể truy cập.
+                    </p>
                   )}
 
-                  <Link
-                    href={`/student/classes/${cls.id}`}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer"
-                  >
-                    <span>Vào Lớp</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  {/* Instructor */}
+                  <div className="mt-4 flex items-center gap-2 text-xs text-zinc-500 font-medium">
+                    <User className="w-4 h-4 text-zinc-400" />
+                    <span>GV: <strong className="text-zinc-800">{cls.instructor}</strong></span>
+                  </div>
+                </div>
+
+                {/* Progress & Actions */}
+                <div className="mt-6 pt-4 border-t border-zinc-100 space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+                      <span className="text-zinc-500">Tiến độ hoàn thành:</span>
+                      <span className="text-zinc-900 font-mono font-extrabold">{cls.progress}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          isLocked ? "bg-zinc-400" : cls.status === "paused" ? "bg-amber-500" : "bg-red-600"
+                        }`}
+                        style={{ width: `${cls.progress}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    {/* Pause / Resume Button */}
+                    {isLocked ? (
+                      <button
+                        disabled
+                        className="px-3 py-2 rounded-xl bg-zinc-200 border border-zinc-300 text-xs font-bold text-zinc-400 cursor-not-allowed flex items-center gap-1.5"
+                      >
+                        <PauseCircle className="w-3.5 h-3.5" /> Tạm Dừng
+                      </button>
+                    ) : cls.status === "active" ? (
+                      <button
+                        onClick={() => setModalAction({ cls, targetStatus: "paused" })}
+                        className="px-3 py-2 rounded-xl bg-zinc-100 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 border border-zinc-200 text-xs font-bold text-zinc-600 transition-colors flex items-center gap-1.5 cursor-pointer"
+                        title="Dừng học và bảo lưu tiến độ"
+                      >
+                        <PauseCircle className="w-3.5 h-3.5" /> Dừng Học
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setModalAction({ cls, targetStatus: "active" })}
+                        className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+                        title="Tiếp tục học lớp này"
+                      >
+                        <PlayCircle className="w-3.5 h-3.5" /> Tiếp Tục Học
+                      </button>
+                    )}
+
+                    {isLocked ? (
+                      <button
+                        disabled
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-300 text-zinc-500 font-bold text-xs cursor-not-allowed shadow-none"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Tạm Khóa</span>
+                      </button>
+                    ) : (
+                      <Link
+                        href={`/student/classes/${cls.id}`}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer"
+                      >
+                        <span>Vào Lớp</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

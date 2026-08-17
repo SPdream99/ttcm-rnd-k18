@@ -1,4 +1,4 @@
-# 🎮 HƯỚNG DẪN TÍCH HỢP GAME ENGINE & BỘ REST API DÀNH CHO GIÁO VIÊN (E-V-E PLATFORM)
+#  HƯỚNG DẪN TÍCH HỢP GAME ENGINE & BỘ REST API DÀNH CHO GIÁO VIÊN (E-V-E PLATFORM)
 
 Tài liệu này hướng dẫn cách kết nối bất kỳ Game Engine nào (HTML5 / Canvas / Phaser / Unity WebGL / React) với hệ thống **E-V-E** để tự động nhận dữ liệu câu hỏi (JSON Pairs), báo cáo tiến độ thời gian thực, cập nhật điểm số, thưởng Coins và mở khóa các bài học trên **Lộ Trình Học Tập (Learning Path)**.
 
@@ -14,14 +14,14 @@ E-V-E hỗ trợ 2 phương thức giao tiếp song song:
 
 ## 2. Các REST API Endpoints
 
-### 🔹 API 1: Khởi Tạo & Nhận Dữ Liệu Câu Hỏi
+###  API 1: Khởi Tạo & Nhận Dữ Liệu Câu Hỏi
 - **URL**: `POST /api/games/init`
 - **Mục đích**: Lấy danh sách các cặp câu hỏi (JSON Pairs) của khóa học mà học sinh đang chơi.
 - **Request Body**:
   ```json
   {
-    "gameId": "game_space_quiz_3d",
-    "courseId": "crs_quantum_101",
+    "gameId": "game_card_match_vr",
+    "courseId": "crs_coding_basics",
     "userId": "usr_student_001"
   }
   ```
@@ -29,18 +29,17 @@ E-V-E hỗ trợ 2 phương thức giao tiếp song song:
   ```json
   {
     "success": true,
-    "gameId": "game_space_quiz_3d",
-    "courseId": "crs_quantum_101",
-    "courseTitle": "Vật Lý Lượng Tử Cơ Bản (Quantum 101)",
+    "gameId": "game_card_match_vr",
+    "courseId": "crs_coding_basics",
+    "courseTitle": "Nhập Môn Tư Duy Lập Trình & Thuật Toán",
     "totalPairs": 3,
     "pairs": [
       {
         "id": "p1",
-        "title": "Hiện tượng quang điện chứng minh tính chất gì của ánh sáng?",
-        "description": "Tính chất hạt (Photon)",
-        "explanation": "Hiện tượng quang điện chỉ có thể giải thích được bằng thuyết lượng tử ánh sáng của Einstein, coi ánh sáng là chùm các hạt photon mang năng lượng.",
-        "distractions": ["Tính chất sóng", "Tính chất phản xạ", "Tính chất tán sắc"],
-        "image_url": "https://images.unsplash.com/..."
+        "title": "Cấu trúc điều kiện nào dùng để rẽ nhánh khi đúng hoặc sai?",
+        "description": "Cấu trúc IF - ELSE",
+        "explanation": "Cấu trúc IF - ELSE cho phép chương trình kiểm tra biểu thức điều kiện Logic.",
+        "distractions": ["Vòng lặp For", "Vòng lặp While", "Hàm Function"]
       }
     ],
     "targetScore": 100
@@ -49,14 +48,14 @@ E-V-E hỗ trợ 2 phương thức giao tiếp song song:
 
 ---
 
-### 🔹 API 2: Cập Nhật Tiến Độ Thời Gian Thực (Live Progress)
+###  API 2: Cập Nhật Tiến Độ Thời Gian Thực (Live Progress)
 - **URL**: `POST /api/games/progress`
 - **Mục đích**: Cập nhật điểm số tạm thời, chuỗi combo liên tiếp (streak) và phần trăm hoàn thành màn chơi.
 - **Request Body**:
   ```json
   {
-    "gameId": "game_space_quiz_3d",
-    "courseId": "crs_quantum_101",
+    "gameId": "game_card_match_vr",
+    "courseId": "crs_coding_basics",
     "userId": "usr_student_001",
     "score": 60,
     "currentStreak": 3,
@@ -66,15 +65,15 @@ E-V-E hỗ trợ 2 phương thức giao tiếp song song:
 
 ---
 
-### 🔹 API 3: Hoàn Thành Màn Chơi, Thưởng Coins & Mở Khóa Lộ Trình
+###  API 3: Hoàn Thành Màn Chơi, Thưởng Coins & Mở Khóa Lộ Trình
 - **URL**: `POST /api/games/finish`
 - **Mục đích**: Ghi nhận kết quả chung cuộc, tính toán Coins thưởng, cập nhật tiến độ `x/y trò` của bài học trên Lộ trình học tập và mở khóa bài học tiếp theo nếu hoàn thành đủ.
 - **Request Body**:
   ```json
   {
-    "gameId": "game_space_quiz_3d",
-    "courseId": "crs_quantum_101",
-    "pathId": "path_quantum_physics",
+    "gameId": "game_card_match_vr",
+    "courseId": "crs_coding_basics",
+    "pathId": "path_fullstack_gamification_2026",
     "userId": "usr_student_001",
     "score": 95,
     "isWin": true,

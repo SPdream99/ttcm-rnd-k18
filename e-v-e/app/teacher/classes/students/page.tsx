@@ -102,9 +102,9 @@ export default function TeacherStudentManagementPage() {
 
       {/* Roster Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {filteredStudents.map((st) => (
+        {filteredStudents.map((st, idx) => (
           <div
-            key={st.id}
+            key={`${st.id}_${idx}`}
             className="p-5 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 transition-colors shadow-sm space-y-4 flex flex-col justify-between"
           >
             <div className="space-y-3">

@@ -114,12 +114,13 @@ function extractGeminiText(parts: any[]): string {
 }
 
 /**
- * Gọi Google Gemini API với Agent Skill Tool Calling & Dynamic Model Selection
+ * Gọi Google Gemini API với Agent Skill Tool Calling, Dynamic Model Selection & Conversation Memory
  */
 async function callGeminiApi(
   apiKey: string,
   systemInstruction: string,
-  userMessage: string
+  userMessage: string,
+  history: Array<{ role: string; text: string }> = []
 ): Promise<string> {
   const cleanKey = apiKey.trim();
   let candidateModels: string[] = [
@@ -170,9 +171,29 @@ async function callGeminiApi(
 
   let lastError: any = null;
 
-  const strictSystemInstruction = `Bạn là E-V-E AI Tutor - Trợ lý giáo dục thông minh tại Việt Nam.
+  const fullSystemInstruction = systemInstruction
+    ? `${systemInstruction}
 Bạn có khả năng gọi các Agent Skill của nền tảng web E-V-E để tra cứu thông tin chính xác về: Trò chơi (search_games), Lộ trình học (get_learning_paths), Khóa học (search_courses), Giáo viên (get_public_teachers), Hồ sơ học sinh (get_public_student_profile) và Bảng xếp hạng (get_leaderboard).
-Hãy phản hồi trực tiếp, thân thiện, tự nhiên bằng tiếng Việt với định dạng Markdown đẹp. Không xuất ra bất kỳ ghi chú suy nghĩ (Thinking) nào.`;
+Hãy phản hồi trực tiếp, thân thiện, tự nhiên bằng tiếng Việt với định dạng Markdown đẹp. Nhớ ngữ cảnh của các câu hỏi trước trong cuộc hội thoại để trả lời liền mạch. Không xuất ra bất kỳ ghi chú suy nghĩ (Thinking) nào.`
+    : `Bạn là E-V-E AI Tutor - Trợ lý giáo dục thông minh tại Việt Nam.
+Bạn có khả năng gọi các Agent Skill của nền tảng web E-V-E để tra cứu thông tin chính xác về: Trò chơi (search_games), Lộ trình học (get_learning_paths), Khóa học (search_courses), Giáo viên (get_public_teachers), Hồ sơ học sinh (get_public_student_profile) và Bảng xếp hạng (get_leaderboard).
+Hãy phản hồi trực tiếp, thân thiện, tự nhiên bằng tiếng Việt với định dạng Markdown đẹp. Nhớ ngữ cảnh của các câu hỏi trước trong cuộc hội thoại để trả lời liền mạch. Không xuất ra bất kỳ ghi chú suy nghĩ (Thinking) nào.`;
+
+  // Format historical conversation turns
+  const formattedHistory: any[] = (history || [])
+    .filter((h) => h && typeof h.text === "string" && h.text.trim())
+    .map((h) => ({
+      role: h.role === "model" || h.role === "ai" || h.role === "assistant" ? "model" : "user",
+      parts: [{ text: h.text }],
+    }));
+
+  const initialContents = [
+    ...formattedHistory,
+    {
+      role: "user",
+      parts: [{ text: userMessage }],
+    },
+  ];
 
   // 2. Thử lần lượt các model được tìm thấy
   for (const rawModelName of candidateModels) {
@@ -186,14 +207,9 @@ Hãy phản hồi trực tiếp, thân thiện, tự nhiên bằng tiếng Việ
       // Request lần 1: Kèm Tool Declarations (Agent Skills)
       const requestPayload: any = {
         system_instruction: {
-          parts: [{ text: strictSystemInstruction }],
+          parts: [{ text: fullSystemInstruction }],
         },
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: userMessage }],
-          },
-        ],
+        contents: initialContents,
         tools: [
           {
             function_declarations: EVE_SKILL_DECLARATIONS,
@@ -217,9 +233,9 @@ Hãy phản hồi trực tiếp, thân thiện, tự nhiên bằng tiếng Việ
         const parts = firstCandidate?.content?.parts || [];
 
         // ── KIỂM TRA XEM AI CÓ GỌI AGENT SKILL HAY KHÔNG ──
-        const funcCallPart = parts.find((p: any) => p.functionCall);
-        if (funcCallPart?.functionCall) {
-          const { name, args } = funcCallPart.functionCall;
+        const functionCallPart = parts.find((p: any) => p.functionCall);
+        if (functionCallPart && functionCallPart.functionCall) {
+          const { name, args } = functionCallPart.functionCall;
           console.log(` AI đang kích hoạt Agent Skill [${name}] với tham số:`, args);
 
           // Thực thi Agent Skill lấy dữ liệu từ Firebase / Hệ thống
@@ -228,13 +244,10 @@ Hãy phản hồi trực tiếp, thân thiện, tự nhiên bằng tiếng Việ
           // Gửi kết quả Skill ngược lại cho AI sinh câu trả lời hoàn chỉnh
           const secondPayload = {
             system_instruction: {
-              parts: [{ text: strictSystemInstruction }],
+              parts: [{ text: fullSystemInstruction }],
             },
             contents: [
-              {
-                role: "user",
-                parts: [{ text: userMessage }],
-              },
+              ...initialContents,
               firstCandidate.content,
               {
                 role: "function",
@@ -281,12 +294,10 @@ Hãy phản hồi trực tiếp, thân thiện, tự nhiên bằng tiếng Việ
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: userMessage }],
-              },
-            ],
+            system_instruction: {
+              parts: [{ text: fullSystemInstruction }],
+            },
+            contents: initialContents,
             generationConfig: {
               temperature: 0.7,
               maxOutputTokens: 2048,
@@ -324,8 +335,33 @@ Hãy phản hồi trực tiếp, thân thiện, tự nhiên bằng tiếng Việ
 /**
  * Xử lý truy vấn thông tin hệ thống E-V-E nếu chạy chế độ Fallback không dùng API Key
  */
-async function handleFallbackPlatformQueries(q: string): Promise<string | null> {
-  const lower = q.toLowerCase();
+async function handleFallbackPlatformQueries(
+  message: string,
+  pageContext?: any,
+  role: string = "student"
+): Promise<string | null> {
+  const lower = message.toLowerCase().trim();
+
+  // 0. Live Page Context / Location Queries
+  if (
+    lower.includes("đang ở trang nào") ||
+    lower.includes("đang ở đâu") ||
+    lower.includes("trang hiện tại") ||
+    lower.includes("đang làm gì") ||
+    lower.includes("vị trí hiện tại") ||
+    lower.includes("ở màn hình nào")
+  ) {
+    if (pageContext && (pageContext.pageName || pageContext.pathname)) {
+      const isTeacher = role === "teacher";
+      return `📍 **VỊ TRÍ HIỆN TẠI CỦA ${isTeacher ? "THẦY/CÔ" : "BẠN"}:**
+- **Khu vực:** **${pageContext.pageName || pageContext.pathname}**
+- **Đường dẫn (URL):** \`${pageContext.pathname}\`
+- **Hoạt động đang diễn ra:** ${pageContext.activityDescription}
+${pageContext.pageSnippet ? `- **Nội dung nổi bật trên màn hình:** "${pageContext.pageSnippet}"` : ""}
+
+💡 Tôi luôn đồng hành theo sát màn hình hoạt động của ${isTeacher ? "Thầy/Cô" : "bạn"} trên hệ sinh thái E-V-E! ${isTeacher ? "Thầy/Cô cần hỗ trợ soạn nội dung hoặc bài giảng gì cho trang này không ạ?" : "Bạn cần hỗ trợ gì tại trang này không?"}`;
+    }
+  }
 
   // 1. Leaderboard / Ranking
   if (
@@ -344,13 +380,13 @@ async function handleFallbackPlatformQueries(q: string): Promise<string | null> 
             `| **#${item.rank}** | **${item.name}** | ${item.totalScore} | ${item.gamesPlayed} |`
         )
         .join("\n");
-      return `###  BẢNG XẾP HẠNG HỌC VIÊN E-V-E (CÔNG KHAI)
+      return `### 🏆 BẢNG XẾP HẠNG HỌC VIÊN E-V-E (CÔNG KHAI)
 
 | Hạng | Học sinh | Tổng Điểm | Số Game Đã Chơi |
 | :---: | :--- | :---: | :---: |
 ${rows}
 
- Bạn có thể vào mục **[Bảng Xếp Hạng](/student/leaderboard)** để xem chi tiết đầy đủ nhé!`;
+👉 Bạn có thể vào mục **[Bảng Xếp Hạng](/student/leaderboard)** để xem chi tiết đầy đủ nhé!`;
     }
   }
 
@@ -364,13 +400,13 @@ ${rows}
     const data = await executeEveSkill("search_games", {});
     if (data && data.games && data.games.length > 0) {
       const list = data.games
-        .map((g: any) => `-  **${g.title}**: ${g.description}`)
+        .map((g: any) => `- 🎮 **${g.title}**: ${g.description}`)
         .join("\n");
-      return `###  DANH SÁCH TRÒ CHƠI HỌC TẬP TRÊN E-V-E:
+      return `### 🎮 DANH SÁCH TRÒ CHƠI HỌC TẬP TRÊN E-V-E:
 
 ${list}
 
- Hãy truy cập ngay mục **[Phòng Game Học Tập](/student/games)** để thử thách bản thân và tích lũy điểm thưởng!`;
+👉 Hãy truy cập ngay mục **[Phòng Game Học Tập](/student/games)** để thử thách bản thân và tích lũy điểm thưởng!`;
     }
   }
 
@@ -386,14 +422,14 @@ ${list}
       const list = data.learningPaths
         .map(
           (p: any) =>
-            `-  **${p.title}** (${p.totalCourses} khóa học con): ${p.description}`
+            `- 🗺️ **${p.title}** (${p.totalCourses} khóa học con): ${p.description}`
         )
         .join("\n");
-      return `###  CÁC LỘ TRÌNH HỌC TẬP CHUẨN TRÊN E-V-E:
+      return `### 🗺️ CÁC LỘ TRÌNH HỌC TẬP CHUẨN TRÊN E-V-E:
 
 ${list}
 
- Khám phá chi tiết tại mục **[Lộ Trình Học](/student/learning-paths)** nhé!`;
+👉 Khám phá chi tiết tại mục **[Lộ Trình Học](/student/learning-paths)** nhé!`;
     }
   }
 
@@ -408,14 +444,14 @@ ${list}
       const list = data.courses
         .map(
           (c: any) =>
-            `-  **${c.title}**: ${c.description} (Thời lượng: ${c.totalDuration})`
+            `- 📚 **${c.title}**: ${c.description} (Thời lượng: ${c.totalDuration})`
         )
         .join("\n");
-      return `###  CÁC KHÓA HỌC ĐANG MỞ TRÊN E-V-E:
+      return `### 📚 CÁC KHÓA HỌC ĐANG MỞ TRÊN E-V-E:
 
 ${list}
 
- Bạn có thể xem đề cương chi tiết trong giao diện học tập!`;
+👉 Bạn có thể xem đề cương chi tiết trong giao diện học tập!`;
     }
   }
 
@@ -431,10 +467,10 @@ ${list}
       const list = data.teachers
         .map(
           (t: any) =>
-            `-  **${t.name}**: ${t.bio} *(Chuyên môn: ${t.subjects.join(", ")})*`
+            `- 👨‍🏫 **${t.name}**: ${t.bio} *(Chuyên môn: ${t.subjects.join(", ")})*`
         )
         .join("\n");
-      return `###  DANH SÁCH GIÁO VIÊN & GIẢNG VIÊN E-V-E:
+      return `### 👨‍🏫 DANH SÁCH GIÁO VIÊN & GIẢNG VIÊN E-V-E:
 
 ${list}`;
     }
@@ -455,26 +491,26 @@ function getIntelligentEducationalResponse(question: string, role: string = "stu
     q === "xin chào" ||
     q === "hey"
   ) {
-    return `Chào bạn!  Rất vui được đồng hành cùng bạn hôm nay.
+    return `Chào bạn! 👋 Rất vui được đồng hành cùng bạn hôm nay.
 
 Tôi là **Trợ Lý AI E-V-E**, sẵn sàng giúp bạn:
-1.  **Học lập trình Python, Scratch & Tư duy thuật toán**
-2.  **Tìm kiếm thông tin Game học tập, Lộ trình, Khóa học & Bảng xếp hạng**
-3.  **Khám phá phần cứng máy tính 3D & Công nghệ**
-4.  **Giải đáp toán học & logic vui nhộn**
-5.  **Tìm và sửa lỗi code (Debug)**
+1. 💡 **Học lập trình Python, Scratch & Tư duy thuật toán**
+2. 🎮 **Tìm kiếm thông tin Game học tập, Lộ trình, Khóa học & Bảng xếp hạng**
+3. 🖥️ **Khám phá phần cứng máy tính 3D & Công nghệ**
+4. 🧠 **Giải đáp toán học & logic vui nhộn**
+5. 🔍 **Tìm và sửa lỗi code (Debug)**
 
 Bạn muốn cùng tôi khám phá chủ đề nào trước?`;
   }
 
   if (q.includes("bạn là ai") || q.includes("tên là gì") || q.includes("ai tutor")) {
-    return `Tôi là **E-V-E AI Tutor** - Người bạn trợ lý học tập thông minh được tích hợp hệ thống Agent Skill trên nền tảng giáo dục công nghệ E-V-E! 
+    return `Tôi là **E-V-E AI Tutor** - Người bạn trợ lý học tập thông minh được tích hợp hệ thống Agent Skill trên nền tảng giáo dục công nghệ E-V-E! 🤖
 
 Tôi có thể hỗ trợ bạn học lập trình, giải toán và tra cứu toàn bộ thông tin công khai về Games, Khóa học, Lộ trình, Giáo viên và Bảng xếp hạng trên hệ thống.`;
   }
 
   if (q.includes("biến") || q.includes("variable") || q.includes("kiểu dữ liệu")) {
-    return `###  Khái niệm Biến số (Variables) trong Lập trình:
+    return `### 📦 Khái niệm Biến số (Variables) trong Lập trình:
 
 **Biến số** giống như một **chiếc hộp có dán nhãn** để lưu trữ thông tin (số, chữ, dữ liệu) trong bộ nhớ máy tính.
 
@@ -488,11 +524,11 @@ da_hoan_thanh = True       # Kiểu Đúng/Sai (Boolean)
 print("Xin chào", ten_hoc_sinh, "- Điểm của bạn là:", diem_so)
 \`\`\`
 
- **Gợi ý thực hành:** Hãy thử tạo 2 biến \`a = 5\` và \`b = 10\`, sau đó in ra tổng \`a + b\` nhé!`;
+💡 **Gợi ý thực hành:** Hãy thử tạo 2 biến \`a = 5\` và \`b = 10\`, sau đó in ra tổng \`a + b\` nhé!`;
   }
 
   if (q.includes("vòng lặp") || q.includes("loop") || q.includes("for") || q.includes("while")) {
-    return `###  Vòng Lặp (Loops) trong Lập trình:
+    return `### 🔁 Vòng Lặp (Loops) trong Lập trình:
 
 Vòng lặp giúp máy tính tự động lặp lại một hành động nhiều lần mà không cần viết lại mã nguồn.
 
@@ -512,11 +548,11 @@ while nang_luong > 0:
 print("Đã hết năng lượng!")
 \`\`\`
 
- **Ứng dụng trong Game:** Vòng lặp dùng để kiểm tra va chạm, cập nhật chuyển động nhân vật liên tục!`;
+🎮 **Ứng dụng trong Game:** Vòng lặp dùng để kiểm tra va chạm, cập nhật chuyển động nhân vật liên tục!`;
   }
 
   if (q.includes("điều kiện") || q.includes("if") || q.includes("else") || q.includes("so sánh")) {
-    return `###  Câu Lệnh Điều Kiện (If - Else):
+    return `### 🔀 Câu Lệnh Điều Kiện (If - Else):
 
 Câu lệnh điều kiện giúp chương trình đưa ra **quyết định** dựa trên tình huống cụ thể (giống như *"Nếu trời mưa thì mang ô, ngược lại thì đội mũ"*).
 
@@ -524,14 +560,14 @@ Câu lệnh điều kiện giúp chương trình đưa ra **quyết định** d�
 diem_kiem_tra = 85
 
 if diem_kiem_tra >= 90:
-    print("Xếp loại: Xuất sắc! ")
+    print("Xếp loại: Xuất sắc! 🌟")
 elif diem_kiem_tra >= 70:
-    print("Xếp loại: Khá giỏi! ")
+    print("Xếp loại: Khá giỏi! 👍")
 else:
-    print("Cần cố gắng thêm ở bài sau nhé! ")
+    print("Cần cố gắng thêm ở bài sau nhé! 💪")
 \`\`\`
 
- **Mẹo nhỏ:** Đừng quên thụt lề 4 dấu cách sau dấu hai chấm \`:\` trong Python nhé!`;
+💡 **Mẹo nhỏ:** Đừng quên thụt lề 4 dấu cách sau dấu hai chấm \`:\` trong Python nhé!`;
   }
 
   if (
@@ -542,19 +578,18 @@ else:
     q.includes("ssd") ||
     q.includes("máy tính")
   ) {
-    return `###  Các Linh Kiện Phần Cứng Máy Tính Cơ Bản:
+    return `### 🖥️ Các Linh Kiện Phần Cứng Máy Tính Cơ Bản:
 
 1. **CPU (Bộ vi xử lý):** "Bộ não" của máy tính, chịu trách nhiệm tính toán và thực thi mọi câu lệnh.
 2. **RAM (Bộ nhớ tạm thời):** Lưu trữ dữ liệu các ứng dụng đang chạy. Khi tắt máy tính, dữ liệu trên RAM sẽ bị xóa sạch.
 3. **GPU (Card đồ họa):** Xử lý hình ảnh, dựng mô hình 3D và đồ họa trò chơi mượt mà.
 4. **SSD (Ổ cứng thể rắn):** Nơi lưu trữ vĩnh viễn hệ điều hành, game và tài liệu với tốc độ đọc ghi siêu tốc.
 5. **Mainboard (Bo mạch chủ):** "Xương sống" kết nối tất cả các linh kiện trên với nhau.
-
- Bạn có thể vào phòng thí nghiệm **3D Hardware Assembly Lab** trong Lộ trình để tự tay lắp ráp các linh kiện này!`;
+\n👉 Bạn có thể chơi trò **Lật Thẻ Trí Nhớ Thuật Toán** để ôn luyện và củng cố kiến thức phần cứng này!`;
   }
 
   if (role === "teacher" || q.includes("soạn") || q.includes("json pair") || q.includes("đề thi")) {
-    return `###  Gợi Ý Cặp Dữ Liệu (JSON Pairs) Cho Bài Giảng:
+    return `### 📝 Gợi Ý Cặp Dữ Liệu (JSON Pairs) Cho Bài Giảng:
 
 Thầy/Cô có thể tham khảo mẫu cặp câu hỏi dưới đây để nhập nhanh vào Trung Tâm Soạn Bài:
 
@@ -578,10 +613,10 @@ Thầy/Cô có thể tham khảo mẫu cặp câu hỏi dưới đây để nh�
 ]
 \`\`\`
 
- Thầy/Cô chỉ cần dán các cặp này vào Tab 1 ở mục **Soạn Bài & Học Liệu** để hệ thống tự động bốc vào Game Quiz và Card Matching!`;
+👉 Thầy/Cô chỉ cần dán các cặp này vào Tab 1 ở mục **Soạn Bài & Học Liệu** để hệ thống tự động bốc vào Game Quiz và Card Matching!`;
   }
 
-  return `###  Trả Lời Về "${question}":
+  return `### 💡 Trả Lời Về "${question}":
 
 1. **Khái niệm & Ý nghĩa:**
    - Trong học tập và tư duy máy tính, câu hỏi **"${question}"** giúp chúng ta hiểu sâu hơn về cách giải quyết vấn đề logic theo từng bước (Step-by-step).
@@ -594,7 +629,7 @@ Thầy/Cô có thể tham khảo mẫu cặp câu hỏi dưới đây để nh�
 3. **Ví dụ thực tế:**
    - Nếu áp dụng vào lập trình, bạn có thể dùng Python để mô phỏng và kiểm tra nhanh kết quả!
 
- Bạn muốn tôi làm rõ thêm chi tiết nào hay viết code mẫu minh họa không?`;
+👉 Bạn muốn tôi làm rõ thêm chi tiết nào hay viết code mẫu minh họa không?`;
 }
 
 export async function POST(req: Request) {
@@ -602,6 +637,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const message = (body.message || body.prompt || "").trim();
     const role = body.role || "student";
+    const history = Array.isArray(body.history) ? body.history : [];
 
     if (!message) {
       return NextResponse.json({ error: "Không có câu hỏi được gửi" }, { status: 400 });
@@ -619,8 +655,30 @@ export async function POST(req: Request) {
       (typeof providedKey === "string" && providedKey.startsWith("sk-")) ||
       Boolean(process.env.OPENAI_API_KEY);
 
-    const systemInstruction = `Bạn là E-V-E AI Tutor - Trợ lý thông minh hàng đầu về giáo dục công nghệ, lập trình và khoa học tại Việt Nam.
-Vai trò người dùng đang trò chuyện: ${role}.`;
+    const pageContext = body.pageContext || body.context;
+    const contextInfo =
+      pageContext && typeof pageContext === "object"
+        ? `
+[NGỮ CẢNH HOẠT ĐỘNG THỜI GIAN THỰC TRÊN TRANG]:
+- Người dùng (${role === "teacher" ? "Giáo viên / Thầy Cô" : "Học sinh / Bạn"}) hiện đang ở: "${pageContext.pageName || pageContext.pathname || "Trang hệ thống"}" (Đường dẫn: ${pageContext.pathname || "N/A"})
+- Hoạt động cụ thể: ${pageContext.activityDescription || "Đang duyệt trang."}
+${pageContext.pageSnippet ? `- Nội dung / Đề mục hiển thị trên màn hình: "${pageContext.pageSnippet}"` : ""}
+👉 LƯU Ý QUAN TRỌNG: Hãy chủ động nắm bắt ngữ cảnh này để giải thích, gợi ý, hướng dẫn hoặc giải bài tập sát sườn với những gì người dùng đang xem trên màn hình!`
+        : "";
+
+    const systemInstruction =
+      role === "teacher"
+        ? `Bạn là E-V-E AI Trợ Giảng Sư Phạm - Cố vấn giáo dục và trợ lý chuyên môn dành cho Giáo Viên / Giảng Viên tại nền tảng E-V-E.
+Nhiệm vụ của bạn:
+- Hỗ trợ Thầy/Cô soạn thảo giáo án, thiết kế bài học phân chặng, sinh các cặp câu hỏi trắc nghiệm (JSON pairs) cho minigame.
+- Hướng dẫn tích hợp Game SDK, phân tích sư phạm và tối ưu trải nghiệm học sinh.
+- Phản hồi bằng tiếng Việt lịch sự, kính cẩn, chuẩn mực sư phạm (xưng Tôi và gọi Thầy/Cô).
+${contextInfo}`
+        : `Bạn là E-V-E AI Tutor - Trợ lý thông minh hàng đầu về giáo dục công nghệ, lập trình và khoa học tại Việt Nam dành cho Học Sinh.
+Nhiệm vụ của bạn:
+- Giải thích bài tập, hướng dẫn lập trình Python/Scratch, giải toán logic, khám phá phần cứng máy tính và hỗ trợ chơi minigame học tập.
+- Phản hồi thân thiện, gần gũi, khích lệ tư duy và định dạng Markdown đẹp mắt.
+${contextInfo}`;
 
     // ── 1. NẾU CÓ API KEY -> GỌI TRỰC TIẾP AI MODEL ĐỂ TRẢ LỜI CÂU HỎI ──
     if (providedKey) {
@@ -635,6 +693,10 @@ Vai trò người dùng đang trò chuyện: ${role}.`;
             model: "gpt-4o-mini",
             messages: [
               { role: "system", content: systemInstruction },
+              ...history.map((h: any) => ({
+                role: h.role === "model" || h.role === "ai" || h.role === "assistant" ? "assistant" : "user",
+                content: h.text || "",
+              })),
               { role: "user", content: message },
             ],
             tools: EVE_OPENAI_TOOLS,
@@ -654,6 +716,10 @@ Vai trò người dùng đang trò chuyện: ${role}.`;
                 model: "gpt-4o-mini",
                 messages: [
                   { role: "system", content: systemInstruction },
+                  ...history.map((h: any) => ({
+                    role: h.role === "model" || h.role === "ai" || h.role === "assistant" ? "assistant" : "user",
+                    content: h.text || "",
+                  })),
                   { role: "user", content: message },
                   choice,
                   {
@@ -683,10 +749,10 @@ Vai trò người dùng đang trò chuyện: ${role}.`;
             });
           }
         } catch (openAiErr: any) {
-          console.error(" OpenAI Live Call Error:", openAiErr.message);
+          console.error("❌ OpenAI Live Call Error:", openAiErr.message);
           return NextResponse.json({
             success: false,
-            reply: ` **Lỗi OpenAI API Key:** ${openAiErr.message || "Không thể xác thực khóa OpenAI"}.\n\nThầy/Cô hãy kiểm tra lại mã API Key OpenAI trong phần Cài đặt nhé!`,
+            reply: `⚠️ **Lỗi OpenAI API Key:** ${openAiErr.message || "Không thể xác thực khóa OpenAI"}.\n\nThầy/Cô hãy kiểm tra lại mã API Key OpenAI trong phần Cài đặt nhé!`,
             source: "openai-error",
           });
         }
@@ -697,7 +763,8 @@ Vai trò người dùng đang trò chuyện: ${role}.`;
         const geminiReply = await callGeminiApi(
           providedKey,
           systemInstruction,
-          message
+          message,
+          history
         );
         if (geminiReply && geminiReply.trim()) {
           return NextResponse.json({
@@ -707,10 +774,10 @@ Vai trò người dùng đang trò chuyện: ${role}.`;
           });
         }
       } catch (geminiErr: any) {
-        console.error(" Gemini Live Call Error:", geminiErr.message);
+        console.error("❌ Gemini Live Call Error:", geminiErr.message);
         return NextResponse.json({
           success: false,
-          reply: ` **Không thể kết nối Google Gemini API với Key đã nhập:**\n\`${geminiErr.message || "Lỗi xác thực API Key"}\`\n\n **Gợi ý khắc phục:**\n1. Kiểm tra mã Gemini API Key tại [Google AI Studio](https://aistudio.google.com/app/apikey).\n2. Đảm bảo API Key còn hạn mức sử dụng (Quota) và chưa bị vô hiệu hóa.`,
+          reply: `⚠️ **Không thể kết nối Google Gemini API với Key đã nhập:**\n\`${geminiErr.message || "Lỗi xác thực API Key"}\`\n\n💡 **Gợi ý khắc phục:**\n1. Kiểm tra mã Gemini API Key tại [Google AI Studio](https://aistudio.google.com/app/apikey).\n2. Đảm bảo API Key còn hạn mức sử dụng (Quota) và chưa bị vô hiệu hóa.`,
           source: "gemini-error",
         });
       }
@@ -728,8 +795,12 @@ Vai trò người dùng đang trò chuyện: ${role}.`;
       });
     }
 
-    // 2.2 Tra cứu dữ liệu nền tảng E-V-E (Game, Lộ trình, Khóa học, Bảng xếp hạng)
-    const platformDataReply = await handleFallbackPlatformQueries(message);
+    // 2.2 Tra cứu dữ liệu nền tảng E-V-E (Game, Lộ trình, Khóa học, Bảng xếp hạng, Vị trí trang)
+    const platformDataReply = await handleFallbackPlatformQueries(
+      message,
+      pageContext,
+      role
+    );
     if (platformDataReply) {
       return NextResponse.json({
         success: true,

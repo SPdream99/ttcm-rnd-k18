@@ -16,7 +16,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
@@ -24,6 +23,8 @@ import {
   query,
   serverTimestamp,
   where,
+  setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
@@ -104,13 +105,33 @@ export default function LearningPathDetailPage({
             }
           }
 
+          // Kiểm tra điều kiện một chiều: Tất cả khóa học con phải được duyệt
+          const coursesSnap = await getDocs(collection(db, "courses"));
+          const acceptedCourseIds = new Set<string>();
+          coursesSnap.docs.forEach((d) => {
+            const cd = d.data();
+            if (cd.isAccepted ?? cd.is_accepted) {
+              acceptedCourseIds.add(d.id);
+            }
+          });
+
+          const isPathAccepted = Boolean(data.is_accepted ?? data.isAccepted);
+          const pathCourses: string[] = Array.isArray(data.courses) ? data.courses : [];
+          const allCoursesApproved = pathCourses.length > 0 && pathCourses.every((cId: any) => acceptedCourseIds.has(typeof cId === "string" ? cId : cId.id));
+
+          if (!isPathAccepted || !allCoursesApproved) {
+            setPath(null);
+            setLoading(false);
+            return;
+          }
+
           const learningPath: LearningPath = {
             id: documentId,
             title: data.title || "Untitled Learning Path",
             description: data.description || "",
             author_id: data.author_id || "",
-            courses: Array.isArray(data.courses) ? data.courses : [],
-            is_accepted: data.is_accepted ?? false,
+            courses: pathCourses,
+            is_accepted: isPathAccepted,
             thumbnail: data.thumbnail || "",
             difficulty: data.difficulty || "Beginner",
             category: data.category || "General",
@@ -124,11 +145,14 @@ export default function LearningPathDetailPage({
             const eq = query(
               collection(db, "student_learning_path"),
               where("student_id", "==", currentUser.uid),
-              where("learning_path_id", "==", documentId),
-              where("status", "==", "active")
+              where("learning_path_id", "==", documentId)
             );
             const es = await getDocs(eq);
-            if (!es.empty) setAlreadyEnrolled(true);
+            if (!es.empty) {
+              setAlreadyEnrolled(true);
+            } else {
+              setAlreadyEnrolled(false);
+            }
           }
         } catch (err) {
           console.error("Error fetching path:", err);
@@ -146,36 +170,44 @@ export default function LearningPathDetailPage({
     const user = auth.currentUser;
     if (!user) { toast.error("Bạn chưa đăng nhập.", "Lỗi"); return; }
     if (!path?.id) { toast.error("Không tìm thấy Learning Path.", "Lỗi"); return; }
-    if (alreadyEnrolled) { toast.warning("Bạn đã đăng ký Learning Path này rồi."); return; }
 
     setEnrolling(true);
     try {
+      const docKey = `${user.uid}_${path.id}`;
+      // Xóa các bản ghi trùng lặp nếu có
       const checkQ = query(
         collection(db, "student_learning_path"),
         where("student_id", "==", user.uid),
-        where("learning_path_id", "==", path.id),
-        where("status", "==", "active")
+        where("learning_path_id", "==", path.id)
       );
       const existing = await getDocs(checkQ);
-      if (!existing.empty) {
-        setAlreadyEnrolled(true);
-        toast.warning("Bạn đã đăng ký Learning Path này rồi.");
-        return;
+      let existingProgress = 0;
+      let existingIndex = 0;
+
+      for (const d of existing.docs) {
+        const data = d.data();
+        if (typeof data.progress === "number") existingProgress = data.progress;
+        if (typeof data.current_course_index === "number") existingIndex = data.current_course_index;
+        if (d.id !== docKey) {
+          await deleteDoc(d.ref).catch(() => {});
+        }
       }
 
-      await addDoc(collection(db, "student_learning_path"), {
+      await setDoc(doc(db, "student_learning_path", docKey), {
         student_id: user.uid,
+        student_name: user.displayName || "Học Viên E-V-E",
         learning_path_id: path.id,
-        progress: 0,
+        progress: existingProgress,
         status: "active",
-        current_course_index: 0,
+        current_course_index: existingIndex,
         enrolled_at: serverTimestamp(),
-      });
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
 
       setAlreadyEnrolled(true);
-      toast.success("Đăng ký Lộ trình thành công! Đang chuyển đến lớp học...", "Thành công ");
+      toast.success("Tham gia Lộ trình thành công! Đang chuyển đến lớp học...", "Thành công");
 
-      setTimeout(() => router.push("/student/classes"), 1500);
+      setTimeout(() => router.push("/student/classes"), 1200);
     } catch (err) {
       console.error("Enroll error:", err);
       toast.error("Không thể đăng ký. Vui lòng thử lại.", "Lỗi");

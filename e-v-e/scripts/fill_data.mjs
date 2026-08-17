@@ -1,3 +1,22 @@
+/**
+ * SCRIPT NẠP DỮ LIỆU MẪU TOÀN DIỆN (COMPREHENSIVE SEED / FILL DATA)
+ *
+ * Chức năng:
+ * - Nạp trọn bộ dữ liệu thực chiến chuẩn Tiếng Việt 100% có dấu vào Firestore ('default').
+ * - Tự động thiết lập đầy đủ:
+ *   + Users (Admin, Teacher, Students bao gồm dat@gmail.com, dat1@gmail.com, dat2@gmail.com...)
+ *   + Teachers, Classes, Class Members
+ *   + Assignments, Submissions, Lectures
+ *   + Courses (kèm cặp câu hỏi tương tác pairs cho Game Engine)
+ *   + Learning Paths & Student Progress
+ *   + Game Info & Game Results (Leaderboard)
+ *   + Shop Items & Announcements
+ *
+ * Cách chạy:
+ *   node scripts/fill_data.mjs
+ *   hoặc: npm run db:fill
+ */
+
 import fs from "fs";
 import path from "path";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
@@ -14,7 +33,10 @@ function loadEnvLocal() {
       if (equalsIdx !== -1) {
         const key = trimmed.slice(0, equalsIdx).trim();
         let val = trimmed.slice(equalsIdx + 1).trim();
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        if (
+          (val.startsWith('"') && val.endsWith('"')) ||
+          (val.startsWith("'") && val.endsWith("'"))
+        ) {
           val = val.slice(1, -1);
         }
         process.env[key] = val;
@@ -27,7 +49,7 @@ loadEnvLocal();
 
 const serviceAccountRaw = process.env.FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY;
 if (!serviceAccountRaw) {
-  console.error("Không tìm thấy FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY trong .env.local");
+  console.error("❌ Không tìm thấy FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY trong .env.local");
   process.exit(1);
 }
 
@@ -35,7 +57,7 @@ let serviceAccount;
 try {
   serviceAccount = JSON.parse(serviceAccountRaw);
 } catch (err) {
-  console.error("Lỗi parse FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY:", err.message);
+  console.error("❌ Lỗi parse FIREBASE_ADMIN_SERVICE_ACCOUNT_KEY:", err.message);
   process.exit(1);
 }
 
@@ -44,32 +66,16 @@ if (!getApps().length) {
 }
 
 const db = getFirestore("default");
-
-const COLLECTIONS = [
-  "users",
-  "teachers",
-  "classes",
-  "class_members",
-  "assignments",
-  "submissions",
-  "lectures",
-  "courses",
-  "learning_path",
-  "student_learning_path",
-  "game_info",
-  "game_results",
-  "shop_items",
-  "announcements",
-];
-
-// ─── Dữ Liệu Khởi Tạo Chuẩn Tiếng Việt Có Dấu 100% ──────────────────────────
+db.settings({ ignoreUndefinedProperties: true });
 
 const SEED_DATA = {
+  // 1. USERS
   users: [
     {
       id: "f89rGIGZVlQoA5J82jqavzWEvIs2",
       name: "Nguyễn Thành Đạt",
       displayName: "Nguyễn Thành Đạt",
+      fullName: "Nguyễn Thành Đạt",
       email: "dat@gmail.com",
       role: "student",
       status: "active",
@@ -77,12 +83,13 @@ const SEED_DATA = {
       profile_decorations: ["item_frame_cosmic_01", "item_title_explorer"],
       bio: "Học viên chuyên ngành Công Nghệ Phần Mềm & Lập Trình Game tại E-V-E.",
       avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80",
-      twoFactorEnabled: false,
+      twoFactorEnabled: true,
     },
     {
       id: "YMdybMQPIYWQVlUmb346L92P3z53",
       name: "ThS. Nguyễn Thành Đạt",
       displayName: "ThS. Nguyễn Thành Đạt",
+      fullName: "ThS. Nguyễn Thành Đạt",
       email: "dat1@gmail.com",
       role: "teacher",
       status: "active",
@@ -90,12 +97,13 @@ const SEED_DATA = {
       profile_decorations: ["item_title_master"],
       bio: "Giảng viên chuyên ngành Khoa Học Máy Tính & Trò Chơi Giáo Dục tại E-V-E.",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
-      twoFactorEnabled: false,
+      twoFactorEnabled: true,
     },
     {
       id: "4iFol5R21cTdeB5UmKxKal2n4tl2",
       name: "Quản Trị Viên Đạt",
       displayName: "Quản Trị Viên Đạt",
+      fullName: "Quản Trị Viên Đạt",
       email: "dat2@gmail.com",
       role: "admin",
       status: "active",
@@ -103,12 +111,13 @@ const SEED_DATA = {
       profile_decorations: ["item_frame_gold", "item_title_admin"],
       bio: "Quản trị viên toàn hệ thống nền tảng học tập E-V-E Learning Hub.",
       avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80",
-      twoFactorEnabled: false,
+      twoFactorEnabled: true,
     },
     {
       id: "student_minh_anh_01",
       name: "Trần Minh Anh",
       displayName: "Trần Minh Anh",
+      fullName: "Trần Minh Anh",
       email: "minhanh@gmail.com",
       role: "student",
       status: "active",
@@ -116,12 +125,13 @@ const SEED_DATA = {
       profile_decorations: ["item_frame_cosmic_01"],
       bio: "Học sinh đam mê thuật toán Python và thiết kế Web.",
       avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80",
-      twoFactorEnabled: false,
+      twoFactorEnabled: true,
     },
     {
       id: "student_bao_ngoc_02",
       name: "Lê Bảo Ngọc",
       displayName: "Lê Bảo Ngọc",
+      fullName: "Lê Bảo Ngọc",
       email: "baongoc@gmail.com",
       role: "student",
       status: "active",
@@ -129,10 +139,11 @@ const SEED_DATA = {
       profile_decorations: [],
       bio: "Học viên xuất sắc chặng 2 môn Lập trình Python.",
       avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&auto=format&fit=crop&q=80",
-      twoFactorEnabled: false,
+      twoFactorEnabled: true,
     },
   ],
 
+  // 2. TEACHERS
   teachers: [
     {
       id: "YMdybMQPIYWQVlUmb346L92P3z53",
@@ -158,6 +169,7 @@ const SEED_DATA = {
     },
   ],
 
+  // 3. CLASSES
   classes: [
     {
       id: "cls_web_dev_k18",
@@ -187,6 +199,7 @@ const SEED_DATA = {
     },
   ],
 
+  // 4. CLASS MEMBERS
   class_members: [
     {
       id: "cls_web_dev_k18_f89rGIGZVlQoA5J82jqavzWEvIs2",
@@ -217,6 +230,7 @@ const SEED_DATA = {
     },
   ],
 
+  // 5. ASSIGNMENTS
   assignments: [
     {
       id: "asm_react_components_01",
@@ -256,6 +270,7 @@ const SEED_DATA = {
     },
   ],
 
+  // 6. SUBMISSIONS
   submissions: [
     {
       id: "asm_nextjs_api_02_f89rGIGZVlQoA5J82jqavzWEvIs2",
@@ -270,6 +285,7 @@ const SEED_DATA = {
     },
   ],
 
+  // 7. LECTURES
   lectures: [
     {
       id: "lec_web_arch_01",
@@ -289,12 +305,23 @@ const SEED_DATA = {
       order: 2,
       date: "2026-08-14",
     },
+    {
+      id: "lec_ai_intro_01",
+      class_id: "cls_ai_ml_2026",
+      title: "Bài 1: Nhập Môn Tư Duy Trí Tuệ Nhân Tạo & Mô Hình Ngôn Ngữ",
+      description: "Lịch sử phát triển AI, Transformer Architecture và cơ chế Attention.",
+      document_url: "https://ai.google.dev",
+      order: 1,
+      date: "2026-08-12",
+    },
   ],
 
+  // 8. COURSES (Đầy đủ 5 khóa học chuẩn kèm cặp câu hỏi tương tác)
   courses: [
     {
       id: "crs_coding_basics",
       title: "Bài 1: Nhập Môn Tư Duy Lập Trình & Thuật Toán",
+      subtitle: "Nền tảng logic, biến số, rẽ nhánh và vòng lặp",
       description: "Nắm vững các khái niệm nền tảng: Biến số, Kiểu dữ liệu, Cấu trúc rẽ nhánh IF-ELSE, Vòng lặp và Tư duy giải thuật.",
       category: "Khóa Học Lập Trình",
       difficulty: "Cơ Bản",
@@ -302,7 +329,10 @@ const SEED_DATA = {
       author_name: "ThS. Nguyễn Thành Đạt",
       visibility: "public",
       is_accepted: true,
+      isPublished: true,
+      rewardCoins: 50,
       estimated_hours: 12,
+      thumbnailUrl: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=800&auto=format&fit=crop&q=80",
       pairs: [
         {
           id: "cb1",
@@ -337,6 +367,7 @@ const SEED_DATA = {
     {
       id: "crs_computer_hardware",
       title: "Bài 2: Khám Phá Phần Cứng & Kiến Trúc Máy Tính 3D",
+      subtitle: "Mô hình trực quan các thành phần CPU, GPU, RAM và SSD",
       description: "Tìm hiểu chức năng và nguyên lý hoạt động của CPU, RAM, GPU, Bo mạch chủ và Ổ cứng SSD.",
       category: "Kiến Trúc Máy Tính",
       difficulty: "Thực Hành",
@@ -344,7 +375,10 @@ const SEED_DATA = {
       author_name: "ThS. Nguyễn Thành Đạt",
       visibility: "public",
       is_accepted: true,
+      isPublished: true,
+      rewardCoins: 70,
       estimated_hours: 15,
+      thumbnailUrl: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=800&auto=format&fit=crop&q=80",
       pairs: [
         {
           id: "hw1",
@@ -379,14 +413,18 @@ const SEED_DATA = {
     {
       id: "crs_python_foundation",
       title: "Bài 3: Lập Trình Python Căn Bản & Cấu Trúc Dữ Liệu",
+      subtitle: "Làm chủ cú pháp, mảng, danh sách và lập trình hướng đối tượng",
       description: "Làm quen với ngôn ngữ lập trình Python, cú pháp hiện đại, kiểu dữ liệu và hàm xử lý chuỗi / mảng.",
       category: "Khóa Học Lập Trình",
       difficulty: "Cơ Bản",
       author_id: "YMdybMQPIYWQVlUmb346L92P3z53",
       author_name: "ThS. Nguyễn Thành Đạt",
-      visibility: "free_to_share",
+      visibility: "public",
       is_accepted: true,
+      isPublished: true,
+      rewardCoins: 80,
       estimated_hours: 18,
+      thumbnailUrl: "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800&auto=format&fit=crop&q=80",
       pairs: [
         {
           id: "py1",
@@ -412,8 +450,41 @@ const SEED_DATA = {
       ],
     },
     {
+      id: "crs_data_structure_algorithms",
+      title: "Bài 4: Cấu Trúc Dữ Liệu & Giải Thuật Thực Chiến",
+      subtitle: "Tối ưu độ phức tạp không gian và thời gian O(N) trong xử lý dữ liệu",
+      description: "Tìm hiểu sâu về Array, Linked List, Stack, Queue, Tree, Graph và các thuật toán tìm kiếm/sắp xếp cốt lõi.",
+      category: "Cấu Trúc Dữ Liệu",
+      difficulty: "Trung Cấp",
+      author_id: "teacher_nhatanh_01",
+      author_name: "GS. Nguyễn Nhật Ánh",
+      visibility: "public",
+      is_accepted: true,
+      isPublished: true,
+      rewardCoins: 120,
+      estimated_hours: 20,
+      thumbnailUrl: "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=800&auto=format&fit=crop&q=80",
+      pairs: [
+        {
+          id: "dsa1",
+          title: "Độ phức tạp O(1) nghĩa là gì?",
+          description: "Thời gian thực thi không phụ thuộc vào kích thước dữ liệu đầu vào.",
+          explanation: "Thuật toán có độ phức tạp thời gian O(1) thực hiện số phép toán không đổi bất kể kích thước mảng là 1 hay 1 triệu phần tử.",
+          distractions: ["Chạy chậm nhất khi dữ liệu lớn", "Luôn tốn 1 byte bộ nhớ", "Phải lặp qua toàn bộ mảng"],
+        },
+        {
+          id: "dsa2",
+          title: "Cấu trúc ngăn xếp Stack hoạt động theo nguyên lý nào?",
+          description: "LIFO (Last In, First Out) - Vào sau ra trước.",
+          explanation: "Phần tử được thêm vào cuối cùng trong Stack sẽ là phần tử đầu tiên được lấy ra khi gọi thao tác Pop.",
+          distractions: ["FIFO (Vào trước ra trước)", "Ngẫu nhiên", "Sắp xếp theo thứ tự số"],
+        },
+      ],
+    },
+    {
       id: "crs_generative_ai_projects",
-      title: "Bài 4: Thiết Kế Ứng Dụng Trí Tuệ Nhân Tạo Với LLMs",
+      title: "Bài 5: Thiết Kế Ứng Dụng Trí Tuệ Nhân Tạo Với LLMs",
+      subtitle: "Tích hợp LLM APIs, Prompt Engineering, RAG và xây dựng AI Assistant",
       description: "Ứng dụng các mô hình trí tuệ nhân tạo sinh (Generative AI), Prompt Engineering và xây dựng AI Agents.",
       category: "Trí Tuệ Nhân Tạo",
       difficulty: "Nâng Cao",
@@ -421,7 +492,10 @@ const SEED_DATA = {
       author_name: "GS. Nguyễn Nhật Ánh",
       visibility: "public",
       is_accepted: true,
+      isPublished: true,
+      rewardCoins: 150,
       estimated_hours: 24,
+      thumbnailUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
       pairs: [
         {
           id: "ai1",
@@ -441,6 +515,7 @@ const SEED_DATA = {
     },
   ],
 
+  // 9. LEARNING PATHS
   learning_path: [
     {
       id: "lp_fullstack_2026",
@@ -449,15 +524,17 @@ const SEED_DATA = {
       category: "Lập Trình Web & Game",
       difficulty: "Cơ Bản",
       author_id: "YMdybMQPIYWQVlUmb346L92P3z53",
+      author_name: "ThS. Nguyễn Thành Đạt",
       visibility: "public",
       is_accepted: true,
-      courses: ["crs_coding_basics", "crs_computer_hardware", "crs_python_foundation"],
+      courses: ["crs_coding_basics", "crs_computer_hardware", "crs_python_foundation", "crs_data_structure_algorithms"],
       learning_objectives: [
         "Thành thạo tư duy lập trình và thuật toán giải quyết vấn đề",
         "Hiểu rõ kiến trúc phần cứng và luồng dữ liệu trong máy tính",
-        "Xây dựng thành thạo ứng dụng Python và tích hợp Game SDK",
+        "Xây dựng thành thạo ứng dụng Python và cấu trúc dữ liệu",
+        "Tối ưu thuật toán và phát triển ứng dụng web hiện đại",
       ],
-      estimated_hours: 45,
+      estimated_hours: 55,
       thumbnail: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&auto=format&fit=crop&q=80",
     },
     {
@@ -467,28 +544,30 @@ const SEED_DATA = {
       category: "Trí Tuệ Nhân Tạo",
       difficulty: "Trung Cấp",
       author_id: "teacher_nhatanh_01",
+      author_name: "GS. Nguyễn Nhật Ánh",
       visibility: "public",
       is_accepted: true,
-      courses: ["crs_python_foundation", "crs_generative_ai_projects"],
+      courses: ["crs_python_foundation", "crs_data_structure_algorithms", "crs_generative_ai_projects"],
       learning_objectives: [
         "Nắm vững lập trình Python và xử lý dữ liệu nâng cao",
         "Xây dựng ứng dụng tích hợp LLM API và Prompt Engineering",
         "Thiết kế hệ thống AI Agents tự động hóa tác vụ phức tạp",
       ],
-      estimated_hours: 42,
+      estimated_hours: 48,
       thumbnail: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&auto=format&fit=crop&q=80",
     },
   ],
 
+  // 10. STUDENT LEARNING PATH
   student_learning_path: [
     {
       id: "f89rGIGZVlQoA5J82jqavzWEvIs2_lp_fullstack_2026",
       student_id: "f89rGIGZVlQoA5J82jqavzWEvIs2",
       student_name: "Nguyễn Thành Đạt",
       learning_path_id: "lp_fullstack_2026",
-      progress: 66,
+      progress: 50,
       status: "active",
-      current_course_index: 1,
+      current_course_index: 2,
       completedCourses: ["crs_coding_basics", "crs_computer_hardware"],
     },
     {
@@ -496,13 +575,14 @@ const SEED_DATA = {
       student_id: "f89rGIGZVlQoA5J82jqavzWEvIs2",
       student_name: "Nguyễn Thành Đạt",
       learning_path_id: "lp_ai_mastery_2026",
-      progress: 50,
+      progress: 33,
       status: "active",
-      current_course_index: 0,
+      current_course_index: 1,
       completedCourses: ["crs_python_foundation"],
     },
   ],
 
+  // 11. GAME INFO
   game_info: [
     {
       id: "game_card_match_vr",
@@ -542,46 +622,9 @@ const SEED_DATA = {
       playsCount: 2350,
       isAccepted: true,
     },
-    {
-      id: "game_space_quiz_3d",
-      title: "Đường Đua Tri Thức 3D (Quiz Runner 3D)",
-      subtitle: "Thử Thách Phản Xạ & Kiểm Tra Kiến Thức",
-      genre: "Hành Động Trắc Nghiệm 3D",
-      category: "quiz",
-      description: "Trò chơi trắc nghiệm tốc độ: Đọc kỹ câu hỏi trích xuất từ bài học và chọn đáp án chính xác nhất.",
-      author: "Ban Học Thuật E-V-E",
-      difficulty: "Cơ Bản",
-      rewardCoins: 50,
-      visibility: "public",
-      needExtraData: true,
-      coursesAllowed: "all",
-      thumbnailUrl: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=600&auto=format&fit=crop&q=80",
-      badge: "MỚI",
-      rating: 4.7,
-      playsCount: 980,
-      isAccepted: true,
-    },
-    {
-      id: "game_hardware_3d_lab",
-      title: "Phòng Thí Nghiệm Lắp Ráp Máy Tính 3D",
-      subtitle: "Mô Phỏng Kiến Trúc Phần Cứng Trực Quan",
-      genre: "Lắp Ráp Phần Cứng 3D",
-      category: "simulation",
-      description: "Khám phá cấu tạo bên trong thùng máy PC: Chọn các linh kiện quan trọng và lắp ráp vào bo mạch chủ.",
-      author: "ThS. Phạm Hoàng Nam",
-      difficulty: "Thực Hành",
-      rewardCoins: 80,
-      visibility: "public",
-      needExtraData: true,
-      coursesAllowed: "all",
-      thumbnailUrl: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=600&auto=format&fit=crop&q=80",
-      badge: "THỰC HÀNH",
-      rating: 4.9,
-      playsCount: 1680,
-      isAccepted: true,
-    },
   ],
 
+  // 12. GAME RESULTS (Leaderboard)
   game_results: [
     {
       id: "res_001",
@@ -607,8 +650,21 @@ const SEED_DATA = {
       coins_earned: 110,
       date: "2026-08-15",
     },
+    {
+      id: "res_003",
+      game_id: "boss_battle_quiz",
+      course_id: "crs_coding_basics",
+      user_id: "student_minh_anh_01",
+      user_name: "Trần Minh Anh",
+      score: 200,
+      accuracy_percent: 90,
+      play_time_seconds: 52,
+      coins_earned: 95,
+      date: "2026-08-15",
+    },
   ],
 
+  // 13. SHOP ITEMS
   shop_items: [
     {
       id: "item_frame_cosmic_01",
@@ -647,6 +703,7 @@ const SEED_DATA = {
     },
   ],
 
+  // 14. ANNOUNCEMENTS
   announcements: [
     {
       id: "ann_001",
@@ -655,47 +712,54 @@ const SEED_DATA = {
       category: "system",
       date: "2026-08-01",
     },
+    {
+      id: "ann_002",
+      title: "Giải Đấu Đua Top Minigame Mùa 1",
+      content: "Tham gia chinh phục bảng xếp hạng Lật Thẻ VR & Đấu Boss để nhận hàng ngàn E-Coins và Huy hiệu giới hạn!",
+      category: "event",
+      date: "2026-08-10",
+    },
   ],
 };
 
-// ─── Execution Routine ────────────────────────────────────────────────────────
+async function runFillData() {
+  console.log("=================================================================");
+  console.log("🌱  BẮT ĐẦU NẠP DỮ LIỆU MẪU TOÀN DIỆN (FILL DATA) VÀO FIRESTORE");
+  console.log("=================================================================\n");
 
-async function clearCollection(collectionName) {
-  const colRef = db.collection(collectionName);
-  const snapshot = await colRef.get();
-  if (snapshot.empty) return;
-  const batch = db.batch();
-  snapshot.docs.forEach((d) => batch.delete(d.ref));
-  await batch.commit();
-  console.log(`  Đã xóa ${snapshot.size} document cũ trong '${collectionName}'`);
-}
-
-async function run() {
-  console.log("Khởi động Reset & Seed Toàn Diện Firestore Database Schema Chuẩn Tiếng Việt...\n");
-
-  for (const col of COLLECTIONS) {
-    await clearCollection(col);
-  }
-
-  console.log("\nNạp dữ liệu mới đầy đủ chuẩn E-V-E Schema (100% Tiếng Việt có dấu)...\n");
+  let totalInserted = 0;
 
   for (const [colName, docs] of Object.entries(SEED_DATA)) {
+    const colRef = db.collection(colName);
+    const batch = db.batch();
+
     for (const item of docs) {
       const { id, ...data } = item;
-      const docRef = db.collection(colName).doc(id);
-      await docRef.set({
-        ...data,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+      const docRef = colRef.doc(id);
+      batch.set(
+        docRef,
+        {
+          id,
+          _id: id,
+          ...data,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
     }
-    console.log(`  '${colName}': ${docs.length} document được tạo thành công`);
+
+    await batch.commit();
+    totalInserted += docs.length;
+    console.log(`  📦 Collection '${colName}': Đã nạp thành công ${docs.length} documents.`);
   }
 
-  console.log("\nRESET & SEED FIRESTORE HOÀN TẤT XUẤT SẮC!");
+  console.log("\n=================================================================");
+  console.log(`✅ NẠP DỮ LIỆU MẪU THÀNH CÔNG! Tổng số document: ${totalInserted}`);
+  console.log("=================================================================");
 }
 
-run().catch((err) => {
-  console.error("Lỗi:", err);
+runFillData().catch((err) => {
+  console.error("❌ Lỗi khi nạp dữ liệu:", err);
   process.exit(1);
 });

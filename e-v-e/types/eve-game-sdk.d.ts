@@ -1,5 +1,5 @@
 /**
- * E-V-E Game Engine SDK TypeScript Definitions (v2.0.0)
+ * E-V-E Game Engine SDK TypeScript Definitions (v2.1.0)
  */
 
 export interface EVEGameCoursePair {
@@ -30,6 +30,7 @@ export interface EVEProgressUpdate {
   progressPercent?: number;
   currentQuestion?: number;
   totalQuestions?: number;
+  playTimeSeconds?: number;
 }
 
 export interface EVEFinishGamePayload {
@@ -50,6 +51,8 @@ export interface EVEFinishGameResult {
     pathId?: string;
     finalScore: number;
     isWin: boolean;
+    accuracyPercent?: number;
+    playTimeSeconds?: number;
     earnedCoins: number;
     courseCompleted: boolean;
     unlockedNextCourse: boolean;
@@ -64,6 +67,7 @@ export interface EVELeaderboardRecord {
   playTime: string;
   accuracy: number;
   date: string;
+  userId?: string;
 }
 
 export interface EVELeaderboardResult {
@@ -89,6 +93,12 @@ export declare class EVEGameSDK {
     apiBase?: string;
   });
 
+  startTimer(): EVEGameSDK;
+  getElapsedTime(): number;
+  pauseTimer(): number;
+  resumeTimer(): EVEGameSDK;
+  resetTimer(): EVEGameSDK;
+
   onDataReady(callback: (data: EVEInitGamePayload) => void): void;
   getCourseData(): EVEInitGamePayload | null;
   initSession(config?: Partial<{ gameId: string; courseId: string; userId: string }>): Promise<EVEInitGamePayload>;
@@ -97,12 +107,14 @@ export declare class EVEGameSDK {
   toggleFullscreen(element?: HTMLElement | null): boolean;
   isFullscreen(): boolean;
   getLeaderboard(params?: { gameId?: string; courseId?: string }): Promise<EVELeaderboardResult>;
-  playSound(type?: "correct" | "wrong" | "win"): void;
+  playSound(type?: "correct" | "wrong" | "win" | "coin"): void;
 }
 
 declare global {
   interface Window {
     EveSDK?: EVEGameSDK;
     EVEGameSDK?: typeof EVEGameSDK;
+    eveSDK?: EVEGameSDK;
+    EVE_SDK?: EVEGameSDK;
   }
 }
