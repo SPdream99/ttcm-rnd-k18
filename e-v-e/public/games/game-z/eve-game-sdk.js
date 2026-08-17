@@ -328,7 +328,8 @@
      * 4. Hoàn thành trò chơi, ghi nhận điểm số, độ chính xác & thời gian chơi
      * Tự động gửi dữ liệu lên máy chủ và Host container để cập nhật Bảng Xếp Hạng ngay lập tức
      */
-    async finishGame({ score = 100, isWin = true, accuracyPercent = 100, playTimeSeconds = null, details = {} }) {
+    async finishGame({ score = 100, isWin = true, accuracyPercent, accuracy, playTimeSeconds = null, details = {} }) {
+      const safeAccuracy = accuracyPercent !== undefined ? Number(accuracyPercent) : (accuracy !== undefined ? Number(accuracy) : 100);
       const actualTime = playTimeSeconds !== null && playTimeSeconds !== undefined
         ? Number(playTimeSeconds)
         : this.getElapsedTime();
@@ -347,7 +348,7 @@
         sessionToken: this.sessionToken,
         score: Number(score) || 0,
         isWin: Boolean(isWin),
-        accuracyPercent: Number(accuracyPercent) || 100,
+        accuracyPercent: safeAccuracy,
         playTimeSeconds: actualTime,
         details,
       };

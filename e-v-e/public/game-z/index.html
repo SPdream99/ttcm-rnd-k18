@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game-Z Space Academy - E-V-E Engine</title>
+  <!-- Nhúng SDK Server -->
+  <script src="/eve-game-sdk.js"></script>
+  <script src="eve-game-sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background: #030712; color: #f9fafb; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 16px; }
+    .game-card { width: 100%; max-width: 820px; background: #111827; border: 2px solid #3b82f6; border-radius: 24px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(59, 130, 246, 0.3); display: flex; flex-direction: column; gap: 20px; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1f2937; padding-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+    .badge { background: #dbeafe; color: #1d4ed8; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; }
+    .question-box { background: #1f2937; border-radius: 16px; padding: 24px; text-align: center; font-size: 18px; font-weight: 700; border: 1px solid #374151; min-height: 100px; display: flex; align-items: center; justify-content: center; }
+    .options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+    .btn-opt { background: #374151; color: #f9fafb; border: 2px solid transparent; border-radius: 14px; padding: 14px 18px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left; }
+    .btn-opt:hover { background: #4b5563; border-color: #3b82f6; transform: scale(1.01); }
+    .btn-opt.correct { background: #065f46; border-color: #10b981; color: #6ee7b7; }
+    .btn-opt.wrong { background: #881337; border-color: #f43f5e; color: #fecdd3; }
+    .btn-primary { background: #2563eb; color: #fff; border: none; border-radius: 14px; padding: 12px 28px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .screen { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; padding: 20px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="game-card">
+    <div class="top-bar">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span class="badge">🚀 GAME-Z SPACE ACADEMY</span>
+        <span id="z-course-title" style="font-size: 13px; color: #9ca3af;">Đang nạp dữ liệu...</span>
+      </div>
+      <div style="font-size: 14px; font-weight: 800;">
+        Điểm Vũ Trụ: <span id="z-score" style="color: #60a5fa;">0</span>
+      </div>
+    </div>
+
+    <div id="z-start" class="screen">
+      <div style="font-size: 64px;">🌌</div>
+      <h1 style="font-size: 24px; font-weight: 900;">TRẠM HỌC TẬP KHÔNG GIAN GAME-Z</h1>
+      <p style="font-size: 13px; color: #9ca3af; max-width: 480px; line-height: 1.6;">
+        Thu thập năng lượng tri thức để đưa phi thuyền E-V-E vượt qua các vành đai thiên thạch của bài học!
+      </p>
+      <button id="btn-z-start" class="btn-primary">KHỞI ĐỘNG PHI THUYỀN</button>
+    </div>
+
+    <div id="z-play" class="hidden" style="display: flex; flex-direction: column; gap: 16px;">
+      <div id="z-question" class="question-box">Câu hỏi...</div>
+      <div id="z-options" class="options-grid"></div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; border-top: 1px solid #1f2937; padding-top: 12px;">
+        <span>Chặng bay: <strong id="z-progress" style="color: #fff;">0/0</strong></span>
+        <span id="z-feedback" style="font-weight: 700;"></span>
+      </div>
+    </div>
+
+    <div id="z-result" class="screen hidden">
+      <div style="font-size: 64px;">🌠</div>
+      <h2 style="font-size: 24px; font-weight: 900;">HOÀN THÀNH CHUYẾN BAY!</h2>
+      <p style="font-size: 13px; color: #9ca3af;">Phi thuyền đã hạ cánh an toàn với dữ liệu bài học đầy đủ.</p>
+      <div style="background: #1f2937; border-radius: 16px; padding: 16px 24px; display: flex; gap: 20px; font-size: 14px;">
+        <div>Tổng Điểm: <strong id="z-final-score" style="color: #60a5fa; font-size: 18px;">0</strong></div>
+        <div>Chính Xác: <strong id="z-final-acc" style="color: #34d399; font-size: 18px;">100%</strong></div>
+      </div>
+      <button id="btn-z-replay" class="btn-primary" style="margin-top: 10px;">BAY LẠI MÀN NÀY</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

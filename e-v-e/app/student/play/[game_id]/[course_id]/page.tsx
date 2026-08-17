@@ -417,22 +417,50 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     loadLeaderboard();
 
     // Lắng nghe sự kiện kết thúc game từ E-V-E Game SDK nhúng qua iframe
-    const handleSdkMessage = (event: MessageEvent) => {
+    const handleSdkMessage = async (event: MessageEvent) => {
       if (!event.data) return;
       if (event.data.type === "EVE_GAME_FINISHED") {
         const p = event.data.payload || {};
-        if (p.score !== undefined) setScore(p.score);
-        if (p.playTimeSeconds !== undefined) setFinalPlayTime(p.playTimeSeconds);
-        if (p.accuracyPercent !== undefined) setFinalAccuracy(p.accuracyPercent);
+        const finishedScore = Number(p.score) || 0;
+        const finishedAccuracy = Number(p.accuracyPercent ?? p.accuracy) || 100;
+        const finishedTime = Number(p.playTimeSeconds) || 30;
+
+        if (p.score !== undefined) setScore(finishedScore);
+        if (p.playTimeSeconds !== undefined) setFinalPlayTime(finishedTime);
+        setFinalAccuracy(finishedAccuracy);
         setIsGameOver(true);
+
+        // Host chủ động ghi kết quả lên server với userId thật của user đang login
+        // để đảm bảo leaderboard cập nhật chính xác (SDK trong iframe có thể không có UID đúng)
+        try {
+          await fetch("/api/games/finish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              gameId,
+              courseId,
+              userId: uid,
+              userName: studentName,
+              score: finishedScore,
+              isWin: true,
+              accuracyPercent: finishedAccuracy,
+              playTimeSeconds: finishedTime,
+              sessionToken: sessionToken,
+            }),
+          });
+        } catch (e) {
+          console.warn("[Host] Ghi kết quả game lỗi:", e);
+        }
+
+        // Reload leaderboard SAU KHI đã ghi DB xong
         loadLeaderboard();
-        setTimeout(loadLeaderboard, 800);
+        setTimeout(loadLeaderboard, 1200);
       }
     };
 
     window.addEventListener("message", handleSdkMessage);
     return () => window.removeEventListener("message", handleSdkMessage);
-  }, [gameId, courseId]);
+  }, [gameId, courseId, uid, studentName, sessionToken]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
