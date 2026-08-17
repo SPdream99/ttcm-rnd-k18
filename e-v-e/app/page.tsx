@@ -212,14 +212,6 @@ export default function Home() {
                 style={{ maxHeight: "240px", width: "auto" }}
               />
             </div>
-
-            {/* Glowing Tech Loader Indicator */}
-            <div className="mt-2 flex items-center gap-2.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-              <span className="text-xs font-mono font-bold tracking-[0.35em] text-red-500 uppercase">
-                SYSTEM BOOT ENGINE
-              </span>
-            </div>
           </div>
         </div>
       )}
