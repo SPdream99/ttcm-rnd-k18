@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/infrastructure/firebase/firebaseAdmin";
 import fs from "fs";
 import path from "path";
+import { scanGameZip } from "@/lib/securityScanner";
 
 export const dynamic = "force-dynamic";
 
@@ -43,9 +44,23 @@ export async function POST(req: NextRequest) {
     const zipFileName = `${gameId}.zip`;
     const zipFilePath = path.join(uploadDir, zipFileName);
 
-    // 2. Ghi file zip lên đĩa máy host
+    // 2. Quét bảo mật toàn diện file zip (Tìm mã độc, cấm file thực thi, chống Zip Slip & lệnh shell nguy hiểm)
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    const scanResult = scanGameZip(buffer);
+
+    if (!scanResult.isSafe) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "security_violation",
+          message: "Tệp game bị từ chối do vi phạm tiêu chuẩn bảo mật hệ thống E-V-E.",
+          violations: scanResult.violations,
+        },
+        { status: 400 }
+      );
+    }
+
     fs.writeFileSync(zipFilePath, buffer);
 
     const fileSizeFormatted = `${(file.size / 1024).toFixed(1)} KB`;

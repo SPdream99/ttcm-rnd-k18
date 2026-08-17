@@ -334,7 +334,11 @@ export default function TeacherUploadCenterPage() {
 
       const resData = await res.json();
       if (!resData.success) {
-        throw new Error(resData.error || "Không thể tải lên game.");
+        if (resData.violations && Array.isArray(resData.violations)) {
+          const detail = resData.violations.slice(0, 3).join("\n• ");
+          throw new Error(`Phát hiện mã độc/lệnh nguy hiểm trong file .zip:\n• ${detail}`);
+        }
+        throw new Error(resData.message || resData.error || "Không thể tải lên game.");
       }
 
       const payload = resData.data;

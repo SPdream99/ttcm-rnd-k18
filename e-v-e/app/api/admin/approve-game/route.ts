@@ -3,6 +3,7 @@ import { adminDb } from "@/infrastructure/firebase/firebaseAdmin";
 import fs from "fs";
 import path from "path";
 import AdmZip from "adm-zip";
+import { scanGameZip } from "@/lib/securityScanner";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,20 @@ export async function POST(req: NextRequest) {
 
     if (fs.existsSync(zipFilePath)) {
       try {
+        // Quét bảo mật lần 2 trước khi giải nén
+        const scanResult = scanGameZip(zipFilePath);
+        if (!scanResult.isSafe) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "security_violation",
+              message: "Không thể phê duyệt: Gói trò chơi chứa mã độc hoặc vi phạm an ninh nghiêm trọng.",
+              violations: scanResult.violations,
+            },
+            { status: 400 }
+          );
+        }
+
         const zip = new AdmZip(zipFilePath);
         zip.extractAllTo(targetExtractDir, true);
 
