@@ -17,7 +17,7 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 |:---|:---|:---:|:---|
 | **Học sinh (Student)** | `dat@gmail.com` | `123456` | Xem lộ trình, mở khóa chặng tuần tự, hỏi AI Tutor, chơi Memory Match nạp Extra Data, đổi quà cửa hàng |
 | **Giảng viên (Teacher)** | `dat1@gmail.com` | `123456` | Quản lý lớp học, tạo & chấm bài tập, tải lên bài giảng, kiểm duyệt minigame |
-| **Quản trị viên (Admin)** | `dat2@gmail.com` | `123456` | Quản lý người dùng, duyệt game engine và lộ trình học tập toàn hệ thống |
+| **Quản trị viên (Admin)** | `dat2@gmail.com` | `123456` | Quản lý người dùng, duyệt game engine và lộ trình học tập toàn hệ thống, tìm kiếm nội dung kiểm duyệt |
 
 > **Ghi chú:** Dự án được thiết lập chế độ bảo mật xác thực OTP 2FA mặc định qua Firebase Authentication.
 
@@ -55,6 +55,16 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 - **Theo dõi tiến độ học tập**: Đo lường phần trăm hoàn thành chặng học, điểm danh, bảng xếp hạng lớp học.
 - **Giao bài & Chấm bài**: Học sinh nộp bài trực tuyến, giáo viên chấm điểm và nhận xét chi tiết.
 - **Cửa Hàng Đổi Quà Gamification**: Tích lũy E-V-E Coins qua việc hoàn thành bài học và minigame để đổi các vật phẩm độc quyền.
+
+### 5. Trung Tâm Kiểm Duyệt & Audit Nội Dung (Admin Approval Center)
+- **Quy tắc hiển thị một chiều (One-way Visibility Rule)**: Chỉ nội dung được Admin phê duyệt mới hiển thị công khai. Lộ trình đã duyệt nhưng chứa khóa học chưa duyệt sẽ tự động bị ẩn.
+- **Tìm kiếm & Lọc nội dung kiểm duyệt**: Thanh tìm kiếm real-time hỗ trợ lọc khóa học, lộ trình và game engine theo tên, mã ID, mô tả hoặc tác giả.
+- **Kiểm duyệt ba loại nội dung**: Duyệt / từ chối / xóa vĩnh viễn khóa học, lộ trình học tập và game engine với xác nhận hành động hai bước.
+
+### 6. Giao Diện & Trải Nghiệm Người Dùng (UX/UI)
+- **Màn hình khởi động (Splash Screen)**: Landing Page hiển thị logo thương hiệu toàn màn hình với hiệu ứng chớp sáng và mờ dần trước khi vào nội dung chính.
+- **Nhận diện thương hiệu thống nhất**: Logo E-V-E được gắn tại thanh điều hướng, sidebar, trang đăng nhập và footer với tỷ lệ co giãn phù hợp từng ngữ cảnh.
+- **Hiển thị vai trò trực quan**: Sidebar hiển thị vai trò người dùng (Học Viên / Giáo Viên / Quản Trị Viên) ngay dưới tên tài khoản thay vì địa chỉ email.
 
 ---
 

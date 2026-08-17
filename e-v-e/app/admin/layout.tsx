@@ -157,16 +157,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="hidden md:flex w-64 h-screen bg-white border-r-2 border-zinc-200 p-5 flex-col justify-between z-40 sticky top-0 shrink-0 overflow-y-auto shadow-sm">
         <div className="space-y-6">
           {/* Brand Header */}
-          <Link href="/admin/dashboard" className="flex items-center gap-2 px-1">
+          <Link href="/admin/dashboard" className="block px-1">
             <img
               src="/logo.png"
               alt="E-V-E"
-              className="h-8.5 w-auto object-contain block"
-              style={{ height: "34px", width: "auto" }}
+              className="w-full max-w-[180px] h-auto object-contain block"
             />
-            <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-red-100 text-red-700 uppercase">
-              QUẢN TRỊ
-            </span>
           </Link>
 
           {/* Admin Profile Info */}
@@ -176,7 +172,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <div className="min-w-0">
               <div className="text-xs font-bold text-zinc-900 truncate" suppressHydrationWarning>{displayName}</div>
-              <div className="text-[10px] text-zinc-500 truncate" suppressHydrationWarning>{displayEmail}</div>
+              <div className="text-[10px] text-zinc-500 uppercase font-medium">Quản Trị Viên</div>
             </div>
           </div>
 

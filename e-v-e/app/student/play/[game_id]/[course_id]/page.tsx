@@ -416,9 +416,47 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   useEffect(() => {
     loadLeaderboard();
 
-    // Lắng nghe sự kiện kết thúc game từ E-V-E Game SDK nhúng qua iframe
+    // Lắng nghe sự kiện từ E-V-E Game SDK nhúng qua iframe
     const handleSdkMessage = async (event: MessageEvent) => {
       if (!event.data) return;
+
+      // 1. Khi SDK trong iframe báo cáo đã sẵn sàng -> Gửi ngay dữ liệu bài học
+      if (event.data.type === "EVE_SDK_READY") {
+        if (iframeRef.current && iframeRef.current.contentWindow) {
+          const initPayload = {
+            gameId,
+            courseId,
+            courseTitle,
+            pairs,
+            sessionToken,
+            userId: uid,
+            userName: studentName,
+          };
+          iframeRef.current.contentWindow.postMessage(
+            { type: "EVE_INIT_GAME_DATA", payload: initPayload },
+            "*"
+          );
+          iframeRef.current.contentWindow.postMessage(
+            { type: "EVE_INIT_DATA", payload: initPayload },
+            "*"
+          );
+        }
+      }
+
+      // 2. Khi SDK trong iframe báo cáo tiến độ chơi (Live Progress)
+      if (event.data.type === "EVE_GAME_PROGRESS") {
+        const p = event.data.payload || {};
+        if (p.score !== undefined) {
+          setScore(Number(p.score) || 0);
+          scoreRef.current = Number(p.score) || 0;
+        }
+        if (p.currentStreak !== undefined) {
+          setStreak(Number(p.currentStreak) || 0);
+          streakRef.current = Number(p.currentStreak) || 0;
+        }
+      }
+
+      // 3. Khi SDK trong iframe kết thúc game (Game Finished)
       if (event.data.type === "EVE_GAME_FINISHED") {
         const p = event.data.payload || {};
         const finishedScore = Number(p.score) || 0;
@@ -442,7 +480,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
               userId: uid,
               userName: studentName,
               score: finishedScore,
-              isWin: true,
+              isWin: Boolean(p.isWin !== false),
               accuracyPercent: finishedAccuracy,
               playTimeSeconds: finishedTime,
               sessionToken: sessionToken,
@@ -460,7 +498,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
     window.addEventListener("message", handleSdkMessage);
     return () => window.removeEventListener("message", handleSdkMessage);
-  }, [gameId, courseId, uid, studentName, sessionToken]);
+  }, [gameId, courseId, courseTitle, pairs, uid, studentName, sessionToken]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
