@@ -44,7 +44,7 @@ const ROUTE_DESCRIPTIONS: Record<string, { name: string; activity: string }> = {
   },
   "/student/profile": {
     name: "Hồ Sơ Cá Nhân & Cài Đặt AI Key",
-    activity: "Đang tùy chỉnh hồ sơ học sinh, quản lý mã hóa khóa Gemini API Key và thiết lập xác thực 2FA.",
+    activity: "Đang tùy chỉnh hồ sơ học sinh và quản lý mã hóa khóa Gemini API Key.",
   },
 
   // ── Teacher Routes ──

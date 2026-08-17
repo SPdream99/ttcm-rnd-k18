@@ -17,9 +17,7 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 |:---|:---|:---:|:---|
 | **Học sinh (Student)** | `dat@gmail.com` | `123456` | Xem lộ trình, mở khóa chặng tuần tự, hỏi AI Tutor, chơi Memory Match nạp Extra Data, đổi quà cửa hàng |
 | **Giảng viên (Teacher)** | `dat1@gmail.com` | `123456` | Quản lý lớp học, tạo & chấm bài tập, tải lên bài giảng, kiểm duyệt minigame |
-| **Quản trị viên (Admin)** | `dat2@gmail.com` | `123456` | Quản lý người dùng, duyệt game engine và lộ trình học tập toàn hệ thống |
-
-> **Ghi chú:** Dự án được thiết lập chế độ bảo mật xác thực OTP 2FA mặc định qua Firebase Authentication.
+| **Quản trị viên (Admin)** | `dat2@gmail.com` | `123456` | Quản lý người dùng, duyệt game engine và lộ trình học tập toàn hệ thống, tìm kiếm nội dung kiểm duyệt |
 
 ---
 
@@ -27,7 +25,7 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 
 | STT | Họ và Tên | Vai trò | Phụ trách chính |
 |:---:|:---|:---:|:---|
-| 1 | **Nguyễn Nhật Anh** | Trưởng nhóm | System Architecture, Backend API, Game SDK, AI Tutor & Gemini Integration, Security & 2FA |
+| 1 | **Nguyễn Nhật Anh** | Trưởng nhóm | System Architecture, Backend API, Game SDK, AI Tutor & Gemini Integration, Security System |
 | 2 | **Nguyễn Thành Đạt** | Thành viên | Giao diện Class & Sequential Learning Path Map, Memory Matching Game Engine, Dashboard |
 | 3 | **Đàm Tuấn Nhiên** | Thành viên | Giao diện Landing Page, quản lý tài nguyên số, tổng hợp tài liệu báo cáo & Demo |
 
@@ -56,13 +54,23 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 - **Giao bài & Chấm bài**: Học sinh nộp bài trực tuyến, giáo viên chấm điểm và nhận xét chi tiết.
 - **Cửa Hàng Đổi Quà Gamification**: Tích lũy E-V-E Coins qua việc hoàn thành bài học và minigame để đổi các vật phẩm độc quyền.
 
+### 5. Trung Tâm Kiểm Duyệt & Audit Nội Dung (Admin Approval Center)
+- **Quy tắc hiển thị một chiều (One-way Visibility Rule)**: Chỉ nội dung được Admin phê duyệt mới hiển thị công khai. Lộ trình đã duyệt nhưng chứa khóa học chưa duyệt sẽ tự động bị ẩn.
+- **Tìm kiếm & Lọc nội dung kiểm duyệt**: Thanh tìm kiếm real-time hỗ trợ lọc khóa học, lộ trình và game engine theo tên, mã ID, mô tả hoặc tác giả.
+- **Kiểm duyệt ba loại nội dung**: Duyệt / từ chối / xóa vĩnh viễn khóa học, lộ trình học tập và game engine với xác nhận hành động hai bước.
+
+### 6. Giao Diện & Trải Nghiệm Người Dùng (UX/UI)
+- **Màn hình khởi động (Splash Screen)**: Landing Page hiển thị logo thương hiệu toàn màn hình với hiệu ứng chớp sáng và mờ dần trước khi vào nội dung chính.
+- **Nhận diện thương hiệu thống nhất**: Logo E-V-E được gắn tại thanh điều hướng, sidebar, trang đăng nhập và footer với tỷ lệ co giãn phù hợp từng ngữ cảnh.
+- **Hiển thị vai trò trực quan**: Sidebar hiển thị vai trò người dùng (Học Viên / Giáo Viên / Quản Trị Viên) ngay dưới tên tài khoản thay vì địa chỉ email.
+
 ---
 
 ## Công Nghệ Sử Dụng (Tech Stack)
 
 - **Frontend:** Next.js 16 (App Router & Turbopack), React 19, TypeScript, Tailwind CSS, Lucide Icons, Framer Motion
 - **Backend & API:** Next.js Route Handlers, Clean Architecture (Entities, Ports, Adapters)
-- **Cơ Sở Dữ Liệu & Auth:** Firebase Cloud Firestore, Firebase Authentication (2FA OTP), Firebase Admin SDK
+- **Cơ Sở Dữ Liệu & Auth:** Firebase Cloud Firestore, Firebase Authentication, Firebase Admin SDK
 - **Trí Tuệ Nhân Tạo:** Google Generative AI (Gemini 1.5 Pro / Flash), OpenAI GPT-4o-mini
 - **Game Engine & SDK:** HTML5 Canvas, Web Audio API, E-V-E Game Bridge Protocol
 
@@ -129,7 +137,7 @@ Mở trình duyệt và truy cập: `http://localhost:3000`
 ```text
 e-v-e/
 ├── app/                  # Next.js App Router (Giao diện & API Routes)
-│   ├── (auth)/           # Đăng nhập, đăng ký, xác thực 2FA
+│   ├── (auth)/           # Đăng nhập, đăng ký, quản lý phiên
 │   ├── admin/            # Trang quản trị dành cho Admin
 │   ├── api/              # API endpoints (AI Tutor, Game SDK Init & Finish, Class...)
 │   ├── student/          # Dashboard, bản đồ chặng, lớp học, phòng chơi game, hồ sơ học sinh
@@ -164,6 +172,6 @@ Dành cho mục đích học tập, nghiên cứu khoa học và báo cáo đồ
 
 > [!NOTE]
 > **Dự án được phát triển với sự hỗ trợ và đóng góp của Trí Tuệ Nhân Tạo (AI)**:
-> - **Trợ lý lập trình & Tối ưu kiến trúc (AI Pair Programming)**: Thiết kế kiến trúc Clean Architecture, chuẩn hóa TypeScript, phát triển Next.js 16 Route Handlers, hệ thống phân quyền 3 lớp và cơ chế bảo mật xác thực OTP 2FA.
+> - **Trợ lý lập trình & Tối ưu kiến trúc (AI Pair Programming)**: Thiết kế kiến trúc Clean Architecture, chuẩn hóa TypeScript, phát triển Next.js 16 Route Handlers, hệ thống phân quyền 3 lớp và cơ chế bảo mật xác thực.
 > - **Tích hợp Google Gemini AI**: Tích hợp các mô hình ngôn ngữ lớn (LLM) để xây dựng hệ thống Gia sư sư phạm ảo (AI Tutor) 24/7 và Trợ lý soạn giáo án cho giáo viên.
 > - **Tối ưu trải nghiệm tương tác & Gamification**: Xây dựng bản đồ cây kỹ năng tuần tự, giao thức E-V-E Game SDK Preload Extra Data và kiểm duyệt gian lận tự động.

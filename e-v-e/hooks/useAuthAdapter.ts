@@ -23,24 +23,27 @@ export function useAuthAdapter(userId?: string, customRepo?: AuthPort) {
   const updateProfileUseCase = useMemo(() => new UpdateUserProfileUseCase(authRepo), [authRepo]);
 
   useEffect(() => {
-    // 1. First populate immediately from cookie on client mount
+    // 1. First check immediately for login cookie on client mount
     const cached = getAuthCookie();
-    if (cached) {
-      setCurrentUser({
-        id: cached.uid || cached.id || "",
-        uid: cached.uid || cached.id || "",
-        email: cached.email,
-        name: cached.name || cached.fullName || "User",
-        displayName: cached.name || cached.fullName || "User",
-        role: cached.role,
-        status: (cached.status as "pending" | "active" | "banned") || "active",
-        coins: cached.coins || 0,
-        profileDecorations: cached.profileDecorations || [],
-        activeDecorations: cached.activeDecorations || {},
-      });
+    if (!cached) {
+      setCurrentUser(null);
+      return;
     }
 
-    // 2. Fetch fresh user data from Firebase / repository
+    setCurrentUser({
+      id: cached.uid || cached.id || "",
+      uid: cached.uid || cached.id || "",
+      email: cached.email,
+      name: cached.name || cached.fullName || "User",
+      displayName: cached.name || cached.fullName || "User",
+      role: cached.role,
+      status: (cached.status as "pending" | "active" | "banned") || "active",
+      coins: cached.coins || 0,
+      profileDecorations: cached.profileDecorations || [],
+      activeDecorations: cached.activeDecorations || {},
+    });
+
+    // 2. Fetch fresh user data from Firebase / repository only when cookie is active
     authRepo
       .getCurrentUser()
       .then((user) => {

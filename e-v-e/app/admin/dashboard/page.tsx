@@ -179,7 +179,7 @@ export default function AdminDashboardPage() {
     const tName = teacher.name || teacher.fullName || teacher.email;
     setConfirmPrompt({
       title: "Xác Nhận Duyệt Giáo Viên",
-      description: `Phê duyệt tài khoản "${tName}" thành Giáo viên chính thức?`,
+      description: `Phê duyệt tài khoản giảng dạy cho "${tName}"?`,
       confirmText: "Duyệt Ngay",
       variant: "emerald",
       onConfirm: () => {

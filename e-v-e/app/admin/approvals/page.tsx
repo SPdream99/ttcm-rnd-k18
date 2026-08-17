@@ -6,6 +6,7 @@ import {
   BookOpen,
   Gamepad2,
   Download,
+  Search,
   CheckCircle,
   XCircle,
   Eye,
@@ -58,6 +59,7 @@ export default function AdminApprovalsPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedPath, setSelectedPath] = useState<LearningPathApprovalItem | null>(null);
   const [confirmPrompt, setConfirmPrompt] = useState<ConfirmModalData | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Map of course approval statuses for easy lookup
   const courseMap = new Map<string, { id: string; title: string; isAccepted: boolean }>();
@@ -446,6 +448,26 @@ export default function AdminApprovalsPage() {
         </button>
       </div>
 
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={`Tìm kiếm ${activeTab === "courses" ? "khóa học" : activeTab === "paths" ? "lộ trình" : "game"}... (tên, mã, mô tả, tác giả)`}
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
       {/* TAB 1: COURSES APPROVAL */}
       {activeTab === "courses" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -456,7 +478,17 @@ export default function AdminApprovalsPage() {
                 Hiện không có khóa học nào trong hệ thống.
               </div>
             ) : (
-              courses.map((course) => {
+              courses.filter((course) => {
+                if (!searchQuery.trim()) return true;
+                const q = searchQuery.toLowerCase();
+                return (
+                  course.title?.toLowerCase().includes(q) ||
+                  course.id?.toLowerCase().includes(q) ||
+                  course.description?.toLowerCase().includes(q) ||
+                  (course as any).authorName?.toLowerCase().includes(q) ||
+                  (course as any).authorId?.toLowerCase().includes(q)
+                );
+              }).map((course) => {
                 const cAny = course as any;
                 const pairs = Array.isArray(cAny.contentData)
                   ? cAny.contentData
@@ -604,7 +636,17 @@ export default function AdminApprovalsPage() {
                 Hiện không có lộ trình học tập nào trong hệ thống.
               </div>
             ) : (
-              paths.map((path) => {
+              paths.filter((path) => {
+                if (!searchQuery.trim()) return true;
+                const q = searchQuery.toLowerCase();
+                return (
+                  path.title?.toLowerCase().includes(q) ||
+                  path.id?.toLowerCase().includes(q) ||
+                  path.description?.toLowerCase().includes(q) ||
+                  path.authorName?.toLowerCase().includes(q) ||
+                  path.authorId?.toLowerCase().includes(q)
+                );
+              }).map((path) => {
                 const pathCourses = path.courses.map((cId) => ({
                   id: cId,
                   title: courseMap.get(cId)?.title || cId,
@@ -796,7 +838,16 @@ export default function AdminApprovalsPage() {
               Hiện không có Game nào cần duyệt.
             </div>
           ) : (
-            games.map((game, idx) => (
+            games.filter((game) => {
+              if (!searchQuery.trim()) return true;
+              const q = searchQuery.toLowerCase();
+              return (
+                game.title?.toLowerCase().includes(q) ||
+                game.id?.toLowerCase().includes(q) ||
+                game.description?.toLowerCase().includes(q) ||
+                (game as any).authorName?.toLowerCase().includes(q)
+              );
+            }).map((game, idx) => (
               <div
                 key={`${game.id || game.gameId || idx}_${idx}`}
                 className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4"

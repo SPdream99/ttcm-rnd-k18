@@ -102,11 +102,16 @@ export default function RegisterPage() {
       <div className="w-full max-w-lg space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-red-600 text-white font-black text-xl shadow-md mx-auto">
-            E
-          </div>
+          <Link href="/" className="inline-flex items-center justify-center mb-1">
+            <img
+              src="/logo.png"
+              alt="E-V-E"
+              className="h-12 md:h-14 w-auto object-contain drop-shadow-xs mx-auto block"
+              style={{ height: "48px", width: "auto" }}
+            />
+          </Link>
           <h1 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight">
-            Tạo Tài Khoản E-V-E Mới
+            Tạo Tài Khoản Mới
           </h1>
           <p className="text-xs md:text-sm text-zinc-500 max-w-sm mx-auto">
             Nền tảng học tập & giảng dạy 3D Gamification tương tác cao.

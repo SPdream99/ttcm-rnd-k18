@@ -118,38 +118,55 @@ export async function POST(req: NextRequest) {
           entryHtmlPath = detectedHtml;
         }
 
-        // BẮT BUỘC: Luôn ghi đè file eve-game-sdk.js bằng file SDK chính chủ của server
+        // BẮT BUỘC: Đảm bảo file eve-game-sdk.js chính chủ được sao chép vào TẤT CẢ các thư mục con trong game
         const sdkSource = path.join(process.cwd(), "public", "eve-game-sdk.js");
-        const sdkDest = path.join(targetExtractDir, "eve-game-sdk.js");
         if (fs.existsSync(sdkSource)) {
-          fs.copyFileSync(sdkSource, sdkDest);
-        }
-
-        // Nếu index.html nằm ở thư mục con, cũng ghi đè SDK vào thư mục con đó
-        if (entryHtmlPath.includes("/")) {
-          const subDir = path.join(targetExtractDir, path.dirname(entryHtmlPath));
-          const subSdkDest = path.join(subDir, "eve-game-sdk.js");
-          if (fs.existsSync(sdkSource)) {
-            fs.copyFileSync(sdkSource, subSdkDest);
-          }
-        }
-
-        // Tự động kiểm tra và chèn thẻ nạp SDK chuẩn của server vào file index.html nếu chưa có
-        const fullIndexPath = path.join(targetExtractDir, entryHtmlPath);
-        if (fs.existsSync(fullIndexPath)) {
-          let htmlContent = fs.readFileSync(fullIndexPath, "utf8");
-          // Xóa các thẻ nhúng sdk cũ không chuẩn (nếu có)
-          if (!htmlContent.includes("eve-game-sdk.js") && !htmlContent.includes("/eve-game-sdk.js")) {
-            if (htmlContent.includes("<head>")) {
-              htmlContent = htmlContent.replace("<head>", '<head>\n  <script src="/eve-game-sdk.js"></script>');
-            } else if (htmlContent.includes("<body>")) {
-              htmlContent = htmlContent.replace("<body>", '<body>\n  <script src="/eve-game-sdk.js"></script>');
-            } else {
-              htmlContent = '<script src="/eve-game-sdk.js"></script>\n' + htmlContent;
+          const copySdkRecursively = (currentDir: string) => {
+            const destSdk = path.join(currentDir, "eve-game-sdk.js");
+            try {
+              fs.copyFileSync(sdkSource, destSdk);
+            } catch {}
+            const items = fs.readdirSync(currentDir);
+            for (const item of items) {
+              const fullItemPath = path.join(currentDir, item);
+              if (fs.statSync(fullItemPath).isDirectory()) {
+                copySdkRecursively(fullItemPath);
+              }
             }
-            fs.writeFileSync(fullIndexPath, htmlContent, "utf8");
-          }
+          };
+          copySdkRecursively(targetExtractDir);
         }
+
+        // Tự động kiểm tra và chèn thẻ nạp SDK chuẩn của server vào VỊ TRÍ ĐẦU TIÊN của mọi file .html trong game
+        const injectSdkIntoHtmlFiles = (currentDir: string) => {
+          const items = fs.readdirSync(currentDir);
+          for (const item of items) {
+            const fullItemPath = path.join(currentDir, item);
+            if (fs.statSync(fullItemPath).isDirectory()) {
+              injectSdkIntoHtmlFiles(fullItemPath);
+            } else if (item.toLowerCase().endsWith(".html") || item.toLowerCase().endsWith(".htm")) {
+              try {
+                let htmlContent = fs.readFileSync(fullItemPath, "utf8");
+                const sdkTag = '<script src="/eve-game-sdk.js"></script>';
+
+                // Nếu chưa có nhúng SDK chuẩn
+                if (!htmlContent.includes("eve-game-sdk.js") && !htmlContent.includes("/eve-game-sdk.js")) {
+                  if (htmlContent.includes("<head>")) {
+                    htmlContent = htmlContent.replace("<head>", `<head>\n  ${sdkTag}`);
+                  } else if (htmlContent.includes("<body>")) {
+                    htmlContent = htmlContent.replace("<body>", `<body>\n  ${sdkTag}`);
+                  } else {
+                    htmlContent = `${sdkTag}\n` + htmlContent;
+                  }
+                  fs.writeFileSync(fullItemPath, htmlContent, "utf8");
+                }
+              } catch (e) {
+                console.warn("Lỗi khi inject SDK vào HTML:", fullItemPath, e);
+              }
+            }
+          }
+        };
+        injectSdkIntoHtmlFiles(targetExtractDir);
       } catch (zipErr) {
         console.error("Lỗi khi giải nén tệp zip game:", zipErr);
       }

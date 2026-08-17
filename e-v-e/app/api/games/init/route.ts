@@ -170,193 +170,207 @@ const FALLBACK_PAIRS: Record<string, any> = {
 };
 
 
+async function handleInitGame(gameId?: string, courseId?: string, userId?: string) {
+  if (!courseId) {
+    return NextResponse.json(
+      { success: false, error: "Missing courseId parameter" },
+      { status: 400 }
+    );
+  }
+
+  let title = "Khóa Học E-V-E";
+  let pairs = [];
+
+  let userRole = "student";
+  try {
+    const cDoc = await adminDb.collection("courses").doc(courseId).get();
+    if (cDoc.exists) {
+      const cData = cDoc.data()!;
+      const isCourseAccepted = Boolean(cData.isAccepted ?? cData.is_accepted ?? false);
+
+      // Xác định role của người dùng
+      if (userId && userId !== "anonymous") {
+        try {
+          const uDoc = await adminDb.collection("users").doc(userId).get();
+          userRole = uDoc.exists ? uDoc.data()?.role || "student" : "student";
+        } catch {}
+      }
+
+      // Chỉ Admin mới có quyền xem trước khóa học chưa duyệt
+      if (!isCourseAccepted && userRole !== "admin") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "not_approved",
+            message: "Khóa học này chưa được Admin duyệt hoặc đã bị hủy duyệt. Bạn không thể sử dụng khóa học này trong trò chơi.",
+          },
+          { status: 403 }
+        );
+      }
+
+      title = cData.title || title;
+      if (Array.isArray(cData.pairs) && cData.pairs.length > 0) {
+        pairs = cData.pairs;
+      } else if (Array.isArray(cData.contentData) && cData.contentData.length > 0) {
+        pairs = cData.contentData;
+      } else {
+        pairs =
+          cData.contentData?.pairs ||
+          cData.content_data?.pairs ||
+          [];
+      }
+    } else {
+      // Course không tồn tại trong DB
+      if (userRole !== "admin") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "not_approved",
+            message: "Khóa học không tồn tại hoặc chưa được duyệt.",
+          },
+          { status: 404 }
+        );
+      }
+    }
+  } catch {
+    // Fallback
+  }
+
+  // Kiểm tra học sinh có đang học hoặc đã tham gia lộ trình CHỨA courseId này và lộ trình đó PHẢI ĐƯỢC DUYỆT (Admin & Giáo viên được miễn)
+  if (userId && userId !== "anonymous" && userRole !== "admin" && userRole !== "teacher" && userRole !== "instructor") {
+    try {
+      const enrollmentsSnap = await adminDb
+        .collection("student_learning_path")
+        .where("student_id", "==", userId)
+        .get();
+
+      // Lấy danh sách tất cả các courses đã được duyệt để kiểm tra ràng buộc 1 chiều của Learning Path
+      const allCoursesSnap = await adminDb.collection("courses").get();
+      const approvedCourseSet = new Set<string>();
+      allCoursesSnap.docs.forEach((docSnap) => {
+        const cd = docSnap.data();
+        if (cd.isAccepted ?? cd.is_accepted) {
+          approvedCourseSet.add(docSnap.id);
+        }
+      });
+
+      let hasEnrolledAndApprovedPath = false;
+      let isPaused = false;
+
+      for (const enDoc of enrollmentsSnap.docs) {
+        const enData = enDoc.data();
+        const lpDoc = await adminDb.collection("learning_path").doc(enData.learning_path_id).get();
+        if (lpDoc.exists) {
+          const lpData = lpDoc.data()!;
+          const isPathApproved = Boolean(lpData.isAccepted ?? lpData.is_accepted ?? false);
+          const lpCourses: string[] = Array.isArray(lpData.courses) ? lpData.courses : [];
+          const allSubCoursesApproved = lpCourses.length > 0 && lpCourses.every((cId) => approvedCourseSet.has(cId));
+
+          // Lộ trình phải được duyệt VÀ toàn bộ khóa học con phải được duyệt
+          if (isPathApproved && allSubCoursesApproved && lpCourses.includes(courseId)) {
+            if (enData.status === "paused") {
+              isPaused = true;
+            } else {
+              hasEnrolledAndApprovedPath = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (isPaused && !hasEnrolledAndApprovedPath) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "paused",
+            message: "Lớp học chứa bài học này đang ở trạng thái TẠM DỪNG (BẢO LƯU). Bạn cần kích hoạt lại lớp học để tiếp tục chơi.",
+          },
+          { status: 403 }
+        );
+      }
+
+      if (!hasEnrolledAndApprovedPath) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "not_enrolled_or_unapproved",
+            message: "Lộ trình hoặc bài học này chưa được phê duyệt (hoặc đã bị hủy duyệt). Bạn không thể sử dụng trong trò chơi.",
+          },
+          { status: 403 }
+        );
+      }
+    } catch (authCheckErr) {
+      console.warn("Authorization check warning in init route:", authCheckErr);
+    }
+  }
+
+  if (!pairs || pairs.length === 0) {
+    if (FALLBACK_PAIRS[courseId]) {
+      const fb = FALLBACK_PAIRS[courseId];
+      title = fb.title;
+      pairs = fb.pairs;
+    }
+  }
+
+  // Nếu trò chơi cần extra data mà dữ liệu pairs hoàn toàn rỗng -> Báo lỗi không load được game
+  if (!pairs || pairs.length === 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "empty_extra_data",
+        message: "Khóa học này chưa có dữ liệu câu hỏi / học liệu (Extra Data trống). Không thể khởi chạy trò chơi!",
+      },
+      { status: 400 }
+    );
+  }
+
+  // Generate Anti-Cheat signed session token
+  const memoryMatchMax = pairs.length * 35 + 5 * 15 + 100;
+  const quizMax = pairs.length * 50;
+  const maxScore = Math.ceil(Math.max(memoryMatchMax, quizMax) * 1.2);
+  const { sessionToken, sessionId } = generateGameSessionToken({
+    gameId: gameId || "eve_game_engine",
+    courseId,
+    userId: userId || "anonymous",
+    maxScore,
+    minPlayTimeSeconds: 5,
+  });
+
+  return NextResponse.json({
+    success: true,
+    gameId: gameId || "eve_game_engine",
+    courseId,
+    courseTitle: title,
+    totalPairs: pairs.length,
+    pairs,
+    targetScore: 100,
+    maxScore,
+    sessionToken,
+    sessionId,
+    protocol: "EVE_GAME_V2_SECURE",
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { gameId, courseId, userId } = body;
+    return await handleInitGame(gameId, courseId, userId);
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message || "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
 
-    if (!courseId) {
-      return NextResponse.json(
-        { success: false, error: "Missing courseId parameter" },
-        { status: 400 }
-      );
-    }
-
-    let title = "Khóa Học E-V-E";
-    let pairs = [];
-
-    let userRole = "student";
-    try {
-      const cDoc = await adminDb.collection("courses").doc(courseId).get();
-      if (cDoc.exists) {
-        const cData = cDoc.data()!;
-        const isCourseAccepted = Boolean(cData.isAccepted ?? cData.is_accepted ?? false);
-
-        // Xác định role của người dùng
-        if (userId && userId !== "anonymous") {
-          try {
-            const uDoc = await adminDb.collection("users").doc(userId).get();
-            userRole = uDoc.exists ? uDoc.data()?.role || "student" : "student";
-          } catch {}
-        }
-
-        // Chỉ Admin mới có quyền xem trước khóa học chưa duyệt
-        if (!isCourseAccepted && userRole !== "admin") {
-          return NextResponse.json(
-            {
-              success: false,
-              error: "not_approved",
-              message: "Khóa học này chưa được Admin duyệt hoặc đã bị hủy duyệt. Bạn không thể sử dụng khóa học này trong trò chơi.",
-            },
-            { status: 403 }
-          );
-        }
-
-        title = cData.title || title;
-        if (Array.isArray(cData.pairs) && cData.pairs.length > 0) {
-          pairs = cData.pairs;
-        } else if (Array.isArray(cData.contentData) && cData.contentData.length > 0) {
-          pairs = cData.contentData;
-        } else {
-          pairs =
-            cData.contentData?.pairs ||
-            cData.content_data?.pairs ||
-            [];
-        }
-      } else {
-        // Course không tồn tại trong DB
-        if (userRole !== "admin") {
-          return NextResponse.json(
-            {
-              success: false,
-              error: "not_approved",
-              message: "Khóa học không tồn tại hoặc chưa được duyệt.",
-            },
-            { status: 404 }
-          );
-        }
-      }
-    } catch {
-      // Fallback
-    }
-
-    // Kiểm tra học sinh có đang học hoặc đã tham gia lộ trình CHỨA courseId này và lộ trình đó PHẢI ĐƯỢC DUYỆT (Admin & Giáo viên được miễn)
-    if (userId && userId !== "anonymous" && userRole !== "admin" && userRole !== "teacher" && userRole !== "instructor") {
-      try {
-        const enrollmentsSnap = await adminDb
-          .collection("student_learning_path")
-          .where("student_id", "==", userId)
-          .get();
-
-        // Lấy danh sách tất cả các courses đã được duyệt để kiểm tra ràng buộc 1 chiều của Learning Path
-        const allCoursesSnap = await adminDb.collection("courses").get();
-        const approvedCourseSet = new Set<string>();
-        allCoursesSnap.docs.forEach((docSnap) => {
-          const cd = docSnap.data();
-          if (cd.isAccepted ?? cd.is_accepted) {
-            approvedCourseSet.add(docSnap.id);
-          }
-        });
-
-        let hasEnrolledAndApprovedPath = false;
-        let isPaused = false;
-
-        for (const enDoc of enrollmentsSnap.docs) {
-          const enData = enDoc.data();
-          const lpDoc = await adminDb.collection("learning_path").doc(enData.learning_path_id).get();
-          if (lpDoc.exists) {
-            const lpData = lpDoc.data()!;
-            const isPathApproved = Boolean(lpData.isAccepted ?? lpData.is_accepted ?? false);
-            const lpCourses: string[] = Array.isArray(lpData.courses) ? lpData.courses : [];
-            const allSubCoursesApproved = lpCourses.length > 0 && lpCourses.every((cId) => approvedCourseSet.has(cId));
-
-            // Lộ trình phải được duyệt VÀ toàn bộ khóa học con phải được duyệt
-            if (isPathApproved && allSubCoursesApproved && lpCourses.includes(courseId)) {
-              if (enData.status === "paused") {
-                isPaused = true;
-              } else {
-                hasEnrolledAndApprovedPath = true;
-                break;
-              }
-            }
-          }
-        }
-
-        if (isPaused && !hasEnrolledAndApprovedPath) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: "paused",
-              message: "Lớp học chứa bài học này đang ở trạng thái TẠM DỪNG (BẢO LƯU). Bạn cần kích hoạt lại lớp học để tiếp tục chơi.",
-            },
-            { status: 403 }
-          );
-        }
-
-        if (!hasEnrolledAndApprovedPath) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: "not_enrolled_or_unapproved",
-              message: "Lộ trình hoặc bài học này chưa được phê duyệt (hoặc đã bị hủy duyệt). Bạn không thể sử dụng trong trò chơi.",
-            },
-            { status: 403 }
-          );
-        }
-      } catch (authCheckErr) {
-        console.warn("Authorization check warning in init route:", authCheckErr);
-      }
-    }
-
-    if (!pairs || pairs.length === 0) {
-      if (FALLBACK_PAIRS[courseId]) {
-        const fb = FALLBACK_PAIRS[courseId];
-        title = fb.title;
-        pairs = fb.pairs;
-      }
-    }
-
-    // Nếu trò chơi cần extra data mà dữ liệu pairs hoàn toàn rỗng -> Báo lỗi không load được game
-    if (!pairs || pairs.length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "empty_extra_data",
-          message: "Khóa học này chưa có dữ liệu câu hỏi / học liệu (Extra Data trống). Không thể khởi chạy trò chơi!",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Generate Anti-Cheat signed session token
-    // maxScore must cover the highest possible legitimate score for each game mode:
-    // - Memory Match: pairs×35 (match pts) + 5×15 (full lives bonus) + 100 (time bonus) = pairs×35 + 175
-    // - Quiz/Boss: pairs×50 (max 30 + streak bonus up to 20) = pairs×50
-    // Add 20% buffer to avoid false positives on edge cases
-    const memoryMatchMax = pairs.length * 35 + 5 * 15 + 100; // 4 pairs → 315
-    const quizMax = pairs.length * 50;                        // 4 pairs → 200
-    const maxScore = Math.ceil(Math.max(memoryMatchMax, quizMax) * 1.2);
-    const { sessionToken, sessionId } = generateGameSessionToken({
-      gameId: gameId || "eve_game_engine",
-      courseId,
-      userId: userId || "anonymous",
-      maxScore,
-      minPlayTimeSeconds: 5,
-    });
-
-    return NextResponse.json({
-      success: true,
-      gameId: gameId || "eve_game_engine",
-      courseId,
-      courseTitle: title,
-      totalPairs: pairs.length,
-      pairs,
-      targetScore: 100,
-      maxScore,
-      sessionToken,
-      sessionId,
-      protocol: "EVE_GAME_V2_SECURE",
-    });
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const gameId = searchParams.get("gameId") || undefined;
+    const courseId = searchParams.get("courseId") || undefined;
+    const userId = searchParams.get("userId") || undefined;
+    return await handleInitGame(gameId, courseId, userId);
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || "Internal server error" },

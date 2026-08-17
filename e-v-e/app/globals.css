@@ -167,20 +167,32 @@ body {
   background-color: #006ae6;
 }
 
-/* Custom Thin Scrollbar */
+/* For WebKit browsers (Chrome, Safari, newer Edge) */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 9px;
+  height: 9px;
 }
+
 ::-webkit-scrollbar-track {
-  background: rgba(10, 14, 26, 0.1);
+  background: #181818;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: rgba(113, 113, 122, 0.35);
-  border-radius: 9999px;
+  background: #444;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(113, 113, 122, 0.6);
+  background: #555; /* Slightly lighter on hover for WebKit, as an example */
+}
+
+::-webkit-scrollbar-button {
+  background: #181818;
+}
+
+/* For Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #444 #181818; /* thumb and track color */
 }
 
 /* Mobile: Ensure all images and media are responsive by default */

@@ -13,19 +13,16 @@ export default function Sidebar() {
     <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-64 bg-white border-r border-zinc-200 z-40 p-5 justify-between font-sans">
       <div className="space-y-8">
         {/* Brand Logo */}
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-sm font-bold">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="font-black text-xl tracking-tight text-zinc-900 flex items-center gap-1.5">
-              E-V-E{" "}
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 font-bold">
-                STUDENT
-              </span>
-            </h1>
-            <p className="text-xs text-zinc-500">Nền Tảng Giáo Dục Tương Tác</p>
-          </div>
+        <div className="flex items-center gap-2 px-2">
+          <img
+            src="/logo.png"
+            alt="E-V-E"
+            className="h-8.5 w-auto object-contain block"
+            style={{ height: "34px", width: "auto" }}
+          />
+          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200 font-bold uppercase">
+            STUDENT
+          </span>
         </div>
 
         {/* Navigation Links */}

@@ -524,4 +524,9 @@ const serverSdkPath = path.join(process.cwd(), "public", "eve-game-sdk.js");
 fs.copyFileSync(serverSdkPath, path.join(bossExtractDir, "eve-game-sdk.js"));
 fs.copyFileSync(serverSdkPath, path.join(gameZExtractDir, "eve-game-sdk.js"));
 
+// Dọn dẹp thư mục tạm staging
+if (fs.existsSync(bossDir)) fs.rmSync(bossDir, { recursive: true, force: true });
+if (fs.existsSync(gameZDir)) fs.rmSync(gameZDir, { recursive: true, force: true });
+
 console.log("✅ Đã giải nén & ghi đè SDK server cho boss_battle_quiz và game-z vào public/games/");
+
