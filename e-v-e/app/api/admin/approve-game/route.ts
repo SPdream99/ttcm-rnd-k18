@@ -118,19 +118,36 @@ export async function POST(req: NextRequest) {
           entryHtmlPath = detectedHtml;
         }
 
-        // Đảm bảo tệp eve-game-sdk.js có mặt trong thư mục game để hỗ trợ nạp Extra Data
+        // BẮT BUỘC: Luôn ghi đè file eve-game-sdk.js bằng file SDK chính chủ của server
         const sdkSource = path.join(process.cwd(), "public", "eve-game-sdk.js");
         const sdkDest = path.join(targetExtractDir, "eve-game-sdk.js");
-        if (fs.existsSync(sdkSource) && !fs.existsSync(sdkDest)) {
+        if (fs.existsSync(sdkSource)) {
           fs.copyFileSync(sdkSource, sdkDest);
         }
 
-        // Nếu index.html nằm ở thư mục con, cũng copy SDK vào thư mục con đó
+        // Nếu index.html nằm ở thư mục con, cũng ghi đè SDK vào thư mục con đó
         if (entryHtmlPath.includes("/")) {
           const subDir = path.join(targetExtractDir, path.dirname(entryHtmlPath));
           const subSdkDest = path.join(subDir, "eve-game-sdk.js");
-          if (fs.existsSync(sdkSource) && !fs.existsSync(subSdkDest)) {
+          if (fs.existsSync(sdkSource)) {
             fs.copyFileSync(sdkSource, subSdkDest);
+          }
+        }
+
+        // Tự động kiểm tra và chèn thẻ nạp SDK chuẩn của server vào file index.html nếu chưa có
+        const fullIndexPath = path.join(targetExtractDir, entryHtmlPath);
+        if (fs.existsSync(fullIndexPath)) {
+          let htmlContent = fs.readFileSync(fullIndexPath, "utf8");
+          // Xóa các thẻ nhúng sdk cũ không chuẩn (nếu có)
+          if (!htmlContent.includes("eve-game-sdk.js") && !htmlContent.includes("/eve-game-sdk.js")) {
+            if (htmlContent.includes("<head>")) {
+              htmlContent = htmlContent.replace("<head>", '<head>\n  <script src="/eve-game-sdk.js"></script>');
+            } else if (htmlContent.includes("<body>")) {
+              htmlContent = htmlContent.replace("<body>", '<body>\n  <script src="/eve-game-sdk.js"></script>');
+            } else {
+              htmlContent = '<script src="/eve-game-sdk.js"></script>\n' + htmlContent;
+            }
+            fs.writeFileSync(fullIndexPath, htmlContent, "utf8");
           }
         }
       } catch (zipErr) {
