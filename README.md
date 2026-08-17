@@ -19,15 +19,13 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 | **Giảng viên (Teacher)** | `dat1@gmail.com` | `123456` | Quản lý lớp học, tạo & chấm bài tập, tải lên bài giảng, kiểm duyệt minigame |
 | **Quản trị viên (Admin)** | `dat2@gmail.com` | `123456` | Quản lý người dùng, duyệt game engine và lộ trình học tập toàn hệ thống, tìm kiếm nội dung kiểm duyệt |
 
-> **Ghi chú:** Dự án được thiết lập chế độ bảo mật xác thực OTP 2FA mặc định qua Firebase Authentication.
-
 ---
 
 ## Thành Viên Nhóm Phát Triển
 
 | STT | Họ và Tên | Vai trò | Phụ trách chính |
 |:---:|:---|:---:|:---|
-| 1 | **Nguyễn Nhật Anh** | Trưởng nhóm | System Architecture, Backend API, Game SDK, AI Tutor & Gemini Integration, Security & 2FA |
+| 1 | **Nguyễn Nhật Anh** | Trưởng nhóm | System Architecture, Backend API, Game SDK, AI Tutor & Gemini Integration, Security System |
 | 2 | **Nguyễn Thành Đạt** | Thành viên | Giao diện Class & Sequential Learning Path Map, Memory Matching Game Engine, Dashboard |
 | 3 | **Đàm Tuấn Nhiên** | Thành viên | Giao diện Landing Page, quản lý tài nguyên số, tổng hợp tài liệu báo cáo & Demo |
 
@@ -72,7 +70,7 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 
 - **Frontend:** Next.js 16 (App Router & Turbopack), React 19, TypeScript, Tailwind CSS, Lucide Icons, Framer Motion
 - **Backend & API:** Next.js Route Handlers, Clean Architecture (Entities, Ports, Adapters)
-- **Cơ Sở Dữ Liệu & Auth:** Firebase Cloud Firestore, Firebase Authentication (2FA OTP), Firebase Admin SDK
+- **Cơ Sở Dữ Liệu & Auth:** Firebase Cloud Firestore, Firebase Authentication, Firebase Admin SDK
 - **Trí Tuệ Nhân Tạo:** Google Generative AI (Gemini 1.5 Pro / Flash), OpenAI GPT-4o-mini
 - **Game Engine & SDK:** HTML5 Canvas, Web Audio API, E-V-E Game Bridge Protocol
 
@@ -139,7 +137,7 @@ Mở trình duyệt và truy cập: `http://localhost:3000`
 ```text
 e-v-e/
 ├── app/                  # Next.js App Router (Giao diện & API Routes)
-│   ├── (auth)/           # Đăng nhập, đăng ký, xác thực 2FA
+│   ├── (auth)/           # Đăng nhập, đăng ký, quản lý phiên
 │   ├── admin/            # Trang quản trị dành cho Admin
 │   ├── api/              # API endpoints (AI Tutor, Game SDK Init & Finish, Class...)
 │   ├── student/          # Dashboard, bản đồ chặng, lớp học, phòng chơi game, hồ sơ học sinh
@@ -174,6 +172,6 @@ Dành cho mục đích học tập, nghiên cứu khoa học và báo cáo đồ
 
 > [!NOTE]
 > **Dự án được phát triển với sự hỗ trợ và đóng góp của Trí Tuệ Nhân Tạo (AI)**:
-> - **Trợ lý lập trình & Tối ưu kiến trúc (AI Pair Programming)**: Thiết kế kiến trúc Clean Architecture, chuẩn hóa TypeScript, phát triển Next.js 16 Route Handlers, hệ thống phân quyền 3 lớp và cơ chế bảo mật xác thực OTP 2FA.
+> - **Trợ lý lập trình & Tối ưu kiến trúc (AI Pair Programming)**: Thiết kế kiến trúc Clean Architecture, chuẩn hóa TypeScript, phát triển Next.js 16 Route Handlers, hệ thống phân quyền 3 lớp và cơ chế bảo mật xác thực.
 > - **Tích hợp Google Gemini AI**: Tích hợp các mô hình ngôn ngữ lớn (LLM) để xây dựng hệ thống Gia sư sư phạm ảo (AI Tutor) 24/7 và Trợ lý soạn giáo án cho giáo viên.
 > - **Tối ưu trải nghiệm tương tác & Gamification**: Xây dựng bản đồ cây kỹ năng tuần tự, giao thức E-V-E Game SDK Preload Extra Data và kiểm duyệt gian lận tự động.

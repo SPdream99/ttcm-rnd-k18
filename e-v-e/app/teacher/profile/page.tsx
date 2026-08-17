@@ -123,12 +123,8 @@ export default function TeacherProfilePage() {
             <UserCheck className="w-7 h-7 text-red-600" /> Hồ Sơ & Thiết Lập Giảng Dạy
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
-            Quản lý tài khoản giáo viên, bảo mật 2FA và cài đặt khóa API.
+            Quản lý tài khoản giáo viên và cài đặt khóa API.
           </p>
-        </div>
-
-        <div className="px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-2">
-          <GraduationCap className="w-4 h-4 text-red-600" /> Giáo Viên Chính Thức
         </div>
       </div>
 
@@ -149,24 +145,6 @@ export default function TeacherProfilePage() {
             <span><Gamepad2 className="w-3.5 h-3.5 inline mr-1 text-red-600" /> {stats.games} Minigames</span>
             <span><Users className="w-3.5 h-3.5 inline mr-1 text-red-600" /> {stats.plays} Lượt Học Sinh Chơi</span>
           </div>
-        </div>
-      </div>
-
-      {/* CARD BẢO MẬT 2 LỚP */}
-      <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-red-600" /> Xác Thực 2 Bước (2FA Qua Email)
-            </h3>
-            <p className="text-xs text-zinc-500">
-              Tính năng xác thực 2 bước (2FA OTP qua email) đang được <strong>tạm tắt trên toàn hệ thống</strong> để phục vụ kiểm thử và truy cập nhanh chóng.
-            </p>
-          </div>
-
-          <span className="px-3 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-600 border border-zinc-200 shrink-0 self-start sm:self-auto">
-            TẠM TẮT TOÀN HỆ THỐNG
-          </span>
         </div>
       </div>
 

@@ -56,24 +56,11 @@ export default function StudentProfilePage() {
   const [isKeyConfigured, setIsKeyConfigured] = useState(false);
   const [maskedKeyDisplay, setMaskedKeyDisplay] = useState("");
 
-  // ── 2FA Security State ──
-  const [is2FAEnabled, setIs2FAEnabled] = useState(true);
-  const [show2FAModal, setShow2FAModal] = useState(false);
-  const [otpInput, setOtpInput] = useState("");
-  const [isSending2FA, setIsSending2FA] = useState(false);
-  const [isVerifying2FA, setIsVerifying2FA] = useState(false);
-  const [modalMsg, setModalMsg] = useState("");
-  const [demoOtpHint, setDemoOtpHint] = useState<string | null>(null);
-
   useEffect(() => {
     const configured = hasAIKey();
     setIsKeyConfigured(configured);
     if (configured) {
       setMaskedKeyDisplay(getMaskedAIKey());
-    }
-
-    if (currentUser?.twoFactorEnabled !== undefined) {
-      setIs2FAEnabled(currentUser.twoFactorEnabled !== false);
     }
 
     // Fetch user decorations & courses progress from database
@@ -199,101 +186,6 @@ export default function StudentProfilePage() {
     }
   };
 
-  // 2FA Handlers
-  const handleInitiate2FAToggle = async () => {
-    if (is2FAEnabled) {
-      setIsSending2FA(true);
-      try {
-        const res = await fetch("/api/auth/2fa/toggle", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: userUid,
-            email: displayEmail,
-            enabled: false,
-          }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          setIs2FAEnabled(false);
-          toast.info("Đã tắt Xác Thực 2 Bước (2FA).", "Bảo Mật");
-        }
-      } catch {
-        toast.error("Lỗi khi tắt 2FA.", "Bảo Mật");
-      } finally {
-        setIsSending2FA(false);
-      }
-    } else {
-      setIsSending2FA(true);
-      setShow2FAModal(true);
-      setModalMsg("Đang gửi mã xác thực tới email của bạn...");
-      setOtpInput("");
-      setDemoOtpHint(null);
-
-      try {
-        const res = await fetch("/api/auth/2fa/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: displayEmail,
-            recipientName: displayName,
-            purpose: "enable_2fa",
-          }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          setModalMsg(`Mã OTP 6 số đã được gửi tới email ${data.maskedEmail || displayEmail}.`);
-          if (data.isDemo && data.demoOtp) {
-            setDemoOtpHint(data.demoOtp);
-          }
-        } else {
-          setModalMsg(data.error || "Không thể gửi mã OTP.");
-        }
-      } catch {
-        setModalMsg("Lỗi kết nối máy chủ.");
-      } finally {
-        setIsSending2FA(false);
-      }
-    }
-  };
-
-  const handleConfirmEnable2FA = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otpInput.trim().length !== 6) {
-      setModalMsg("Vui lòng nhập đầy đủ 6 chữ số mã OTP.");
-      return;
-    }
-
-    setIsVerifying2FA(true);
-    setModalMsg("");
-
-    try {
-      const res = await fetch("/api/auth/2fa/toggle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: userUid,
-          email: displayEmail,
-          enabled: true,
-          otp: otpInput.trim(),
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setIs2FAEnabled(true);
-        setShow2FAModal(false);
-        toast.success("Đã kích hoạt Bảo Mật 2 Lớp (2FA qua Email) thành công!", "Bảo Mật");
-      } else {
-        setModalMsg(data.error || "Mã OTP không chính xác.");
-      }
-    } catch {
-      setModalMsg("Lỗi kết nối máy chủ.");
-    } finally {
-      setIsVerifying2FA(false);
-    }
-  };
-
   const selectedFrame = ownedFrames.find((f) => f.id === activeFrame) || ownedFrames[0];
 
   return (
@@ -305,7 +197,7 @@ export default function StudentProfilePage() {
             <UserCheck className="w-7 h-7 text-red-600" /> Hồ Sơ & Bảo Mật Cá Nhân
           </h1>
           <p className="text-sm text-zinc-600 mt-1">
-            Quản lý tài khoản, danh hiệu, bảo mật 2 lớp 2FA và mã hóa API Key.
+            Quản lý tài khoản, danh hiệu và mã hóa API Key.
           </p>
         </div>
 
@@ -433,24 +325,6 @@ export default function StudentProfilePage() {
               ))}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* ── CARD BẢO MẬT 2 LỚP (2FA QUA EMAIL) ── */}
-      <div className="p-6 md:p-8 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-red-600" /> Xác Thực 2 Bước (2FA Qua Email)
-            </h3>
-            <p className="text-xs text-zinc-600">
-              Tính năng xác thực 2 bước (2FA OTP qua email) đang được <strong>tạm tắt trên toàn hệ thống</strong> để phục vụ kiểm thử và truy cập nhanh chóng.
-            </p>
-          </div>
-
-          <span className="px-3 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-600 border border-zinc-200 shrink-0 self-start sm:self-auto">
-            TẠM TẮT TOÀN HỆ THỐNG
-          </span>
         </div>
       </div>
 
