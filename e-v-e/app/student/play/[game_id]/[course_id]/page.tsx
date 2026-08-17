@@ -219,8 +219,8 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const [customGameUrl, setCustomGameUrl] = useState<string | null>(null);
   const [customGameTitle, setCustomGameTitle] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-
   const isCardMatchingEngine = !customGameUrl && (gameId.includes("card") || gameId.includes("matrix") || gameId.includes("match"));
+  const displayGameTitle = customGameTitle || currentGameMeta.title;
 
   // Memory Match state
   const [cards, setCards] = useState<MemoryCardItem[]>([]);
@@ -724,7 +724,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
           <div className="flex items-center gap-2 flex-wrap text-xs">
             <span className="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 font-bold flex items-center gap-1.5">
               <Gamepad2 className="w-3.5 h-3.5 text-red-600" />
-              Trò chơi: {currentGameMeta.title}
+              Trò chơi: {displayGameTitle}
             </span>
             <span className="text-zinc-400">▶</span>
             <span className="px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-800 font-bold flex items-center gap-1.5 truncate max-w-md">
@@ -936,7 +936,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                   <span className="w-2 h-2 rounded-full bg-red-600" />
                   {currentGameMeta.category} • {courseTitle}
                 </div>
-                <h2 className="text-lg md:text-xl font-black text-zinc-900">{currentGameMeta.title}</h2>
+                <h2 className="text-lg md:text-xl font-black text-zinc-900">{displayGameTitle}</h2>
               </div>
 
               {/* Lives & Streak HUD */}
@@ -1084,7 +1084,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs bg-zinc-50 p-3 rounded-xl border border-zinc-200">
                     <div className="flex items-center gap-2 font-bold text-zinc-800">
                       <Gamepad2 className="w-4 h-4 text-red-600" />
-                      <span>{customGameTitle || currentGameMeta.title} (HTML5 Custom Engine)</span>
+                      <span>{displayGameTitle}</span>
                     </div>
                     <div className="flex items-center gap-3 text-zinc-500 text-[11px]">
                       <span>✦ Nạp Extra Data ({pairs.length} câu hỏi)</span>
@@ -1362,7 +1362,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
               </div>
 
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-zinc-900">{currentGameMeta.title}</h3>
+                <h3 className="text-base font-bold text-zinc-900">{displayGameTitle}</h3>
                 <p className="text-xs text-zinc-600 leading-relaxed">
                   {currentGameMeta.description}
                 </p>
@@ -1433,7 +1433,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                 <Trophy className="w-4 h-4" /> Bảng Xếp Hạng Thành Tích Riêng
               </div>
               <h2 className="text-xl md:text-2xl font-bold text-zinc-900 mt-1">
-                {currentGameMeta.title} • {courseTitle}
+                {displayGameTitle} • {courseTitle}
               </h2>
             </div>
 
