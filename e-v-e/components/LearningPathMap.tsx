@@ -17,6 +17,7 @@ import {
 interface LearningPathMapProps {
   courses?: string[];
   completedCourses?: string[];
+  approvedCourses?: string[]; // Danh sách các chặng đã được Giáo viên phê duyệt
   coursePlayCounts?: Record<string, number>;
   requiredPlaysPerStage?: number;
   currentCourseId?: string;
@@ -39,6 +40,7 @@ const DEFAULT_COURSE_TITLES: Record<string, string> = {
 export default function LearningPathMap({
   courses = [],
   completedCourses = [],
+  approvedCourses = [],
   coursePlayCounts = {},
   requiredPlaysPerStage = 1,
   currentCourseId,
@@ -48,33 +50,45 @@ export default function LearningPathMap({
   onSelectCourse,
 }: LearningPathMapProps) {
   const router = useRouter();
-  const [lockedNotice, setLockedNotice] = useState<{ stageNum: number; prevStageNum: number } | null>(null);
+  const [lockedNotice, setLockedNotice] = useState<{ stageNum: number; prevStageNum: number; isPendingTeacher?: boolean } | null>(null);
   const [showPausedNotice, setShowPausedNotice] = useState(false);
   const [showNotEnrolledNotice, setShowNotEnrolledNotice] = useState(false);
 
   const safeCourses = Array.isArray(courses) ? courses : [];
   const safeCompletedCourses = Array.isArray(completedCourses) ? completedCourses : [];
+  const safeApprovedCourses = Array.isArray(approvedCourses) ? approvedCourses : [];
 
   // Kiểm tra trạng thái mở khóa tuần tự:
-  // Nếu lớp học đang TẠM DỪNG hoặc CHƯA ĐĂNG KÝ -> Khóa toàn bộ chặng.
-  const getCourseStatus = (courseId: string, index: number) => {
+  // CƠ CHẾ MỚI: Học sinh hoàn thành xong 1 chặng CÒN PHẢI CHỜ GIÁO VIÊN DUYỆT thì mới qua được chặng tiếp theo.
+  const getCourseStatus = (courseId: string, index: number): "completed" | "pending_approval" | "current" | "locked" => {
     if (isPaused || !isEnrolled) {
       return "locked";
     }
 
     const plays = coursePlayCounts[courseId] || 0;
-    const isCompleted = safeCompletedCourses.includes(courseId) || plays >= requiredPlaysPerStage;
+    const hasPlayed = safeCompletedCourses.includes(courseId) || plays >= requiredPlaysPerStage;
+    const isTeacherApproved = safeApprovedCourses.includes(courseId);
 
-    if (isCompleted) return "completed";
+    // Đã chơi và đã được Giáo viên duyệt hoàn toàn -> completed
+    if (hasPlayed && isTeacherApproved) {
+      return "completed";
+    }
 
-    // Kiểm tra xem chặng trước đó có hoàn thành hay chưa
+    // Đã chơi xong nhưng chưa được Giáo viên duyệt -> pending_approval
+    if (hasPlayed && !isTeacherApproved) {
+      return "pending_approval";
+    }
+
+    // Chặng đầu tiên nếu chưa chơi -> current
     if (index === 0) return "current";
 
+    // Kiểm tra xem chặng trước đó có được Giáo viên duyệt hay chưa
     const prevCourseId = safeCourses[index - 1];
     const prevPlays = coursePlayCounts[prevCourseId] || 0;
-    const isPrevCompleted = safeCompletedCourses.includes(prevCourseId) || prevPlays >= requiredPlaysPerStage;
+    const isPrevPlayed = safeCompletedCourses.includes(prevCourseId) || prevPlays >= requiredPlaysPerStage;
+    const isPrevApproved = safeApprovedCourses.includes(prevCourseId);
 
-    if (isPrevCompleted) {
+    if (isPrevPlayed && isPrevApproved) {
       return "current";
     }
 
@@ -191,7 +205,9 @@ export default function LearningPathMap({
                 Chặng {lockedNotice.stageNum} Đang Bị Khóa
               </h3>
               <p className="text-xs text-zinc-600 leading-relaxed">
-                Để đảm bảo tiến độ học tập tuần tự, bạn cần <strong>hoàn thành đủ lượt chơi minigame của Chặng {lockedNotice.prevStageNum}</strong> trước khi mở khóa chặng này.
+                {lockedNotice.isPendingTeacher
+                  ? `Bạn đã hoàn thành bài tập / minigame của Chặng ${lockedNotice.prevStageNum}, nhưng đang CHỜ GIÁO VIÊN DUYỆT ĐẠT CHẶNG để mở khóa Chặng ${lockedNotice.stageNum}.`
+                  : `Để đảm bảo tiến độ học tập tuần tự, bạn cần hoàn thành và được Giáo viên phê duyệt Chặng ${lockedNotice.prevStageNum} trước khi mở khóa chặng này.`}
               </p>
             </div>
 
@@ -299,6 +315,8 @@ export default function LearningPathMap({
                   className={`relative z-10 flex items-center gap-4 p-5 rounded-2xl border-2 transition-all ${
                     isCompleted
                       ? "bg-red-50/40 border-red-500 hover:border-red-600"
+                      : status === "pending_approval"
+                      ? "bg-amber-50/70 border-amber-500 hover:border-amber-600 ring-4 ring-amber-100"
                       : isCurrent
                       ? "bg-white border-red-600 shadow-md ring-4 ring-red-100"
                       : "bg-zinc-50/80 border-zinc-200 opacity-60"
@@ -310,6 +328,8 @@ export default function LearningPathMap({
                     className={`w-12 h-12 rounded-xl shrink-0 flex items-center justify-center font-bold text-base transition-colors ${
                       isCompleted
                         ? "bg-red-600 text-white"
+                        : status === "pending_approval"
+                        ? "bg-amber-500 text-white animate-pulse"
                         : isCurrent
                         ? "bg-red-600 text-white animate-bounce"
                         : "bg-zinc-200 text-zinc-500"
@@ -317,6 +337,8 @@ export default function LearningPathMap({
                   >
                     {isCompleted ? (
                       <Check className="w-6 h-6 stroke-[3]" />
+                    ) : status === "pending_approval" ? (
+                      <AlertCircle className="w-6 h-6 stroke-[2.5]" />
                     ) : isCurrent ? (
                       <Play className="w-5 h-5 fill-white ml-0.5" />
                     ) : (
@@ -332,7 +354,12 @@ export default function LearningPathMap({
                       </span>
                       {isCompleted && (
                         <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                           Đã Hoàn Thành ({plays}/{requiredPlaysPerStage} lượt)
+                          ✦ Đã Hoàn Thành & Giáo Viên Đã Duyệt
+                        </span>
+                      )}
+                      {status === "pending_approval" && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-bold flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3 text-amber-600" /> Đã Nộp • Chờ Giáo Viên Duyệt Để Mở Chặng {index + 2}
                         </span>
                       )}
                       {isCurrent && (
@@ -342,7 +369,7 @@ export default function LearningPathMap({
                       )}
                       {isLocked && (
                         <span className="px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-600 text-[10px] font-bold flex items-center gap-1">
-                          <Lock className="w-3 h-3" /> Khóa — Cần hoàn thành Chặng {index}
+                          <Lock className="w-3 h-3" /> Khóa — Chờ duyệt Chặng {index}
                         </span>
                       )}
                     </div>
@@ -351,10 +378,12 @@ export default function LearningPathMap({
                     </h3>
                     <p className="text-xs text-zinc-500 mt-0.5">
                       {isCompleted
-                        ? "Đã hoàn thành đủ điều kiện lượt chơi của chặng."
+                        ? "Đã hoàn thành và được Giáo viên phê duyệt đạt chặng."
+                        : status === "pending_approval"
+                        ? "Bạn đã hoàn thành lượt chơi của chặng này! Hệ thống đang chờ Giáo viên bộ môn xác nhận và mở khóa chặng tiếp theo."
                         : isCurrent
-                        ? `Bấm vào để chơi game thực hành và hoàn thành ${requiredPlaysPerStage} lượt chơi mở chặng kế tiếp.`
-                        : `Chặng học bị khóa — Phải hoàn thành đủ lượt chơi của Chặng ${index} trước.`}
+                        ? `Bấm vào để chơi game thực hành và hoàn thành ${requiredPlaysPerStage} lượt chơi gửi Giáo viên duyệt.`
+                        : `Chặng học bị khóa — Cần hoàn thành và được Giáo viên phê duyệt Chặng ${index} trước.`}
                     </p>
                   </div>
 

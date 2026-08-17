@@ -143,7 +143,19 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
           }
         }
 
-        // 3. Fetch courses (CHỈ LẤY KHÓA HỌC ĐÃ ĐƯỢC ADMIN DUYỆT)
+        // 3. Fetch game info to check target course whitelist
+        let allowedCourseIds: string[] | null = null;
+        try {
+          const gDoc = await getDoc(doc(db, "game_info", gameId));
+          if (gDoc.exists()) {
+            const gData = gDoc.data();
+            if (gData.whitelistMode === "custom" && Array.isArray(gData.allowedCourses) && gData.allowedCourses.length > 0) {
+              allowedCourseIds = gData.allowedCourses;
+            }
+          }
+        } catch {}
+
+        // 4. Fetch courses (CHỈ LẤY KHÓA HỌC THUỘC LỘ TRÌNH ĐÃ ĐƯỢC DUYỆT 100%)
         const list: LobbyCourseItem[] = [];
         coursesSnap.docs.forEach((d) => {
           const data = d.data();
@@ -151,18 +163,22 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
           if (!isCourseAccepted) return; // Bỏ qua khóa học chưa duyệt
 
           const pInfo = courseToPathMap[d.id];
+          // Bắt buộc: Khóa học PHẢI thuộc một Lộ Trình đã được duyệt 100% (nếu không có pInfo tức là không có lộ trình duyệt hợp lệ)
+          if (!pInfo) return;
+
+          // Kiểm tra whitelist của game (nếu game giới hạn khóa học)
+          if (allowedCourseIds && !allowedCourseIds.includes(d.id)) return;
+
           const enrollmentStatus: "active" | "paused" | "not_enrolled" = isTeacherOrAdmin
             ? "active"
-            : pInfo
-            ? userPathStatusMap.get(pInfo.pathId) || "not_enrolled"
-            : "not_enrolled";
+            : userPathStatusMap.get(pInfo.pathId) || "not_enrolled";
 
           list.push({
             id: d.id,
             title: data.title || d.id,
             description: data.description || "Nội dung bài học và học liệu tương tác.",
-            learningPathId: pInfo?.pathId,
-            learningPathTitle: pInfo?.pathTitle,
+            learningPathId: pInfo.pathId,
+            learningPathTitle: pInfo.pathTitle,
             enrollmentStatus,
             pairsCount: Array.isArray(data.pairs) ? data.pairs.length : 10,
             authorName: data.authorName || "Giảng viên",
@@ -405,7 +421,7 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
                         </button>
                       </Link>
 
-                      {isActive && (
+                      {isActive ? (
                         <Link href={`/student/play/${gameId}/${crs.id}`} className="flex-1">
                           <button
                             type="button"
@@ -415,9 +431,7 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
                             <span>Vào Chơi</span>
                           </button>
                         </Link>
-                      )}
-
-                      {isPaused && (
+                      ) : isPaused ? (
                         <button
                           type="button"
                           disabled={isActionLoading}
@@ -427,9 +441,7 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
                           <RotateCw className={`w-3 h-3 ${isActionLoading ? "animate-spin" : ""}`} />
                           <span>{isActionLoading ? "..." : "Học Tiếp"}</span>
                         </button>
-                      )}
-
-                      {isNotEnrolled && (
+                      ) : crs.learningPathId ? (
                         <button
                           type="button"
                           disabled={isActionLoading}
@@ -438,6 +450,16 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
                         >
                           <PlusCircle className={`w-3 h-3 ${isActionLoading ? "animate-spin" : ""}`} />
                           <span>{isActionLoading ? "..." : "Đăng Ký"}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          className="flex-1 py-2 rounded-xl bg-zinc-200 text-zinc-400 text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-not-allowed opacity-60"
+                          title="Lộ trình hoặc bài học này chưa được phê duyệt hoặc chưa mở"
+                        >
+                          <Lock className="w-3 h-3" />
+                          <span>Chưa Khả Dụng</span>
                         </button>
                       )}
                     </div>

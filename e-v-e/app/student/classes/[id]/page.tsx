@@ -75,6 +75,7 @@ export default function StudentClassDetailPage({
   const [path, setPath] = useState<LearningPath | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [coursePlayCounts, setCoursePlayCounts] = useState<Record<string, number>>({});
+  const [approvedCourses, setApprovedCourses] = useState<string[]>([]);
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -102,15 +103,21 @@ export default function StudentClassDetailPage({
 
         const enrollmentSnapshot = await getDocs(enrollmentQuery);
 
+        let studentApprovedCourses: string[] = [];
         if (!enrollmentSnapshot.empty) {
-          const docItem = enrollmentSnapshot.docs[0];
-          const enrollmentData = docItem.data();
+          const docData = enrollmentSnapshot.docs[0].data();
+          studentApprovedCourses = Array.isArray(docData.approved_courses)
+            ? docData.approved_courses
+            : Array.isArray(docData.approvedCourses)
+            ? docData.approvedCourses
+            : [];
           setEnrollment({
-            docId: docItem.id,
-            progress: Number(enrollmentData.progress) || 0,
-            status: (enrollmentData.status === "paused" ? "paused" : "active") as "active" | "paused",
+            docId: enrollmentSnapshot.docs[0].id,
+            progress: Number(docData.progress) || 0,
+            status: (docData.status === "paused" ? "paused" : "active") as "active" | "paused",
           });
         }
+        setApprovedCourses(studentApprovedCourses);
 
         // 2. Learning Path & Course Approval Checking
         const [pathSnapshot, coursesSnapshot] = await Promise.all([
@@ -518,6 +525,7 @@ export default function StudentClassDetailPage({
           <LearningPathMap
             courses={safePathCourses}
             completedCourses={completedCoursesList}
+            approvedCourses={approvedCourses}
             coursePlayCounts={coursePlayCounts}
             requiredPlaysPerStage={1}
             isPaused={isPaused}
