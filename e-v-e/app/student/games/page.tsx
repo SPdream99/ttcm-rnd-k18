@@ -204,7 +204,7 @@ export default function StudentGamesArcadePage() {
 
         const isTeacherOrAdmin = ["teacher", "instructor", "admin"].includes(currentUser?.role || profile?.role || "");
 
-        // Map all courses and attach enrollment status (CHỈ LẤY KHÓA HỌC ĐÃ DUYỆT)
+        // Map all courses and attach enrollment status (CHỈ LẤY KHÓA HỌC THUỘC LỘ TRÌNH ĐÃ DUYỆT 100%)
         const cl: GameCourseItem[] = [];
         coursesSnap.docs.forEach((d: any) => {
           const cd = d.data();
@@ -212,51 +212,24 @@ export default function StudentGamesArcadePage() {
           if (!isCourseAccepted) return; // Ẩn các khóa học chưa được duyệt
 
           const pInfo = courseToPathMap[d.id];
+          // Bắt buộc: Khóa học PHẢI thuộc một Lộ Trình đã được duyệt 100%
+          if (!pInfo) return;
+
           const enrollmentStatus: "active" | "paused" | "not_enrolled" = isTeacherOrAdmin
             ? "active"
-            : pInfo
-            ? userPathStatusMap.get(pInfo.pathId) || "not_enrolled"
-            : "not_enrolled";
+            : userPathStatusMap.get(pInfo.pathId) || "not_enrolled";
 
           cl.push({
             id: d.id,
             title: cd.title || d.id,
             description: cd.description || "Nội dung bài học & học liệu tương tác.",
-            learningPathId: pInfo?.pathId,
-            learningPathTitle: pInfo?.pathTitle,
+            learningPathId: pInfo.pathId,
+            learningPathTitle: pInfo.pathTitle,
             enrollmentStatus,
             pairsCount: Array.isArray(cd.pairs) ? cd.pairs.length : 10,
             authorName: cd.authorName || "Giảng viên",
             tags: Array.isArray(cd.tags) ? cd.tags : ["Lập trình"],
           });
-        });
-
-        // Fallback default courses if empty
-        if (cl.length === 0) {
-          cl.push({
-            id: "crs_coding_basics",
-            title: "Bài 1: Nhập Môn Tư Duy Lập Trình & Thuật Toán",
-            description: "Cấu trúc dữ liệu căn bản, rẽ nhánh và vòng lặp.",
-            learningPathId: "lp_fullstack_gamification_2026",
-            learningPathTitle: "Lộ Trình Chuyên Gia Lập Trình Fullstack & Gamification 2026",
-            enrollmentStatus: userPathStatusMap.get("lp_fullstack_gamification_2026") || "not_enrolled",
-            pairsCount: 12,
-            authorName: "ThS. Nguyễn Nhật Anh",
-            tags: ["Lập trình", "Cơ bản"],
-          });
-          cl.push({
-            id: "crs_computer_hardware",
-            title: "Bài 2: Khám Phá Phần Cứng & Kiến Trúc Máy Tính",
-            description: "Tìm hiểu CPU, RAM, GPU, Mainboard và nguyên lý hoạt động.",
-            learningPathId: "lp_fullstack_gamification_2026",
-            learningPathTitle: "Lộ Trình Chuyên Gia Lập Trình Fullstack & Gamification 2026",
-            enrollmentStatus: userPathStatusMap.get("lp_fullstack_gamification_2026") || "not_enrolled",
-            pairsCount: 15,
-            authorName: "ThS. Nguyễn Thành Đạt",
-            tags: ["Phần cứng", "Kiến trúc"],
-          });
-        }
-
         setCoursesList(cl);
       } catch (e) {
         console.error("Lỗi khi nạp danh sách Arcade:", e);

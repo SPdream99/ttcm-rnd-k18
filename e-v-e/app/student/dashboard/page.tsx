@@ -146,7 +146,7 @@ export default function StudentDashboardPage() {
         }
         setEnrolledClasses(classesData);
 
-        // 3. Map Courses List (CHỈ LẤY KHÓA HỌC ĐÃ DUYỆT)
+        // 3. Map Courses List (CHỈ LẤY KHÓA HỌC ĐÃ DUYỆT VÀ THUỘC LỘ TRÌNH ĐÃ DUYỆT)
         const cl: DashboardCourseItem[] = [];
         coursesSnap.docs.forEach((d: any) => {
           const cd = d.data();
@@ -154,16 +154,17 @@ export default function StudentDashboardPage() {
           if (!isCourseAccepted) return; // Bỏ qua khóa học chưa duyệt
 
           const pInfo = courseToPathMap[d.id];
-          const enrollmentStatus: "active" | "paused" | "not_enrolled" = pInfo
-            ? userPathStatusMap.get(pInfo.pathId) || "not_enrolled"
-            : "not_enrolled";
+          // Bắt buộc: Khóa học PHẢI thuộc một Lộ Trình đã được duyệt 100%
+          if (!pInfo) return;
+
+          const enrollmentStatus: "active" | "paused" | "not_enrolled" = userPathStatusMap.get(pInfo.pathId) || "not_enrolled";
 
           cl.push({
             id: d.id,
             title: cd.title || d.id,
             description: cd.description || "Nội dung bài học & học liệu tương tác.",
-            learningPathId: pInfo?.pathId,
-            learningPathTitle: pInfo?.pathTitle,
+            learningPathId: pInfo.pathId,
+            learningPathTitle: pInfo.pathTitle,
             enrollmentStatus,
             pairsCount: Array.isArray(cd.pairs) ? cd.pairs.length : 10,
             authorName: cd.authorName || "Giảng viên",
