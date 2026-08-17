@@ -97,74 +97,83 @@ export default function StudentGamesArcadePage() {
           getDocs(collection(db, "courses")),
         ]);
 
-        let fetchedGames: ArcadeGameItem[] = [];
-
-        // Built-in standard games
-        fetchedGames.push({
-          id: "game_card_match_vr",
-          title: "Memory Matching Game (Lật Thẻ Trí Nhớ)",
-          subtitle: "Rèn luyện trí nhớ và liên kết thuật ngữ 3D",
-          genre: "Game Trí Nhớ 3D",
-          category: "memory",
-          description: "Lật và ghép đúng các cặp thuật ngữ lập trình và giải thích trước khi hết thời gian.",
-          author: "E-V-E Studio",
-          difficulty: "Trung Bình",
-          rewardCoins: 50,
-          needExtraData: true,
-          coursesAllowed: "all",
-          thumbnailUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80",
-          badge: "NỔI BẬT",
-          rating: 4.9,
-          playsCount: 1420,
-          tags: ["Memory", "Flashcards", "Logic"],
-        });
-
-        fetchedGames.push({
-          id: "boss_battle_quiz",
-          title: "Boss Slayer Marathon Quiz",
-          subtitle: "Đấu trùm trắc nghiệm phản xạ kiến thức",
-          genre: "Trắc Nghiệm Phản Xạ",
-          category: "boss",
-          description: "Mỗi câu trả lời đúng sẽ giáng một đòn chí mạng vào Boss quái vật. Hỗ trợ mọi khóa học!",
-          author: "E-V-E Dev Team",
-          difficulty: "Thử Thách",
-          rewardCoins: 60,
-          needExtraData: true,
-          coursesAllowed: "all",
-          thumbnailUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80",
-          badge: "HOT",
-          rating: 4.8,
-          playsCount: 2350,
-          tags: ["Boss Battle", "Quiz", "Speed"],
-        });
+        // Standard built-in default games
+        const gamesMap = new Map<string, ArcadeGameItem>([
+          [
+            "game_card_match_vr",
+            {
+              id: "game_card_match_vr",
+              title: "Memory Matching Game (Lật Thẻ Trí Nhớ)",
+              subtitle: "Rèn luyện trí nhớ và liên kết thuật ngữ 3D",
+              genre: "Game Trí Nhớ 3D",
+              category: "memory",
+              description: "Lật và ghép đúng các cặp thuật ngữ lập trình và giải thích trước khi hết thời gian.",
+              author: "E-V-E Studio",
+              difficulty: "Trung Bình",
+              rewardCoins: 50,
+              needExtraData: true,
+              coursesAllowed: "all",
+              thumbnailUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80",
+              badge: "NỔI BẬT",
+              rating: 4.9,
+              playsCount: 1420,
+              tags: ["Memory", "Flashcards", "Logic"],
+            },
+          ],
+          [
+            "boss_battle_quiz",
+            {
+              id: "boss_battle_quiz",
+              title: "Boss Slayer Marathon Quiz",
+              subtitle: "Đấu trùm trắc nghiệm phản xạ kiến thức",
+              genre: "Trắc Nghiệm Phản Xạ",
+              category: "boss",
+              description: "Mỗi câu trả lời đúng sẽ giáng một đòn chí mạng vào Boss quái vật. Hỗ trợ mọi khóa học!",
+              author: "E-V-E Dev Team",
+              difficulty: "Thử Thách",
+              rewardCoins: 60,
+              needExtraData: true,
+              coursesAllowed: "all",
+              thumbnailUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80",
+              badge: "HOT",
+              rating: 4.8,
+              playsCount: 2350,
+              tags: ["Boss Battle", "Quiz", "Speed"],
+            },
+          ],
+        ]);
 
         if (!gamesSnap.empty) {
           gamesSnap.docs.forEach((d: any) => {
             const data = d.data();
-            const isGameAccepted = Boolean(data.isAccepted ?? data.is_accepted ?? (data.status === "approved" || data.status === "active"));
+            const isGameAccepted = Boolean(
+              data.isAccepted ?? data.is_accepted ?? (data.status === "approved" || data.status === "active")
+            );
             if (isGameAccepted) {
-              fetchedGames.push({
+              const existing = gamesMap.get(d.id);
+              gamesMap.set(d.id, {
                 id: d.id,
-                title: data.name || data.title || "Minigame",
-                subtitle: data.subtitle || "Minigame Giáo Dục",
-                genre: data.genre || "HTML5 Game",
-                category: "custom",
-                description: data.description || "Trò chơi học tập tương tác.",
-                author: data.authorName || "Giáo Viên E-V-E",
-                difficulty: "Trung Bình",
-                rewardCoins: 50,
-                needExtraData: Boolean(data.need_extra_data ?? data.needExtraData ?? true),
-                coursesAllowed: data.courses_allowed || "all",
-                thumbnailUrl: data.thumbnailUrl || "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80",
-                rating: 4.7,
-                playsCount: 420,
-                tags: ["Custom", "HTML5"],
+                title: data.name || data.title || existing?.title || "Minigame",
+                subtitle: data.subtitle || existing?.subtitle || "Minigame Giáo Dục",
+                genre: data.genre || existing?.genre || "HTML5 Game",
+                category: data.category || existing?.category || "custom",
+                description: data.description || existing?.description || "Trò chơi học tập tương tác.",
+                author: data.authorName || existing?.author || "Giáo Viên E-V-E",
+                difficulty: data.difficulty || existing?.difficulty || "Trung Bình",
+                rewardCoins: Number(data.rewardCoins) || existing?.rewardCoins || 50,
+                needExtraData: Boolean(data.need_extra_data ?? data.needExtraData ?? (existing ? existing.needExtraData : true)),
+                coursesAllowed: data.courses_allowed || existing?.coursesAllowed || "all",
+                thumbnailUrl: data.thumbnailUrl || existing?.thumbnailUrl || "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80",
+                badge: data.badge || existing?.badge,
+                rating: Number(data.rating) || existing?.rating || 4.7,
+                playsCount: Number(data.playsCount) || existing?.playsCount || 420,
+                tags: Array.isArray(data.tags) ? data.tags : existing?.tags || ["Custom", "HTML5"],
               });
             }
           });
         }
 
-        setGames(fetchedGames);
+        setGames(Array.from(gamesMap.values()));
 
         // Lấy tập ID khóa học đã duyệt
         const acceptedCourseIds = new Set<string>();

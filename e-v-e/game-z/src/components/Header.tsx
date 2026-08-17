@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           className="stat-badge"
           onClick={onOpenAchievements}
-          style={{ cursor: 'pointer', hover: { background: 'rgba(255,255,255,0.1)' } }}
+          style={{ cursor: 'pointer' }}
           title="Xem Huy hiệu danh dự"
         >
           <span className="stat-icon">🏆</span>

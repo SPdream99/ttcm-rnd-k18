@@ -457,9 +457,10 @@ export default function AdminApprovalsPage() {
               </div>
             ) : (
               courses.map((course) => {
-                const pairs = Array.isArray(course.contentData)
-                  ? course.contentData
-                  : course.contentData?.pairs || course.pairs || [];
+                const cAny = course as any;
+                const pairs = Array.isArray(cAny.contentData)
+                  ? cAny.contentData
+                  : cAny.contentData?.pairs || cAny.pairs || [];
 
                 return (
                   <div
@@ -560,9 +561,9 @@ export default function AdminApprovalsPage() {
 
                 <div className="space-y-3">
                   {(
-                    (Array.isArray(selectedCourse.contentData)
-                      ? selectedCourse.contentData
-                      : selectedCourse.contentData?.pairs || selectedCourse.pairs) || []
+                    (Array.isArray((selectedCourse as any).contentData)
+                      ? (selectedCourse as any).contentData
+                      : (selectedCourse as any).contentData?.pairs || (selectedCourse as any).pairs) || []
                   ).map((pair: CourseContentPair, idx: number) => (
                     <div key={idx} className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 space-y-2">
                       <div className="text-xs font-bold text-zinc-900">

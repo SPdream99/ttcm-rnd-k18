@@ -336,7 +336,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
           minHeight: '130px',
           display: 'flex',
           alignItems: 'center',
-          justify: 'center',
+          justifyContent: 'center',
           background: 'linear-gradient(145deg, rgba(22, 30, 49, 0.85), rgba(30, 41, 69, 0.95))'
         }}
       >
@@ -411,7 +411,7 @@ export const QuizScreen: React.FC<QuizScreenProps> = ({
                   background: isAnswered && isCorrect ? 'var(--accent-emerald)' : 'rgba(255,255,255,0.1)',
                   display: 'flex',
                   alignItems: 'center',
-                  justify: 'center',
+                  justifyContent: 'center',
                   fontWeight: 800,
                   fontSize: '0.95rem',
                   flexShrink: 0

@@ -57,10 +57,6 @@ export default function TeacherProfilePage() {
       setMaskedKeyDisplay(getMaskedAIKey());
     }
 
-    if (currentUser?.twoFactorEnabled !== undefined) {
-      setIs2FAEnabled(currentUser.twoFactorEnabled !== false);
-    }
-
     async function loadStats() {
       if (!userUid) return;
       try {

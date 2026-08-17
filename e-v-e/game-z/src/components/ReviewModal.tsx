@@ -23,7 +23,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ records, onClose }) =>
         zIndex: 1000,
         display: 'flex',
         alignItems: 'center',
-        justify: 'center',
+        justifyContent: 'center',
         padding: '1.5rem'
       }}
     >
@@ -46,7 +46,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ records, onClose }) =>
             padding: '1.25rem 1.5rem',
             borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
             display: 'flex',
-            justify: 'space-between',
+            justifyContent: 'space-between',
             alignItems: 'center'
           }}
         >
@@ -149,7 +149,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ records, onClose }) =>
                           fontSize: '0.9rem',
                           display: 'flex',
                           alignItems: 'center',
-                          justify: 'space-between'
+                          justifyContent: 'space-between'
                         }}
                       >
                         <span>{opt}</span>

@@ -24,7 +24,7 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ userProgre
         zIndex: 1000,
         display: 'flex',
         alignItems: 'center',
-        justify: 'center',
+        justifyContent: 'center',
         padding: '1.5rem'
       }}
     >
@@ -91,7 +91,7 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ userProgre
                     background: isUnlocked ? 'rgba(139, 92, 246, 0.25)' : 'rgba(0,0,0,0.2)',
                     display: 'flex',
                     alignItems: 'center',
-                    justify: 'center',
+                    justifyContent: 'center',
                     flexShrink: 0,
                     filter: isUnlocked ? 'none' : 'grayscale(1)'
                   }}

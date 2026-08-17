@@ -113,12 +113,12 @@ export default function AdminUsersPage() {
   const handlePromptUpdateStatus = (user: AdminUserItem, newStatus: "active" | "banned") => {
     // Bảo vệ: Admin không được khóa chính mình
     if (newStatus === "banned" && isSelf(user)) {
-      toast("Không thể khóa tài khoản của chính bạn.", "error");
+      toast.error("Không thể khóa tài khoản của chính bạn.");
       return;
     }
     // Bảo vệ: Admin không được khóa admin khác
     if (newStatus === "banned" && isAdminUser(user)) {
-      toast("Không thể khóa tài khoản quản trị viên khác.", "error");
+      toast.error("Không thể khóa tài khoản quản trị viên khác.");
       return;
     }
 
