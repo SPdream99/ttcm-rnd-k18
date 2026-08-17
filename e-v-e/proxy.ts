@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Read session cookie
@@ -150,12 +150,9 @@ export const config = {
     "/pending",
     "/dashboard",
     "/dashboard/:path*",
-    "/dashboard",
-    "/dashboard/:path*",
     "/admin/:path*",
     "/teacher/:path*",
     "/student/:path*",
     "/public/:path*",
   ],
 };
-

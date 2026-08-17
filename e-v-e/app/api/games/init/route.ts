@@ -336,13 +336,41 @@ async function handleInitGame(gameId?: string, courseId?: string, userId?: strin
     minPlayTimeSeconds: 5,
   });
 
+  const normalizedPairs = (pairs || []).map((p: any, idx: number) => {
+    const qImg = p.image_url || p.imageUrl || p.question_image_url || p.questionImageUrl || "";
+    const rImg = p.right_answer_image_url || p.rightAnswerImageUrl || "";
+    const wImgs = p.wrong_answers_image_urls || p.wrongAnswersImageUrls || p.distraction_image_urls || p.distractionImageUrls || [];
+
+    return {
+      id: p.id || `pair_${idx + 1}`,
+      title: p.title || "",
+      description: p.description || p.rightAnswer || p.right_answer || "",
+      distractions: p.distractions || p.wrongAnswers || p.wrong_answers || [],
+      explanation: p.explanation || "",
+      image_url: qImg,
+      imageUrl: qImg,
+      question_image_url: qImg,
+      questionImageUrl: qImg,
+      right_answer: p.right_answer || p.rightAnswer || p.description || "",
+      rightAnswer: p.rightAnswer || p.right_answer || p.description || "",
+      right_answer_image_url: rImg,
+      rightAnswerImageUrl: rImg,
+      wrong_answers: p.wrong_answers || p.wrongAnswers || p.distractions || [],
+      wrongAnswers: p.wrongAnswers || p.wrong_answers || p.distractions || [],
+      wrong_answers_image_urls: wImgs,
+      wrongAnswersImageUrls: wImgs,
+      distraction_image_urls: wImgs,
+      distractionImageUrls: wImgs,
+    };
+  });
+
   return NextResponse.json({
     success: true,
     gameId: gameId || "eve_game_engine",
     courseId,
     courseTitle: title,
-    totalPairs: pairs.length,
-    pairs,
+    totalPairs: normalizedPairs.length,
+    pairs: normalizedPairs,
     targetScore: 100,
     maxScore,
     sessionToken,

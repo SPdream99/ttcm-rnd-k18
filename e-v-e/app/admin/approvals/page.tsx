@@ -596,25 +596,51 @@ export default function AdminApprovalsPage() {
                     (Array.isArray((selectedCourse as any).contentData)
                       ? (selectedCourse as any).contentData
                       : (selectedCourse as any).contentData?.pairs || (selectedCourse as any).pairs) || []
-                  ).map((pair: CourseContentPair, idx: number) => (
-                    <div key={idx} className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 space-y-2">
-                      <div className="text-xs font-bold text-zinc-900">
-                        #{idx + 1}: {pair.title}
-                      </div>
-                      <div className="p-2 rounded-lg bg-white border border-emerald-300 text-xs text-emerald-800">
-                        <strong className="text-[10px] uppercase font-bold block text-emerald-700">Đáp án đúng:</strong>
-                        {pair.description || pair.rightAnswer}
-                      </div>
-                      {(pair.distractions || pair.wrongAnswers || []).length > 0 && (
-                        <div className="p-2 rounded-lg bg-white border border-red-200 text-xs text-red-700 space-y-1">
-                          <strong className="text-[10px] uppercase font-bold block text-red-600">Gây nhiễu (Sai):</strong>
-                          {(pair.distractions || pair.wrongAnswers || []).map((w, wIdx) => (
-                            <div key={wIdx} className="text-[11px]">• {w}</div>
-                          ))}
+                  ).map((pair: CourseContentPair, idx: number) => {
+                    const qImg = pair.image_url || pair.question_image_url || pair.imageUrl;
+                    const rImg = pair.right_answer_image_url || pair.rightAnswerImageUrl;
+                    const wImgs = pair.wrong_answers_image_urls || pair.wrongAnswersImageUrls || pair.distraction_image_urls || pair.distractionImageUrls || [];
+
+                    return (
+                      <div key={idx} className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200 space-y-2">
+                        <div className="text-xs font-bold text-zinc-900">
+                          #{idx + 1}: {pair.title}
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {qImg && (
+                          <div className="w-full h-24 rounded-lg overflow-hidden border border-zinc-200 bg-white">
+                            <img src={qImg} alt="Question" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+
+                        <div className="p-2 rounded-lg bg-white border border-emerald-300 text-xs text-emerald-800 space-y-1">
+                          <strong className="text-[10px] uppercase font-bold block text-emerald-700">Đáp án đúng:</strong>
+                          <div>{pair.description || pair.rightAnswer}</div>
+                          {rImg && (
+                            <div className="w-16 h-16 rounded overflow-hidden border border-emerald-200 mt-1">
+                              <img src={rImg} alt="Right answer" className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                        </div>
+
+                        {(pair.distractions || pair.wrongAnswers || []).length > 0 && (
+                          <div className="p-2 rounded-lg bg-white border border-red-200 text-xs text-red-700 space-y-1.5">
+                            <strong className="text-[10px] uppercase font-bold block text-red-600">Gây nhiễu (Sai):</strong>
+                            {(pair.distractions || pair.wrongAnswers || []).map((w, wIdx) => (
+                              <div key={wIdx} className="text-[11px] space-y-1">
+                                <div>• {w}</div>
+                                {wImgs[wIdx] && (
+                                  <div className="w-14 h-14 rounded overflow-hidden border border-red-100 ml-3">
+                                    <img src={wImgs[wIdx]} alt={`Wrong answer ${wIdx + 1}`} className="w-full h-full object-cover" />
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : (
