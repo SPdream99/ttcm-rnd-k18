@@ -33,31 +33,42 @@ export class FirestoreTeacherRepo implements TeacherPort {
       cacheKey,
       async () => {
         try {
-          const [classesSnap, assignmentsSnap, studentsSnap] = await Promise.all([
+          const [learningPathsSnap, classesSnap, assignmentsSnap, studentsSnap] = await Promise.all([
+            getDocs(collection(db, "learning_path")),
             getDocs(collection(db, "classes")),
             getDocs(collection(db, "assignments")),
             getDocs(collection(db, "class_members")),
           ]);
 
-          // Lọc lớp học của giáo viên hiện tại
+          // Lọc lộ trình / lớp học của giáo viên hiện tại (Các lớp đang giảng dạy chính là các lộ trình)
           const myClassIds = new Set<string>();
           let myClassCount = 0;
 
-          classesSnap.docs.forEach((d) => {
+          learningPathsSnap.docs.forEach((d) => {
             const data = d.data();
-            const docTeacherId = data.teacher_id || data.teacherId || data.instructorId || data.authorId;
-            const docTeacherEmail = data.teacher_email || data.teacherEmail;
-            const docTeacherName = data.teacher_name || data.teacherName || data.instructor;
+            const docAuthorId = data.author_id || data.authorId;
+            const docTeacherEmail = data.author_email || data.authorEmail;
+            const docTeacherName = data.author_name || data.authorName || data.teacher;
 
             const isMatch =
               !teacherUid ||
-              docTeacherId === teacherUid ||
+              docAuthorId === teacherUid ||
               (teacherEmail && docTeacherEmail && docTeacherEmail.toLowerCase() === teacherEmail.toLowerCase()) ||
               (teacherName && docTeacherName && docTeacherName.toLowerCase() === teacherName.toLowerCase());
 
             if (isMatch) {
               myClassIds.add(d.id);
               myClassCount += 1;
+            }
+          });
+
+          // Bổ sung các class doc nếu có
+          classesSnap.docs.forEach((d) => {
+            const data = d.data();
+            const docTeacherId = data.teacher_id || data.teacherId || data.instructorId || data.authorId;
+            const isMatch = !teacherUid || docTeacherId === teacherUid;
+            if (isMatch) {
+              myClassIds.add(d.id);
             }
           });
 
@@ -154,9 +165,11 @@ export class FirestoreTeacherRepo implements TeacherPort {
       cacheKey,
       async () => {
         try {
-          const [snap, membersSnap] = await Promise.all([
+          const [pathsSnap, snap, membersSnap, enrollmentsSnap] = await Promise.all([
+            getDocs(collection(db, "learning_path")),
             getDocs(collection(db, "classes")),
             getDocs(collection(db, "class_members")),
+            getDocs(collection(db, "student_learning_path")),
           ]);
 
           const studentCountByClass: Record<string, number> = {};
@@ -168,8 +181,45 @@ export class FirestoreTeacherRepo implements TeacherPort {
             }
           });
 
-          const list: TeacherClassItem[] = [];
+          // Đếm học viên tham gia theo learning_path_id
+          enrollmentsSnap.docs.forEach((ed) => {
+            const eData = ed.data();
+            const lpId = eData.learning_path_id;
+            if (lpId) {
+              studentCountByClass[lpId] = (studentCountByClass[lpId] || 0) + 1;
+            }
+          });
 
+          const list: TeacherClassItem[] = [];
+          const seenIds = new Set<string>();
+
+          // 1. Map từ Learning Paths (Các lớp đang giảng dạy chính là các lộ trình)
+          pathsSnap.docs.forEach((d) => {
+            const data = d.data();
+            const docAuthorId = data.author_id || data.authorId;
+            const docTeacherEmail = data.author_email || data.authorEmail;
+            const docTeacherName = data.author_name || data.authorName || data.teacher;
+
+            const isMatch =
+              !teacherUid ||
+              docAuthorId === teacherUid ||
+              (teacherEmail && docTeacherEmail && docTeacherEmail.toLowerCase() === teacherEmail.toLowerCase()) ||
+              (teacherName && docTeacherName && docTeacherName.toLowerCase() === teacherName.toLowerCase());
+
+            if (isMatch && !seenIds.has(d.id)) {
+              seenIds.add(d.id);
+              list.push({
+                id: d.id,
+                name: data.title || "Lớp Học (Lộ Trình)",
+                grade: data.difficulty || "K18",
+                studentsCount: studentCountByClass[d.id] || 0,
+                subject: data.category || "Lộ Trình Học Tập",
+                avgGpa: "8.8",
+              });
+            }
+          });
+
+          // 2. Map từ Classes collection
           snap.docs.forEach((d) => {
             const data = d.data();
             const docTeacherId = data.teacher_id || data.teacherId || data.instructorId || data.authorId;
@@ -182,7 +232,8 @@ export class FirestoreTeacherRepo implements TeacherPort {
               (teacherEmail && docTeacherEmail && docTeacherEmail.toLowerCase() === teacherEmail.toLowerCase()) ||
               (teacherName && docTeacherName && docTeacherName.toLowerCase() === teacherName.toLowerCase());
 
-            if (isMatch) {
+            if (isMatch && !seenIds.has(d.id)) {
+              seenIds.add(d.id);
               list.push({
                 id: d.id,
                 name: data.name || "Lớp Học",
@@ -289,17 +340,23 @@ export class FirestoreTeacherRepo implements TeacherPort {
       cacheKey,
       async () => {
         try {
-          const snap = await getDocs(collection(db, "class_members"));
+          const [membersSnap, enrollmentsSnap] = await Promise.all([
+            getDocs(collection(db, "class_members")),
+            getDocs(collection(db, "student_learning_path")),
+          ]);
+
+          const list: TeacherClassStudentItem[] = [];
           const seenStudentIds = new Set<string>();
 
-          snap.docs.forEach((d) => {
+          // 1. Lấy từ class_members
+          membersSnap.docs.forEach((d) => {
             const data = d.data();
             if (classId && data.class_id && data.class_id !== classId) return;
             if (data.role === "Teacher") return;
 
             const memberDocId = d.id;
             const studentId = data.student_id || memberDocId;
-            const uniqueKey = classId ? `${classId}_${studentId}` : memberDocId;
+            const uniqueKey = `${studentId}_${data.class_id || "general"}`;
 
             if (!seenStudentIds.has(uniqueKey)) {
               seenStudentIds.add(uniqueKey);
@@ -307,9 +364,32 @@ export class FirestoreTeacherRepo implements TeacherPort {
                 id: memberDocId,
                 name: data.student_name || "Học Viên",
                 code: data.code || `STD-${studentId.slice(0, 6).toUpperCase()}`,
-                className: data.class_name || "Lập Trình Web K18",
-                gpa: data.gpa ? String(data.gpa) : "9.2",
+                className: data.class_name || "Lớp Học",
+                gpa: data.gpa ? String(data.gpa) : "9.0",
                 attendance: `${data.attendance_rate || 96}%`,
+                status: (data.status === "paused" ? "Bảo Lưu" : "Đang Học") as any,
+              });
+            }
+          });
+
+          // 2. Lấy từ student_learning_path (đăng ký lộ trình)
+          enrollmentsSnap.docs.forEach((d) => {
+            const data = d.data();
+            const lpId = data.learning_path_id;
+            if (classId && lpId && lpId !== classId) return;
+
+            const studentId = data.student_id || d.id;
+            const uniqueKey = `${studentId}_${lpId || "lp"}`;
+
+            if (!seenStudentIds.has(uniqueKey)) {
+              seenStudentIds.add(uniqueKey);
+              list.push({
+                id: d.id,
+                name: data.student_name || "Học Viên",
+                code: `STD-${studentId.slice(0, 6).toUpperCase()}`,
+                className: data.learning_path_title || "Lộ Trình Học Tập",
+                gpa: data.gpa ? String(data.gpa) : "8.8",
+                attendance: `${data.attendance_rate || 95}%`,
                 status: (data.status === "paused" ? "Bảo Lưu" : "Đang Học") as any,
               });
             }
