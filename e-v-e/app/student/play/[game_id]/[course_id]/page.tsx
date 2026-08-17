@@ -151,6 +151,7 @@ interface MemoryCardItem {
   pairId: string;
   type: "term" | "def";
   text: string;
+  imageUrl?: string;
   extraData?: string;
   icon?: string;
   isFlipped: boolean;
@@ -233,7 +234,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const [currentPairIdx, setCurrentPairIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
+  const [shuffledOptions, setShuffledOptions] = useState<{ text: string; imageUrl?: string }[]>([]);
 
   // Extra Data Preloader States & Session
   const [sessionToken, setSessionToken] = useState<string | null>(null);
@@ -537,6 +538,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         pairId: pId,
         type: "term",
         text: pair.title,
+        imageUrl: pair.image_url || pair.question_image_url || (pair as any).imageUrl,
         extraData: pair.explanation,
         icon: icon,
         isFlipped: true, // Initially shown for preview
@@ -549,6 +551,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         pairId: pId,
         type: "def",
         text: pair.description || (pair as any).rightAnswer || "Định nghĩa chi tiết",
+        imageUrl: pair.right_answer_image_url || (pair as any).rightAnswerImageUrl,
         extraData: pair.explanation,
         icon: icon,
         isFlipped: true, // Initially shown for preview
@@ -593,9 +596,18 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
       initializeMemoryDeck();
     } else if (pairs.length > 0) {
       const current = pairs[0];
-      const correct = current?.description || (current as any)?.rightAnswer || "Đáp án đúng";
+      const correctText = current?.description || (current as any)?.rightAnswer || "Đáp án đúng";
+      const correctImg = current?.right_answer_image_url || (current as any)?.rightAnswerImageUrl || "";
       const distractions = current?.distractions || ["Lựa chọn A", "Lựa chọn B", "Lựa chọn C"];
-      const opts = [correct, ...distractions].sort(() => Math.random() - 0.5);
+      const distractionImgs = current?.wrong_answers_image_urls || (current as any)?.wrongAnswersImageUrls || current?.distraction_image_urls || [];
+
+      const opts = [
+        { text: correctText, imageUrl: correctImg },
+        ...distractions.map((dText, dIdx) => ({
+          text: dText,
+          imageUrl: distractionImgs[dIdx] || "",
+        })),
+      ].sort(() => Math.random() - 0.5);
       setShuffledOptions(opts);
     }
   };
@@ -664,9 +676,19 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
     if (!isCardMatchingEngine && pairs.length > 0) {
       const current = pairs[currentPairIdx];
       if (current) {
-        const correct = current.description || (current as any).rightAnswer || "Đáp án đúng";
+        const correctText = current.description || (current as any).rightAnswer || "Đáp án đúng";
+        const correctImg = current.right_answer_image_url || (current as any).rightAnswerImageUrl || "";
         const distractions = current.distractions || ["Lựa chọn A", "Lựa chọn B", "Lựa chọn C"];
-        const opts = [correct, ...distractions].sort(() => Math.random() - 0.5);
+        const distractionImgs = current.wrong_answers_image_urls || (current as any).wrongAnswersImageUrls || current.distraction_image_urls || [];
+
+        const opts = [
+          { text: correctText, imageUrl: correctImg },
+          ...distractions.map((dText, dIdx) => ({
+            text: dText,
+            imageUrl: distractionImgs[dIdx] || "",
+          })),
+        ].sort(() => Math.random() - 0.5);
+
         setShuffledOptions(opts);
         setSelectedAnswer(null);
         setIsCorrect(null);
@@ -1253,6 +1275,12 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                                 <span className="text-base">{card.icon}</span>
                               </div>
 
+                              {card.imageUrl && (
+                                <div className="w-full h-16 rounded-lg overflow-hidden border border-zinc-200 bg-zinc-50 my-1 shrink-0">
+                                  <img src={card.imageUrl} alt={card.text} className="w-full h-full object-cover" />
+                                </div>
+                              )}
+
                               <p className="text-xs font-bold text-zinc-900 leading-snug my-auto line-clamp-3">
                                 {card.text}
                               </p>
@@ -1318,6 +1346,17 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                           {pairs[currentPairIdx].title}
                         </h3>
 
+                        {/* Question Image */}
+                        {(pairs[currentPairIdx].image_url || pairs[currentPairIdx].question_image_url || (pairs[currentPairIdx] as any).imageUrl) && (
+                          <div className="relative max-h-52 w-full rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-50 flex items-center justify-center p-2">
+                            <img
+                              src={pairs[currentPairIdx].image_url || pairs[currentPairIdx].question_image_url || (pairs[currentPairIdx] as any).imageUrl}
+                              alt="Question illustration"
+                              className="max-h-48 w-auto object-contain rounded-lg"
+                            />
+                          </div>
+                        )}
+
                         {/* Progress line */}
                         <div className="w-full h-1.5 rounded-full bg-zinc-100 overflow-hidden">
                           <div
@@ -1331,9 +1370,9 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
                         {shuffledOptions.map((opt, optIdx) => {
                           const optionLetters = ["A", "B", "C", "D"];
-                          const isSelected = selectedAnswer === opt;
+                          const isSelected = selectedAnswer === opt.text;
                           const currentCorrect = pairs[currentPairIdx]?.description || (pairs[currentPairIdx] as any)?.rightAnswer;
-                          const isActualCorrect = opt === currentCorrect;
+                          const isActualCorrect = opt.text === currentCorrect;
 
                           let optionClass = "bg-zinc-50 border-zinc-200 text-zinc-800 hover:border-red-400 hover:bg-red-50/50";
                           if (selectedAnswer !== null) {
@@ -1350,19 +1389,27 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                             <button
                               key={optIdx}
                               disabled={selectedAnswer !== null}
-                              onClick={() => handleSelectQuizAnswer(opt)}
-                              className={`p-4 rounded-2xl border-2 text-left text-xs md:text-sm font-medium transition-all duration-200 flex items-start gap-3 cursor-pointer select-none active:scale-98 ${optionClass}`}
+                              onClick={() => handleSelectQuizAnswer(opt.text)}
+                              className={`p-4 rounded-2xl border-2 text-left text-xs md:text-sm font-medium transition-all duration-200 flex flex-col gap-2.5 cursor-pointer select-none active:scale-98 ${optionClass}`}
                             >
-                              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
-                                selectedAnswer !== null && isActualCorrect
-                                  ? "bg-emerald-600 text-white"
-                                  : isSelected && !isCorrect
-                                  ? "bg-red-600 text-white"
-                                  : "bg-zinc-200 text-zinc-700"
-                              }`}>
-                                {optionLetters[optIdx % 4]}
-                              </span>
-                              <span className="flex-1 leading-relaxed">{opt}</span>
+                              <div className="flex items-start gap-3 w-full">
+                                <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
+                                  selectedAnswer !== null && isActualCorrect
+                                    ? "bg-emerald-600 text-white"
+                                    : isSelected && !isCorrect
+                                    ? "bg-red-600 text-white"
+                                    : "bg-zinc-200 text-zinc-700"
+                                }`}>
+                                  {optionLetters[optIdx % 4]}
+                                </span>
+                                <span className="flex-1 leading-relaxed">{opt.text}</span>
+                              </div>
+
+                              {opt.imageUrl && (
+                                <div className="w-full h-28 rounded-xl overflow-hidden border border-zinc-200 bg-white">
+                                  <img src={opt.imageUrl} alt={opt.text} className="w-full h-full object-cover" />
+                                </div>
+                              )}
                             </button>
                           );
                         })}

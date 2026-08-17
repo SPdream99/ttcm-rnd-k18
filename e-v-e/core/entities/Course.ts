@@ -11,46 +11,54 @@ export interface CourseContentPair {
   description?: string;        // Đáp án đúng (Right Answer)
   distractions?: string[];     // Danh sách các đáp án sai (Wrong Answers / Distractions)
   explanation?: string;        // Giải thích chi tiết đáp án / kiến thức (Explanation)
-  imageUrl?: string;           // Ảnh minh họa (nếu có)
+  imageUrl?: string;           // Ảnh minh họa câu hỏi (nếu có)
   image_url?: string;
+  questionImageUrl?: string;   // Alias ảnh minh họa câu hỏi
+  question_image_url?: string;
   rightAnswer?: string;        // Alias tương thích
   right_answer?: string;       // Alias tương thích
+  rightAnswerImageUrl?: string; // Ảnh minh họa đáp án đúng
+  right_answer_image_url?: string;
   wrongAnswers?: string[];     // Alias tương thích
   wrong_answers?: string[];    // Alias tương thích
+  wrongAnswersImageUrls?: string[]; // Danh sách ảnh minh họa các đáp án sai
+  wrong_answers_image_urls?: string[];
+  distractionImageUrls?: string[];
+  distraction_image_urls?: string[];
 }
 
 export interface CourseResource {
   id?: string;
   title: string;
   url: string;
-  type: "pdf" | "video" | "code" | "slide" | "link";
-  description?: string;
+  type: 'pdf' | 'doc' | 'zip' | 'video' | 'other';
 }
 
 export interface Course {
-  id: string;
-  courseId?: string;          // ID tùy biến hoặc code của khóa học (course_id)
-  title: string;
-  japaneseTitle?: string;
-  subtitle?: string;
-  description: string;
-  authorId?: string;          // ID của Giáo viên tạo ra course
-  authorName?: string;
-  instructorId?: string;
-  resources?: CourseResource[]; // Tài liệu & học liệu đính kèm do giáo viên cung cấp
-  isPublished?: boolean;
-  isAccepted?: boolean;       // Admin đã duyệt hay chưa (is_accepted)
-  is_accepted?: boolean;
-  thumbnailUrl?: string;
-  bannerUrl?: string;
+  id: string;                  // ID định danh duy nhất (VD: crs_nextjs_basics)
+  courseId?: string;           // Alias cho id
+  title: string;               // Tên khóa học
+  subtitle?: string;           // Tiêu đề phụ (Phù hợp phong cách Daginatsuko)
+  japaneseTitle?: string;      // Tiêu đề tiếng Nhật / Ký tự điểm nhấn
+  description: string;         // Mô tả khóa học
+  bannerUrl?: string;          // Ảnh bìa khóa học / Game Card Cover
+  thumbnailUrl?: string;       // Alias ảnh bìa
+  level?: 'Beginner' | 'Intermediate' | 'Advanced';
+  authorId: string;            // ID Giảng viên sở hữu (Teacher UID)
+  authorName?: string;         // Tên Giảng viên
+  instructorId?: string;       // Alias ID giảng viên
+  isAccepted: boolean;         // Trạng thái kiểm duyệt bởi Admin
+  isPublished?: boolean;       // Trạng thái công khai
+  pairsCount?: number;         // Số lượng câu hỏi / thẻ bài
   tags?: string[];
   categoryId?: string;
   price?: number;
-  totalDuration?: string;
+  totalDuration?: number;
   studentsCount?: number;
   contentData?: {
-    pairs: CourseContentPair[];
-  } | CourseContentPair[];    // Dữ liệu cặp câu hỏi/đáp án cho game
-  createdAt: Date | string;
-  updatedAt?: Date | string;
+    pairs?: CourseContentPair[];
+    resources?: CourseResource[];
+  } | any;
+  createdAt?: Date | string | number;
+  updatedAt?: Date | string | number;
 }

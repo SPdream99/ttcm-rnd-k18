@@ -9,8 +9,12 @@ export interface EVEGameCoursePair {
   distractions?: string[];
   explanation?: string;
   image_url?: string;
+  question_image_url?: string;
   right_answer?: string;
+  right_answer_image_url?: string;
   wrong_answers?: string[];
+  wrong_answers_image_urls?: string[];
+  distraction_image_urls?: string[];
 }
 
 export interface EVEInitGamePayload {

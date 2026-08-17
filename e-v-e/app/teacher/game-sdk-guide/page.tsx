@@ -48,7 +48,13 @@ export default function TeacherGameSdkGuidePage() {
       "Hàm Function"
     ],
     "explanation": "Cấu trúc IF - ELSE cho phép chương trình kiểm tra biểu thức điều kiện Logic (Boolean). Nếu biểu thức trả về True thì thực thi khối lệnh IF, ngược lại thực thi khối lệnh ELSE.",
-    "imageUrl": ""
+    "question_image_url": "https://example.com/question1.png",
+    "right_answer_image_url": "https://example.com/right1.png",
+    "wrong_answers_image_urls": [
+      "https://example.com/wrong1_1.png",
+      "https://example.com/wrong1_2.png",
+      "https://example.com/wrong1_3.png"
+    ]
   },
   {
     "id": "p2",
@@ -60,7 +66,9 @@ export default function TeacherGameSdkGuidePage() {
       "Bộ nguồn PSU"
     ],
     "explanation": "CPU là bộ vi xử lý trung tâm, chịu trách nhiệm nhận, giải mã và thực thi các chỉ lệnh của chương trình máy tính bằng các khối ALU và Control Unit.",
-    "imageUrl": ""
+    "question_image_url": "",
+    "right_answer_image_url": "",
+    "wrong_answers_image_urls": []
   }
 ]`;
 
