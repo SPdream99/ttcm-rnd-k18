@@ -250,13 +250,13 @@ export default function LoginPage() {
       <main className="w-full max-w-md my-auto">
         {/* Brand Header */}
         <div className="text-center mb-6">
-          <Link href="/" className="inline-flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-sm">
-              <Rocket className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-black text-2xl tracking-tight text-red-600">
-              E-V-E
-            </span>
+          <Link href="/" className="inline-flex items-center justify-center mb-3">
+            <img
+              src="/logo.png"
+              alt="E-V-E"
+              className="h-12 md:h-14 w-auto object-contain drop-shadow-xs block"
+              style={{ height: "48px", width: "auto" }}
+            />
           </Link>
 
           <h2 className="text-2xl font-black text-zinc-900 mb-1">

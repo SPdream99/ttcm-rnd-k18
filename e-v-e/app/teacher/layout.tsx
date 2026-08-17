@@ -66,10 +66,12 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <Link href="/teacher/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white font-bold shadow-xs">
-              <GraduationCap className="w-4 h-4" />
-            </div>
-            <span className="font-black text-base tracking-tight text-zinc-950">E-V-E</span>
+            <img
+              src="/logo.png"
+              alt="E-V-E"
+              className="h-7 w-auto object-contain block"
+              style={{ height: "28px", width: "auto" }}
+            />
             <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-red-100 text-red-700">GIÁO VIÊN</span>
           </Link>
         </div>
@@ -93,11 +95,14 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
               {/* Header inside drawer */}
               <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-xs">
-                    <GraduationCap className="w-5 h-5" />
-                  </div>
+                  <img
+                    src="/logo.png"
+                    alt="E-V-E"
+                    className="h-7.5 w-auto object-contain block"
+                    style={{ height: "30px", width: "auto" }}
+                  />
                   <div>
-                    <h3 className="font-bold text-sm text-zinc-900 leading-tight">E-V-E Giáo Viên</h3>
+                    <h3 className="font-bold text-xs text-red-600 uppercase tracking-wider">Giáo Viên</h3>
                     <p className="text-[11px] text-zinc-500 truncate max-w-[140px]" suppressHydrationWarning>{displayName}</p>
                   </div>
                 </div>
@@ -160,20 +165,17 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       <aside className="hidden md:flex w-64 h-screen bg-white border-r-2 border-zinc-200 p-5 flex-col justify-between z-40 sticky top-0 shrink-0 overflow-y-auto shadow-sm">
         <div className="space-y-6">
           {/* Brand Header */}
-          <div className="flex items-center gap-3 px-1">
-            <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold shadow-sm">
-              <GraduationCap className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="font-black text-lg tracking-tight text-zinc-900 flex items-center gap-1.5">
-                E-V-E{" "}
-                <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-red-100 text-red-700">
-                  GIÁO VIÊN
-                </span>
-              </h2>
-              <p className="text-[11px] text-zinc-500">Không gian giảng dạy</p>
-            </div>
-          </div>
+          <Link href="/teacher/dashboard" className="flex items-center gap-2 px-1">
+            <img
+              src="/logo.png"
+              alt="E-V-E"
+              className="h-8.5 w-auto object-contain block"
+              style={{ height: "34px", width: "auto" }}
+            />
+            <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-red-100 text-red-700 uppercase">
+              GIÁO VIÊN
+            </span>
+          </Link>
 
           {/* Teacher Profile Info */}
           <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center gap-3">

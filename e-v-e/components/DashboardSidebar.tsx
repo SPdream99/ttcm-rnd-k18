@@ -105,19 +105,16 @@ export default function DashboardSidebar({ role }: SidebarProps) {
       {/* ── Top section ── */}
       <div className="space-y-6">
         {/* Brand */}
-        <div className="flex items-center gap-3 px-1">
-          <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-sm">
-            <BrandIcon className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h2 className="font-bold text-lg tracking-tight text-zinc-900 flex items-center gap-1.5">
-              E-V-E{" "}
-              <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-red-100 text-red-700">
-                {brandBadge}
-              </span>
-            </h2>
-            <p className="text-[11px] text-zinc-500">{brandLabel}</p>
-          </div>
+        <div className="flex items-center gap-2 px-1">
+          <img
+            src="/logo.png"
+            alt="E-V-E"
+            className="h-8.5 w-auto object-contain block"
+            style={{ height: "34px", width: "auto" }}
+          />
+          <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-red-100 text-red-700 uppercase">
+            {brandBadge}
+          </span>
         </div>
 
         {/* User Quick Info */}

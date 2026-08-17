@@ -57,11 +57,13 @@ export default function Navbar() {
     <header className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b-2 border-zinc-200 shadow-sm transition-all">
       <div className="flex justify-between items-center px-4 md:px-8 py-3.5 max-w-7xl mx-auto">
         {/* Brand Logo */}
-        <Link href="/" className="font-black text-xl text-red-600 tracking-tight flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center font-bold">
-            <Rocket className="w-4 h-4" />
-          </div>
-          <span>E-V-E</span>
+        <Link href="/" className="flex items-center">
+          <img
+            src="/logo.png"
+            alt="E-V-E"
+            className="h-8 md:h-9 w-auto max-h-9 object-contain block"
+            style={{ height: "36px", width: "auto" }}
+          />
         </Link>
 
 

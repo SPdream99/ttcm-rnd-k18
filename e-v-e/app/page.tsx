@@ -128,23 +128,42 @@ export default function Home() {
   const [interactiveScore, setInteractiveScore] = useState(0);
   const [interactiveStreak, setInteractiveStreak] = useState(1);
   const [demoPairSolved, setDemoPairSolved] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashFade, setSplashFade] = useState(false);
+
+  // Splash Screen Intro Animation (Flash / Pulse then Fade Out)
+  useEffect(() => {
+    const fadeTimer = setTimeout(() => {
+      setSplashFade(true);
+    }, 1500);
+
+    const removeTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2200);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, []);
 
   useEffect(() => {
-    const user = currentUser || profile || getAuthCookie();
-    if (user && user.email) {
-      if (user.role === "admin" || user.role === "school") {
-        router.replace("/admin/dashboard");
-      } else if (user.role === "teacher") {
-        if ((user as any).status === "pending") {
-          router.replace("/pending");
-        } else {
-          router.replace("/teacher/dashboard");
-        }
+    // Chỉ tự động chuyển hướng sang Dashboard nếu có login cookie hợp lệ
+    const authCookie = getAuthCookie();
+    if (!authCookie || !authCookie.email || !authCookie.role) return;
+
+    if (authCookie.role === "admin" || authCookie.role === "school") {
+      router.replace("/admin/dashboard");
+    } else if (authCookie.role === "teacher") {
+      if (authCookie.status === "pending") {
+        router.replace("/pending");
       } else {
-        router.replace("/student/dashboard");
+        router.replace("/teacher/dashboard");
       }
+    } else {
+      router.replace("/student/dashboard");
     }
-  }, [currentUser, profile, router]);
+  }, [router]);
 
   // Topic text animation ticker
   useEffect(() => {
@@ -166,6 +185,45 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white text-zinc-900 font-sans overflow-x-hidden selection:bg-red-600 selection:text-white">
+      {/* ══════════════════════════════════════════════════════════════════════════════
+          0. INTRO SPLASH SCREEN (LOGO FLASH & PULSE -> FULLSCREEN FADE OUT)
+         ══════════════════════════════════════════════════════════════════════════════ */}
+      {showSplash && (
+        <div
+          className={`fixed inset-0 z-[100] bg-zinc-950 flex flex-col items-center justify-center transition-all duration-700 pointer-events-none ${
+            splashFade ? "opacity-0 scale-105" : "opacity-100 scale-100"
+          }`}
+        >
+          {/* Ambient Lighting / Glow Effect */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.25),transparent_65%)]" />
+          
+          {/* Pulsing / Glowing Center Logo */}
+          <div className="relative z-10 flex flex-col items-center justify-center">
+            <div className="relative p-8">
+              {/* Outer Glowing Pulsing Rings */}
+              <div className="absolute inset-0 rounded-full bg-red-600/30 blur-3xl animate-ping opacity-75" />
+              <div className="absolute inset-4 rounded-full bg-red-500/20 blur-2xl animate-pulse" />
+
+              {/* Center Logo with Flicker / Glow */}
+              <img
+                src="/logo.png"
+                alt="E-V-E"
+                className="relative z-10 w-48 sm:w-64 md:w-80 h-auto object-contain drop-shadow-[0_0_40px_rgba(239,68,68,0.7)] animate-pulse"
+                style={{ maxHeight: "240px", width: "auto" }}
+              />
+            </div>
+
+            {/* Glowing Tech Loader Indicator */}
+            <div className="mt-2 flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+              <span className="text-xs font-mono font-bold tracking-[0.35em] text-red-500 uppercase">
+                SYSTEM BOOT ENGINE
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Navbar />
 
       {/* ══════════════════════════════════════════════════════════════════════════════
@@ -617,11 +675,14 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-zinc-800">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold font-mono">
-                E
-              </div>
+              <img
+                src="/logo.png"
+                alt="E-V-E"
+                className="h-8 md:h-9 w-auto object-contain block"
+                style={{ height: "36px", width: "auto" }}
+              />
               <div>
-                <span className="font-mono font-black text-lg tracking-wider block">E-V-E PLATFORM</span>
+                <span className="font-mono font-black text-lg tracking-wider block">PLATFORM</span>
                 <span className="text-[11px] text-zinc-400 block font-mono">Interactive Gamified Learning Engine</span>
               </div>
             </div>

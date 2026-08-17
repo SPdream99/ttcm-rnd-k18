@@ -11,7 +11,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import { setAuthCookie, removeAuthCookie } from "@/lib/cookies";
+import { setAuthCookie, getAuthCookie, removeAuthCookie } from "@/lib/cookies";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,7 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ).catch(() => {}); // ignore nếu đã có session
 
     const unsubscribe = onAuthStateChanged(auth, async (fbUser: FirebaseUser | null) => {
-      if (!fbUser) {
+      const cached = typeof document !== "undefined" ? getAuthCookie() : null;
+      if (!fbUser || !cached) {
         setUser(null);
         setLoading(false);
         return;

@@ -16,8 +16,13 @@ export default function PendingApprovalPage() {
   return (
     <main className="bg-zinc-50 text-zinc-900 min-h-screen flex items-center justify-center p-4 md:p-8 font-sans">
       <div className="max-w-md w-full rounded-2xl p-8 bg-white border-2 border-red-600 shadow-sm text-center space-y-6">
-        <div className="mx-auto w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-          <Clock className="w-8 h-8 text-red-600" />
+        <div className="mx-auto flex items-center justify-center">
+          <img
+            src="/logo.png"
+            alt="E-V-E"
+            className="h-12 w-auto object-contain block"
+            style={{ height: "48px", width: "auto" }}
+          />
         </div>
 
         <div className="space-y-2">
