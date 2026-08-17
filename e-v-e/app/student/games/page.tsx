@@ -230,6 +230,7 @@ export default function StudentGamesArcadePage() {
             authorName: cd.authorName || "Giảng viên",
             tags: Array.isArray(cd.tags) ? cd.tags : ["Lập trình"],
           });
+        });
         setCoursesList(cl);
       } catch (e) {
         console.error("Lỗi khi nạp danh sách Arcade:", e);
