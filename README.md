@@ -7,7 +7,25 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 
 ## Sử Dụng
 
-Ứng dụng có 3 luồng người dùng chính. Dưới đây là giao diện của từng luồng.
+Ứng dụng có 3 luồng người dùng chính. Dưới đây là video demo luồng hoạt động và giao diện của từng luồng.
+
+### Video Demo Luồng Hoạt Động
+
+**1. Giáo Viên — Đăng Ký Tài Khoản Giảng Viên**
+
+<video src="e-v-e/docs/videos/teacher-register.webm" controls width="720"></video>
+
+**2. Quản Trị Viên — Duyệt Hồ Sơ Giáo Viên**
+
+<video src="e-v-e/docs/videos/admin-approve.webm" controls width="720"></video>
+
+**3. Giáo Viên — Soạn Bài & Gửi Phê Duyệt**
+
+<video src="e-v-e/docs/videos/teacher-create-course.webm" controls width="720"></video>
+
+**4. Học Sinh — Đăng Ký Khóa Học & Chơi Minigame**
+
+<video src="e-v-e/docs/videos/student-flow.webm" controls width="720"></video>
 
 ### Trang Chủ (Landing Page)
 
