@@ -34,13 +34,13 @@ const ROTATING_TOPICS = [
 const MODULE_TILES = [
   {
     id: "tile_1",
-    title: "Ghép Thẻ Thuật Toán",
-    desc: "Tìm cặp lệnh và định nghĩa chính xác, rèn luyện trí nhớ và phản xạ lập trình.",
+    title: "Lớp Học & Bài Tập Trực Tuyến",
+    desc: "Quản lý lớp học, giao bài tập và theo dõi tiến độ của từng học viên.",
   },
   {
     id: "tile_2",
-    title: "Đấu Trí Trùm Trắc Nghiệm",
-    desc: "Chiến đấu với Boss qua các câu hỏi lập trình và cấu trúc rẽ nhánh.",
+    title: "Bảng Xếp Hạng & Thành Tích",
+    desc: "Thi đua bạn bè qua bảng xếp hạng thời gian thực và thống kê thành tích cá nhân.",
   },
   {
     id: "tile_3",
@@ -523,8 +523,8 @@ export default function Home() {
                 style={{ height: "36px", width: "auto" }}
               />
               <div>
-                <span className="font-mono font-black text-lg tracking-wider block">PLATFORM</span>
-                <span className="text-[11px] text-zinc-400 block font-mono">Interactive Gamified Learning Engine</span>
+                <span className="font-mono font-black text-lg tracking-wider block">E-V-E</span>
+                <span className="text-[11px] text-zinc-400 block font-mono">Educational Value Elegant</span>
               </div>
             </div>
 

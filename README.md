@@ -1,4 +1,4 @@
-# E-V-E — Educational Virtual Ecosystem
+# E-V-E — Educational Value Elegant
 
 Nền tảng học tập trực tuyến thông minh tích hợp trợ lý AI gia sư sư phạm và hệ thống minigame giáo dục Gamification qua SDK mở.  
 Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K18**.
@@ -8,6 +8,12 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 ## Sử Dụng
 
 Ứng dụng có 3 luồng người dùng chính. Dưới đây là giao diện của từng luồng.
+
+### Trang Chủ (Landing Page)
+
+| **Trang Chủ E-V-E** — Giới thiệu nền tảng, các tính năng nổi bật và nút Đăng Nhập / Đăng Ký cho mọi vai trò. |
+|:---:|
+| ![Trang Chủ E-V-E](e-v-e/docs/screenshots/landing-page.png) |
 
 ### Luồng 1: Học Sinh
 
