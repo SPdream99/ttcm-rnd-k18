@@ -147,13 +147,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                       key={item.id}
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-colors ${
-                        active
-                          ? "bg-red-600 text-white font-bold shadow-sm"
-                          : "text-zinc-600 hover:text-red-600 hover:bg-red-50"
+                      className={`nav-link w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs tracking-wide ${
+                        active ? "nav-link-active" : ""
                       }`}
                     >
-                      <Icon className={`w-4 h-4 ${active ? "text-white" : "text-zinc-500"}`} />
+                      <Icon className="nav-link-icon w-4 h-4 text-zinc-500" />
                       <span className="text-xs tracking-wide">{item.label}</span>
                     </Link>
                   );
@@ -254,13 +252,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                 <Link
                   key={item.id}
                   href={item.href}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-colors ${
-                    active
-                      ? "bg-red-600 text-white font-bold shadow-sm"
-                      : "text-zinc-600 hover:text-red-600 hover:bg-red-50"
+                  className={`nav-link w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs tracking-wide ${
+                    active ? "nav-link-active" : ""
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${active ? "text-white" : "text-zinc-500"}`} />
+                  <Icon className="nav-link-icon w-4 h-4 text-zinc-500" />
                   <span className="text-xs tracking-wide">{item.label}</span>
                 </Link>
               );

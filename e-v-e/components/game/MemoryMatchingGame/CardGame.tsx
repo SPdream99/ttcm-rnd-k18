@@ -44,7 +44,7 @@ export default function CardGame({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="aspect-square w-full cursor-pointer focus:outline-none select-none transition-transform active:scale-95"
+      className="memory-card-btn aspect-square w-full cursor-pointer focus:outline-none select-none transition-transform active:scale-95"
     >
       <div className="relative h-full w-full">
         {/* =========================================

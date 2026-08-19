@@ -367,9 +367,11 @@ export default function StudentClassDetailPage({
 
   const dynamicProgress = safePathCourses.length > 0
     ? Math.round((completedCoursesList.length / safePathCourses.length) * 100)
-    : (enrollment?.progress || 0);
+    : 0;
 
-  const displayProgress = enrollment?.progress ? Math.max(enrollment.progress, dynamicProgress) : dynamicProgress;
+  // Tiến độ hiển thị phải luôn khớp với số chặng đã hoàn thành thực tế
+  // (không dùng trường `progress` lưu sẵn vì dễ lệch với dữ liệu game_results)
+  const displayProgress = dynamicProgress;
 
   return (
     <div className="space-y-8 font-sans pb-12">
@@ -513,7 +515,7 @@ export default function StudentClassDetailPage({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
-              <Target className="w-5 h-5 text-red-600" /> Bản Đồ Cây Kỹ Năng Lớp Học
+              <Target className="w-5 h-5 text-red-600" /> Chặng Hành Trình
             </h2>
             <p className="text-xs text-zinc-500 mt-1">
               Bấm vào các trạm bài học để bắt đầu thực hành minigame tương tác và mở khóa kiến thức.

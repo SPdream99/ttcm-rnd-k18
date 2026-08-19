@@ -34,13 +34,11 @@ export default function Sidebar() {
             <a
               key={idx}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors ${
-                item.active
-                  ? "bg-red-50 text-red-700 border border-red-200"
-                  : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50"
+              className={`nav-link flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm ${
+                item.active ? "nav-link-active" : ""
               }`}
             >
-              <item.icon className={`w-5 h-5 ${item.active ? "text-red-600" : "text-zinc-400"}`} />
+              <item.icon className={`nav-link-icon w-5 h-5 ${item.active ? "text-red-600" : "text-zinc-400"}`} />
               {item.label}
             </a>
           ))}
@@ -50,10 +48,10 @@ export default function Sidebar() {
       {/* Footer Settings */}
       <div className="space-y-4 pt-6 border-t border-zinc-200">
         <div className="flex items-center justify-between px-2 text-zinc-500 font-bold">
-          <a href="#" className="hover:text-red-600 transition-colors flex items-center gap-2 text-xs">
+          <a href="#" className="nav-link hover:text-red-600 transition-colors flex items-center gap-2 text-xs">
             <Settings className="w-4 h-4" /> Cài đặt
           </a>
-          <a href="#" className="hover:text-red-600 transition-colors flex items-center gap-2 text-xs">
+          <a href="#" className="nav-link hover:text-red-600 transition-colors flex items-center gap-2 text-xs">
             <HelpCircle className="w-4 h-4" /> Trợ giúp
           </a>
         </div>

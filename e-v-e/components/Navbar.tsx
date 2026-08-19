@@ -99,7 +99,7 @@ export default function Navbar() {
                     <Link
                       href={getDashboardUrl()}
                       onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-zinc-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      className="nav-dropdown-link flex items-center gap-2.5 px-4 py-2 text-xs font-bold"
                     >
                       <LayoutDashboard className="w-4 h-4 text-red-600" /> Bảng Điều Khiển
                     </Link>
@@ -107,7 +107,7 @@ export default function Navbar() {
                     <Link
                       href={getProfileUrl()}
                       onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-zinc-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      className="nav-dropdown-link flex items-center gap-2.5 px-4 py-2 text-xs font-bold"
                     >
                       <UserCheck className="w-4 h-4 text-red-600" /> Hồ Sơ & Bảo Mật
                     </Link>
@@ -116,7 +116,7 @@ export default function Navbar() {
                   <div className="pt-1 border-t border-zinc-100">
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer text-left"
+                      className="nav-dropdown-link w-full flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-red-600 cursor-pointer text-left"
                     >
                       <LogOut className="w-4 h-4" /> Đăng Xuất
                     </button>
@@ -127,7 +127,7 @@ export default function Navbar() {
           ) : (
             <div className="flex items-center gap-3">
               <Link href="/login">
-                <button className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-700 hover:text-zinc-900 transition cursor-pointer">
+                <button className="nav-link px-4 py-2 rounded-xl text-xs font-bold text-zinc-700 cursor-pointer">
                   Đăng Nhập
                 </button>
               </Link>

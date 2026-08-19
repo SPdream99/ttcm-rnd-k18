@@ -4,25 +4,18 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Code2,
-  Compass,
-  Gamepad2,
-  Trophy,
   BookOpen,
   GraduationCap,
   ArrowRight,
   Play,
   Rocket,
-  Bot,
   Sparkles,
   ShieldCheck,
   CheckCircle2,
   Layers,
   ChevronRight,
   Zap,
-  Terminal,
   Cpu,
-  Flame,
   Star,
   Users,
 } from "lucide-react";
@@ -41,57 +34,33 @@ const ROTATING_TOPICS = [
 const MODULE_TILES = [
   {
     id: "tile_1",
-    tag: "CARD MATCHING — A356",
     title: "Ghép Thẻ Thuật Toán",
     desc: "Tìm cặp lệnh và định nghĩa chính xác, rèn luyện trí nhớ và phản xạ lập trình.",
-    icon: Gamepad2,
-    badge: "SDK v2.4",
-    stat: "1,240+ Lượt chơi",
   },
   {
     id: "tile_2",
-    tag: "BOSS BATTLE — PYTHON",
     title: "Đấu Trí Trùm Trắc Nghiệm",
     desc: "Chiến đấu với Boss qua các câu hỏi lập trình và cấu trúc rẽ nhánh.",
-    icon: Flame,
-    badge: "Hot Game",
-    stat: "98% Tỉ lệ hứng thú",
   },
   {
     id: "tile_3",
-    tag: "LEARNING PATH — MAP",
     title: "Bản Đồ Lộ Trình Phân Chặng",
     desc: "Vượt qua từng chặng bài học theo thứ tự logic, mở khóa chặng mới khi đạt chuẩn.",
-    icon: Compass,
-    badge: "Bản Đồ 4 Chặng",
-    stat: "100% Tự động hóa",
   },
   {
     id: "tile_4",
-    tag: "AI TUTOR — GEMINI CORE",
     title: "Trợ Lý Sư Phạm AI 24/7",
     desc: "Giải thích chi tiết thuật toán, gợi ý sửa lỗi code và hỗ trợ học sinh tức thì.",
-    icon: Bot,
-    badge: "AI Hỗ Trợ",
-    stat: "Phản hồi < 1s",
   },
   {
     id: "tile_5",
-    tag: "COIN ECONOMY — SHOP",
     title: "Tích Lũy Coins & Đổi Quà",
-    desc: "Học tập để cày Coins, đổi Khung Avatar lấp lánh và Huy hiệu danh giá.",
-    icon: Trophy,
-    badge: "Cửa Hàng E-V-E",
-    stat: "50+ Vật phẩm",
+    desc: "Học tập để cày Coins, đổi Khung Avatar và Huy hiệu danh giá.",
   },
   {
     id: "tile_6",
-    tag: "TEACHER SDK — CREATOR",
     title: "Tự Do Xuất Bản Game & Bài Học",
     desc: "Giáo viên tải gói Game .zip hoặc soạn cặp câu hỏi chỉ với vài cú click.",
-    icon: Code2,
-    badge: "Dành Cho Giáo Viên",
-    stat: "Hỗ trợ chuẩn .ZIP",
   },
 ];
 
@@ -125,9 +94,6 @@ export default function Home() {
 
   const [topicIndex, setTopicIndex] = useState(0);
   const [activeStep, setActiveStep] = useState(0);
-  const [interactiveScore, setInteractiveScore] = useState(0);
-  const [interactiveStreak, setInteractiveStreak] = useState(1);
-  const [demoPairSolved, setDemoPairSolved] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [splashFade, setSplashFade] = useState(false);
 
@@ -172,16 +138,6 @@ export default function Home() {
     }, 2800);
     return () => clearInterval(timer);
   }, []);
-
-  const handleSolveDemo = () => {
-    setDemoPairSolved(true);
-    setInteractiveScore((prev) => prev + 50);
-    setInteractiveStreak((prev) => prev + 1);
-  };
-
-  const handleResetDemo = () => {
-    setDemoPairSolved(false);
-  };
 
   return (
     <div className="min-h-screen bg-white text-zinc-900 font-sans overflow-x-hidden selection:bg-red-600 selection:text-white">
@@ -234,7 +190,7 @@ export default function Home() {
             <div className="lg:col-span-7 space-y-6 text-left">
               <div className="space-y-2">
                 <span className="font-mono text-xs uppercase tracking-widest text-red-600 font-bold block">
-                  Interactive Learning Architecture
+                  E - V - E
                 </span>
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-zinc-950 uppercase leading-[1.05]">
                   <span className="block text-zinc-400">Chinh Phục</span>
@@ -292,110 +248,27 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Column: High-Tech Interactive Preview Console (Digital Metal Style Dropzone) */}
+            {/* Right Column: Static Game Preview */}
             <div className="lg:col-span-5">
-              <div className="relative rounded-2xl bg-zinc-950 border-2 border-zinc-800 p-5 shadow-2xl text-white overflow-hidden">
-                {/* Neon Accent Glow */}
-                <div className="absolute -top-16 -right-16 w-48 h-48 bg-red-600/30 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-emerald-600/20 rounded-full blur-3xl pointer-events-none" />
-
-                {/* Console Header */}
-                <div className="flex items-center justify-between pb-3 border-b border-zinc-800 font-mono text-[11px] text-zinc-400">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-600" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                    <span className="text-zinc-300 ml-1 font-bold">EVE_RUNTIME_SIMULATOR</span>
-                  </div>
-                  <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px]">
-                    ONLINE
-                  </span>
-                </div>
-
-                {/* Floating Specs Badges */}
-                <div className="grid grid-cols-2 gap-2 my-4">
-                  <div className="p-2 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                    <span className="font-mono text-[10px] text-zinc-500 block uppercase">Độ Khó</span>
-                    <span className="font-mono text-xs text-emerald-400 font-bold">FOUNDATION • LVL 1</span>
-                  </div>
-                  <div className="p-2 rounded-lg bg-zinc-900/90 border border-zinc-800">
-                    <span className="font-mono text-[10px] text-zinc-500 block uppercase">Thưởng</span>
-                    <span className="font-mono text-xs text-yellow-400 font-bold">+{interactiveScore} COINS</span>
-                  </div>
-                </div>
-
-                {/* Interactive Simulation Sandbox */}
-                <div className="p-4 rounded-xl bg-zinc-900 border border-dashed border-zinc-700 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                      <Terminal className="w-3.5 h-3.5 text-red-500" /> Thử Thách Nhanh:
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800">
-                      Streak: x{interactiveStreak}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-zinc-300 leading-relaxed font-mono">
-                    {`# Câu hỏi:`} Trong Python, lệnh nào dùng để xuất thông tin ra màn hình console?
+              <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-5 shadow-xl text-white">
+                <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 space-y-3">
+                  <p className="text-sm text-zinc-100 font-semibold leading-relaxed">
+                    Trong Python, lệnh nào dùng để xuất thông tin ra màn hình console?
                   </p>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <button
-                      onClick={handleSolveDemo}
-                      disabled={demoPairSolved}
-                      className={`p-2.5 rounded-lg font-mono text-xs text-left transition-all border cursor-pointer ${
-                        demoPairSolved
-                          ? "bg-emerald-950/80 border-emerald-500 text-emerald-300 font-bold"
-                          : "bg-zinc-800/80 hover:bg-zinc-800 border-zinc-700 text-zinc-200"
-                      }`}
-                    >
-                      A. print() {demoPairSolved && " Đúng (+50c)"}
-                    </button>
-
-                    <button
-                      onClick={() => alert("Sai rồi! Hãy thử lại với print() nhé.")}
-                      disabled={demoPairSolved}
-                      className="p-2.5 rounded-lg font-mono text-xs text-left bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700 text-zinc-400 transition-all cursor-pointer"
-                    >
-                      B. echo()
-                    </button>
-                    <button
-                      onClick={() => alert("Sai rồi! Hãy thử lại với print() nhé.")}
-                      disabled={demoPairSolved}
-                      className="p-2.5 rounded-lg font-mono text-xs text-left bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700 text-zinc-400 transition-all cursor-pointer"
-                    >
-                      C. console.log()
-                    </button>
-                    <button
-                      onClick={() => alert("Sai rồi! Hãy thử lại với print() nhé.")}
-                      disabled={demoPairSolved}
-                      className="p-2.5 rounded-lg font-mono text-xs text-left bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700 text-zinc-400 transition-all cursor-pointer"
-                    >
-                      D. output()
-                    </button>
-                  </div>
-
-                  {demoPairSolved && (
-                    <div className="pt-2 flex items-center justify-between border-t border-zinc-800">
-                      <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1 font-bold">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Tuyệt vời! Bạn đã vượt qua chặng 1.
-                      </span>
-                      <button
-                        onClick={handleResetDemo}
-                        className="text-[10px] font-mono text-zinc-400 hover:text-white underline cursor-pointer"
-                      >
-                        Thử lại
-                      </button>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="p-2.5 rounded-lg bg-emerald-950/80 border border-emerald-500 text-emerald-300 font-mono text-xs font-bold">
+                      A. print()
                     </div>
-                  )}
-                </div>
-
-                {/* Console Footer */}
-                <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-between text-[11px] font-mono text-zinc-400">
-                  <span className="text-zinc-500">ENGINE: E-V-E HYBRID 2.4</span>
-                  <Link href="/register" className="text-red-400 hover:text-red-300 font-bold flex items-center gap-1">
-                    Vào Game Thực Tế <ArrowRight className="w-3 h-3" />
-                  </Link>
+                    <div className="p-2.5 rounded-lg bg-zinc-800/80 border border-zinc-700 text-zinc-400 font-mono text-xs">
+                      B. echo()
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-zinc-800/80 border border-zinc-700 text-zinc-400 font-mono text-xs">
+                      C. console.log()
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-zinc-800/80 border border-zinc-700 text-zinc-400 font-mono text-xs">
+                      D. output()
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -404,61 +277,37 @@ export default function Home() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════════════
-          2. SHOWCASE TILES (HIGH CONTRAST INDUSTRIAL MODULE GRID)
-         ══════════════════════════════════════════════════════════════════════════════ */}
-      <section className="py-20 md:py-28 bg-white border-b border-zinc-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-200 pb-6">
-            <div>
-              <span className="font-mono text-xs uppercase tracking-widest text-red-600 font-bold">
-                Ecosystem Architecture
-              </span>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-zinc-950 uppercase tracking-tight mt-1">
-                Các Khối Tính Năng Nền Tảng
-              </h2>
-            </div>
-            <p className="text-xs sm:text-sm text-zinc-500 max-w-md font-mono">
-              Được thiết kế theo tiêu chuẩn module hóa cao, đảm bảo học sinh tiếp thu kiến thức tự nhiên và hào hứng.
+           2. FEATURE MODULES
+          ══════════════════════════════════════════════════════════════════════════════ */}
+      <section className="py-20 md:py-24 bg-white border-b border-zinc-200">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs font-semibold text-red-600 uppercase tracking-wide">
+              Tính Năng
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold text-zinc-950 tracking-tight">
+              Các Khối Tính Năng Nền Tảng
+            </h2>
+            <p className="text-sm md:text-base text-zinc-600">
+              Học tập, giảng dạy và quản lý nội dung trong một nền tảng duy nhất.
             </p>
           </div>
 
-          {/* 6 Grid Modules */}
+          {/* 6 Feature Modules */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {MODULE_TILES.map((tile) => {
-              const IconComponent = tile.icon;
-              return (
-                <div
-                  key={tile.id}
-                  className="group relative p-6 rounded-2xl bg-zinc-50 hover:bg-white border-2 border-zinc-200 hover:border-red-600 transition-all duration-200 flex flex-col justify-between space-y-5 shadow-sm hover:shadow-lg"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[11px] text-zinc-500 font-bold uppercase tracking-wider">
-                        {tile.tag}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-md bg-red-100 text-red-700 text-[10px] font-mono font-bold">
-                        {tile.badge}
-                      </span>
-                    </div>
-
-                    <div className="w-12 h-12 rounded-xl bg-white group-hover:bg-red-600 text-red-600 group-hover:text-white border border-zinc-200 group-hover:border-red-600 flex items-center justify-center transition-colors shadow-sm">
-                      <IconComponent className="w-6 h-6" />
-                    </div>
-
-                    <h3 className="text-lg font-black text-zinc-950 uppercase tracking-tight group-hover:text-red-600 transition-colors">
-                      {tile.title}
-                    </h3>
-                    <p className="text-xs text-zinc-600 leading-relaxed">
-                      {tile.desc}
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-zinc-200 font-mono text-xs">
-                    <span className="text-zinc-500 text-[11px]">{tile.stat}</span>
-                  </div>
-                </div>
-              );
-            })}
+            {MODULE_TILES.map((tile) => (
+              <div
+                key={tile.id}
+                className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <h3 className="text-base font-bold text-zinc-900 mb-2">
+                  {tile.title}
+                </h3>
+                <p className="text-sm text-zinc-600 leading-relaxed">
+                  {tile.desc}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

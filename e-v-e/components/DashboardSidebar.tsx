@@ -72,9 +72,9 @@ export default function DashboardSidebar({ role }: SidebarProps) {
     "Người dùng";
   const displayCoins = currentUser?.coins ?? profile?.coins ?? 0;
 
-  // Solid Red & White Active Class (NO GRADIENTS)
-  const activeClass = "bg-red-600 text-white font-bold shadow-sm";
-  const iconColour = "text-white";
+  // Active nav: red text + animated underline (no filled background)
+  const activeClass = "nav-link-active";
+  const iconColour = "text-zinc-500";
 
   const isActiveItem = (item: (typeof STUDENT_NAV)[0]): boolean => {
     if (item.href) return pathname.startsWith(item.href);
@@ -138,11 +138,11 @@ export default function DashboardSidebar({ role }: SidebarProps) {
               <button
                 key={item.id}
                 onClick={() => handleItemClick(item)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all cursor-pointer text-left ${
-                  active ? activeClass : "text-zinc-600 hover:text-red-600 hover:bg-red-50"
+                className={`nav-link w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl cursor-pointer text-left ${
+                  active ? activeClass : ""
                 }`}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${active ? iconColour : "text-zinc-500"}`} />
+                <Icon className={`nav-link-icon w-4 h-4 shrink-0 ${active ? "text-red-600" : iconColour}`} />
                 <span className="flex-1 truncate">{item.label}</span>
                 {item.href && !active && (
                   <ChevronRight className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
