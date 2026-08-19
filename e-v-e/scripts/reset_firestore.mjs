@@ -70,6 +70,7 @@ const COLLECTIONS = [
   "lectures",
   "courses",
   "learning_path",
+  "learning_paths",
   "student_learning_path",
   "game_info",
   "game_results",
