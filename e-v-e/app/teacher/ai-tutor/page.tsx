@@ -235,7 +235,7 @@ export default function TeacherAITutorPage() {
               <button
                 type="button"
                 onClick={() => navigator.clipboard.writeText(code)}
-                className="hover:text-white flex items-center gap-1 cursor-pointer"
+                className="btn-plain flex items-center gap-1 cursor-pointer"
               >
                 <Copy className="w-3 h-3" /> Sao chép
               </button>
@@ -377,7 +377,7 @@ export default function TeacherAITutorPage() {
                 {msg.sender === "ai" && (
                   <button
                     onClick={() => handleCopy(msg.text, msg.id)}
-                    className="hover:text-red-600 flex items-center gap-0.5 cursor-pointer ml-1"
+                    className="btn-plain flex items-center gap-0.5 cursor-pointer ml-1"
                   >
                     {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                     <span>{copiedId === msg.id ? "Đã chép" : "Chép"}</span>
@@ -449,7 +449,7 @@ export default function TeacherAITutorPage() {
               </h3>
               <button
                 onClick={() => setShowKeyModal(false)}
-                className="text-zinc-400 hover:text-zinc-900 text-sm font-bold p-1 cursor-pointer"
+                className="btn-plain text-sm font-bold p-1 cursor-pointer"
               >
                 ✕
               </button>

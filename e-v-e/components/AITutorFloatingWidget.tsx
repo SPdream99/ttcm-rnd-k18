@@ -257,7 +257,7 @@ export default function AITutorFloatingWidget() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-40 p-3.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 cursor-pointer flex items-center gap-2 group border-2 border-white/20"
+          className="fixed bottom-5 right-5 z-40 p-3.5 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 cursor-pointer flex items-center justify-center border-2 border-white/20"
           title={isTeacher ? "Mở Trợ Giảng Sư Phạm E-V-E Mini" : "Mở Gia Sư Học Tập E-V-E Mini"}
           aria-label={isTeacher ? "Mở Trợ Giảng Sư Phạm E-V-E Mini" : "Mở Gia Sư Học Tập E-V-E Mini"}
         >
@@ -266,9 +266,6 @@ export default function AITutorFloatingWidget() {
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-red-600 animate-ping" />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-red-600" />
           </div>
-          <span className="hidden sm:inline font-bold text-xs pr-1">
-            {isTeacher ? "Trợ Giảng AI" : "Gia Sư E-V-E"}
-          </span>
         </button>
       )}
 
