@@ -4,42 +4,6 @@ Thư mục chứa toàn bộ mã nguồn ứng dụng web E-V-E (Next.js 16).
 
 ---
 
-## Sử Dụng
-
-### Luồng 1: Học Sinh
-
-![Dashboard Học Sinh](docs/screenshots/student-dashboard.png)
-
-![Lộ Trình Học Tập](docs/screenshots/student-learning-paths.png)
-
-![Lớp Học Của Tôi](docs/screenshots/student-classes.png)
-
-![Kho Minigame](docs/screenshots/student-games.png)
-
-![Gia Sư Học Tập AI](docs/screenshots/student-ai-tutor.png)
-
-### Luồng 2: Giáo Viên
-
-![Dashboard Giáo Viên](docs/screenshots/teacher-dashboard.png)
-
-![Quản Lý Lớp Học](docs/screenshots/teacher-classes.png)
-
-![Soạn Bài & Học Liệu](docs/screenshots/teacher-contents.png)
-
-![Trung Tâm Upload Học Liệu](docs/screenshots/teacher-upload.png)
-
-![Trợ Lý Giảng Dạy AI](docs/screenshots/teacher-ai-tutor.png)
-
-### Luồng 3: Quản Trị Viên
-
-![Dashboard Quản Trị](docs/screenshots/admin-dashboard.png)
-
-![Duyệt Bài Học & Game](docs/screenshots/admin-approvals.png)
-
-![Quản Lý Người Dùng](docs/screenshots/admin-users.png)
-
----
-
 ## Hướng dẫn khởi chạy nhanh
 
 ### 1. Cài đặt thư viện

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "E-V-E — Educational Virtual Ecosystem",
+  title: "E-V-E — Educational Value Elegant",
   description: "Nền Tảng Giáo Dục Trực Tuyến Tương Tác & Game-Based Learning",
   icons: {
     icon: "/logo.png",
