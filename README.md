@@ -5,6 +5,60 @@ Dự án đồ án / nghiên cứu phát triển thuộc lớp **TTCM - RnD - K1
 
 ---
 
+## Sử Dụng
+
+Ứng dụng có 3 luồng người dùng chính. Dưới đây là giao diện của từng luồng.
+
+### Luồng 1: Học Sinh
+
+| **Dashboard Học Sinh** — Tổng quan lời chào, thống kê khóa học và tiến độ học tập. | **Lộ Trình Học Tập** — Bản đồ cây kỹ năng liệt kê các chặng bài học, mở khóa tuần tự khi hoàn thành chặng trước. |
+|:---:|:---:|
+| ![Dashboard Học Sinh](e-v-e/docs/screenshots/student-dashboard.png) | ![Lộ Trình Học Tập](e-v-e/docs/screenshots/student-learning-paths.png) |
+
+| **Lớp Học Của Tôi** — Danh sách lớp đã tham gia, theo dõi tiến độ và hoạt động lớp học. | **Kho Minigame** — Trung tâm trò chơi giáo dục tương tác để luyện tập và tích lũy điểm. |
+|:---:|:---:|
+| ![Lớp Học Của Tôi](e-v-e/docs/screenshots/student-classes.png) | ![Kho Minigame](e-v-e/docs/screenshots/student-games.png) |
+
+| **Gia Sư Học Tập AI** — AI Tutor giải đáp bài học, hỗ trợ lập trình 24/7. |
+|:---:|
+| ![Gia Sư Học Tập AI](e-v-e/docs/screenshots/student-ai-tutor.png) |
+
+#### Trải Nghiệm Chơi Game
+
+| **Lobby Chọn Bài Học** — Chọn khóa học phù hợp với trò chơi, xem trạng thái đăng ký và bấm Vào Chơi. | **Màn Hình Bắt Đầu** — Tóm tắt bài học, số lượng học liệu nạp vào game và phần thưởng tối đa. |
+|:---:|:---:|
+| ![Lobby Chọn Bài Học](e-v-e/docs/screenshots/student-game-lobby.png) | ![Màn Hình Bắt Đầu](e-v-e/docs/screenshots/student-game-menu.png) |
+
+| **Xem Trước Thẻ Bài** — Toàn bộ thẻ được lật xem trước trong vài giây để ghi nhớ vị trí. | **Đang Chơi (Memory Match)** — Lật thẻ ghép cặp Khái niệm với Định nghĩa, theo dõi Mạng, Lượt lật và Thời gian. |
+|:---:|:---:|
+| ![Xem Trước Thẻ Bài](e-v-e/docs/screenshots/student-game-preview.png) | ![Đang Chơi (Memory Match)](e-v-e/docs/screenshots/student-game-playing.png) |
+
+### Luồng 2: Giáo Viên
+
+| **Dashboard Giáo Viên** — Bàn làm việc tổng quan: lớp học, học liệu và hoạt động giảng dạy. | **Quản Lý Lớp Học** — Quản lý lớp, giao bài tập, chấm điểm và theo dõi học sinh. |
+|:---:|:---:|
+| ![Dashboard Giáo Viên](e-v-e/docs/screenshots/teacher-dashboard.png) | ![Quản Lý Lớp Học](e-v-e/docs/screenshots/teacher-classes.png) |
+
+| **Soạn Bài & Học Liệu** — Quản lý các bài giảng và học liệu đã tạo. | **Trung Tâm Upload Học Liệu** — Tải lên bài giảng, tài liệu và tích hợp minigame. |
+|:---:|:---:|
+| ![Soạn Bài & Học Liệu](e-v-e/docs/screenshots/teacher-contents.png) | ![Trung Tâm Upload Học Liệu](e-v-e/docs/screenshots/teacher-upload.png) |
+
+| **Trợ Lý Giảng Dạy AI** — AI hỗ trợ tự động sinh câu hỏi trắc nghiệm, gợi ý giáo án và nội dung bài giảng. |
+|:---:|
+| ![Trợ Lý Giảng Dạy AI](e-v-e/docs/screenshots/teacher-ai-tutor.png) |
+
+### Luồng 3: Quản Trị Viên
+
+| **Dashboard Quản Trị** — Tổng quan hệ thống: số liệu người dùng, khóa học và hoạt động. | **Duyệt Bài Học & Game** — Kiểm duyệt / từ chối khóa học, lộ trình và game engine. |
+|:---:|:---:|
+| ![Dashboard Quản Trị](e-v-e/docs/screenshots/admin-dashboard.png) | ![Duyệt Bài Học & Game](e-v-e/docs/screenshots/admin-approvals.png) |
+
+| **Quản Lý Người Dùng** — Quản lý tài khoản, phê duyệt hồ sơ giáo viên, khóa / mở khóa người dùng. |
+|:---:|
+| ![Quản Lý Người Dùng](e-v-e/docs/screenshots/admin-users.png) |
+
+---
+
 ## Trải Nghiệm Trực Tuyến & Tài Liệu Báo Cáo
 
 - **Website Trải Nghiệm Demo:** [https://ttcm-rnd-k18.vercel.app](https://ttcm-rnd-k18.vercel.app)
