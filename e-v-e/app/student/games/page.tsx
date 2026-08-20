@@ -179,12 +179,14 @@ export default function StudentGamesArcadePage() {
           }
         }
 
-        // Số lượt chơi thực tế từ game_results để mở khóa tuần tự từng chặng
+        // Số PASS thực tế từ game_results để mở khóa tuần tự từng chặng:
+        // chặng chỉ được tính 1 pass khi kết quả minigame ĐẠT CHỈ TIÊU của game (passed/isWin)
         const coursePlayCounts: Record<string, number> = {};
         resultsSnap.docs.forEach((d: any) => {
           const rd = d.data();
           const crs = rd.course_id || rd.courseId;
-          if (crs) {
+          const isPass = rd.passed === true || rd.isWin === true || rd.result === "win";
+          if (crs && isPass) {
             coursePlayCounts[crs] = (coursePlayCounts[crs] || 0) + 1;
           }
         });

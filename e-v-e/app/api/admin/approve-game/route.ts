@@ -176,6 +176,14 @@ export async function POST(req: NextRequest) {
 
     const finalGameUrl = `/uploads/games/${gameId}/${entryHtmlPath}`;
 
+    // Đảm bảo mọi game khi được duyệt đều có ít nhất một chỉ tiêu tối thiểu (passRule)
+    const existingPassRule =
+      gameData?.passRule && typeof gameData?.passRule === "object"
+        ? gameData.passRule
+        : gameData?.pass_rule && typeof gameData?.pass_rule === "object"
+          ? gameData.pass_rule
+          : { type: "win" };
+
     // 3. Cập nhật Firestore
     const updatePayload = {
       isAccepted: true,
@@ -183,6 +191,8 @@ export async function POST(req: NextRequest) {
       status: "approved",
       gameUrl: finalGameUrl,
       sourceUrl: finalGameUrl,
+      passRule: existingPassRule,
+      pass_rule: existingPassRule,
       approvedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

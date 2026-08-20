@@ -205,7 +205,8 @@ export default function StudentClassDetailPage({
           ]);
         }
 
-        // 4. Lấy dữ liệu lượt chơi (game_results) để mở khóa tuần tự từng chặng
+        // 4. Lấy dữ liệu lượt chơi (game_results) để mở khóa tuần tự từng chặng.
+        // Chỉ tính PASS: chặng hoàn thành khi kết quả minigame đạt chỉ tiêu của game (passed/isWin)
         try {
           const resultsSnap = await getDocs(
             query(collection(db, "game_results"), where("user_id", "==", user.uid))
@@ -214,7 +215,8 @@ export default function StudentClassDetailPage({
           resultsSnap.docs.forEach((d) => {
             const resData = d.data();
             const crs = resData.course_id || resData.courseId;
-            if (crs) {
+            const isPass = resData.passed === true || resData.isWin === true || resData.result === "win";
+            if (crs && isPass) {
               counts[crs] = (counts[crs] || 0) + 1;
             }
           });

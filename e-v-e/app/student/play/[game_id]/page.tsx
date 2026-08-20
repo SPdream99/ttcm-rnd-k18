@@ -83,6 +83,7 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [gameRewardCoins, setGameRewardCoins] = useState(50);
 
   const gameInfo = GAME_CATALOG[gameId] || {
     title: gameId.replace(/_/g, " ").toUpperCase(),
@@ -161,7 +162,8 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
           }
         }
 
-        // 2.5. Số lượt chơi thực tế từ game_results để mở khóa tuần tự từng chặng
+        // 2.5. Số PASS thực tế từ game_results để mở khóa tuần tự từng chặng:
+        // chặng chỉ được tính 1 pass khi kết quả minigame ĐẠT CHỈ TIÊU của game (passed/isWin)
         const coursePlayCounts: Record<string, number> = {};
         if (user) {
           try {
@@ -171,7 +173,8 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
             resultsSnap.docs.forEach((d) => {
               const rd = d.data();
               const crs = rd.course_id || rd.courseId;
-              if (crs) {
+              const isPass = rd.passed === true || rd.isWin === true || rd.result === "win";
+              if (crs && isPass) {
                 coursePlayCounts[crs] = (coursePlayCounts[crs] || 0) + 1;
               }
             });
@@ -186,6 +189,9 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
             const gData = gDoc.data();
             if (gData.whitelistMode === "custom" && Array.isArray(gData.allowedCourses) && gData.allowedCourses.length > 0) {
               allowedCourseIds = gData.allowedCourses;
+            }
+            if (gData.rewardCoins !== undefined && gData.rewardCoins !== null) {
+              setGameRewardCoins(Math.max(0, Number(gData.rewardCoins) || 0));
             }
           }
         } catch {}
@@ -490,7 +496,7 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
                         </span>
                       )}
                       <span className="text-xs text-amber-600 font-bold flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> +100 Coins
+                        <Sparkles className="w-3 h-3" /> +{gameRewardCoins} Coins
                       </span>
                     </div>
 

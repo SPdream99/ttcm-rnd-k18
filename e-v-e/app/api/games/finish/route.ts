@@ -146,8 +146,9 @@ export async function POST(req: NextRequest) {
       realUserName = userId && userId !== "anonymous" ? `Học viên #${userId.slice(-4)}` : "Học viên";
     }
 
-    // 3. Lấy luật qua chặng của game (passRule) từ game_info
+    // 3. Lấy luật qua chặng của game (passRule) + phần thưởng Coins riêng từ game_info
     let passRule: PassRule | null = null;
+    let gameRewardCoins: number | undefined = undefined;
     try {
       const gRef = adminDb.collection("game_info").doc(gameId);
       const gSnap = await gRef.get();
@@ -156,9 +157,21 @@ export async function POST(req: NextRequest) {
         if (gData?.passRule && typeof gData.passRule === "object") {
           passRule = gData.passRule;
         }
+        if (
+          gData?.rewardCoins !== undefined &&
+          gData?.rewardCoins !== null &&
+          !isNaN(Number(gData.rewardCoins))
+        ) {
+          gameRewardCoins = Math.max(0, Math.floor(Number(gData.rewardCoins)));
+        }
       }
       if (!passRule && DEFAULT_PASS_RULES[gameId]) {
         passRule = DEFAULT_PASS_RULES[gameId];
+      }
+      // Đảm bảo MỌI trò chơi đều có ít nhất một chỉ tiêu tối thiểu (mặc định: chiến thắng)
+      if (!passRule) {
+        console.warn(`[finish] Game "${gameId}" chưa cấu hình passRule - áp dụng chỉ tiêu tối thiểu mặc định {type:"win"}.`);
+        passRule = { type: "win" };
       }
     } catch (err) {
       console.warn("Could not load passRule:", err);
@@ -172,10 +185,36 @@ export async function POST(req: NextRequest) {
       highestLevelReached: safeHighestLevel,
     });
 
+    // Phần thưởng Coins riêng theo từng trò chơi: game đã khai báo rewardCoins → chỉ thưởng khi đạt chỉ tiêu.
+    // Game chưa khai báo → giữ nguyên công thức cũ (theo điểm số) để không phá vỡ hành vi hiện tại.
+    const finalCoins =
+      gameRewardCoins !== undefined
+        ? passed
+          ? gameRewardCoins
+          : 0
+        : earnedCoins;
+
     // 4. Lưu kết quả: MỖI LẦN CHƠI = 1 DOC MỚI (không upsert/xóa kết quả cũ).
     // Chống trùng lặp khi SDK + Host cùng POST cho 1 phiên chơi (dùng sessionId).
     const sessionId = sessionToken ? decodeGameSessionToken(sessionToken)?.sessionId : null;
     const effectiveUserId = userId || "anonymous";
+
+    // Xác định pathId của chặng nếu client không gửi kèm (tìm lộ trình chứa khóa học này)
+    let resolvedPathId = pathId || "default_path";
+    if (!pathId) {
+      try {
+        const pathSnap = await adminDb
+          .collection("learning_path")
+          .where("courses", "array-contains", courseId)
+          .limit(1)
+          .get();
+        if (!pathSnap.empty) {
+          resolvedPathId = pathSnap.docs[0].id;
+        }
+      } catch (err) {
+        console.warn("Could not resolve pathId for course:", err);
+      }
+    }
 
     try {
       let duplicateOf;
@@ -198,6 +237,12 @@ export async function POST(req: NextRequest) {
             score: Math.max(finalScore, prevScore),
             rawReportedScore: score,
             userName: realUserName,
+            userId: effectiveUserId,
+            user_id: effectiveUserId,
+            courseId,
+            course_id: courseId,
+            pathId: resolvedPathId,
+            path_id: resolvedPathId,
             // isWin = passed để BXH lọc bằng index isWin==true theo đúng luật qua chặng
             isWin: passed,
             passed,
@@ -212,9 +257,13 @@ export async function POST(req: NextRequest) {
         // Lần chơi mới → thêm doc mới
         await adminDb.collection("game_results").add({
           gameId,
+          game_id: gameId,
           courseId,
-          pathId: pathId || "default_path",
+          course_id: courseId,
+          pathId: resolvedPathId,
+          path_id: resolvedPathId,
           userId: effectiveUserId,
+          user_id: effectiveUserId,
           userName: realUserName,
           score: finalScore,
           rawReportedScore: score,
@@ -224,7 +273,8 @@ export async function POST(req: NextRequest) {
           accuracyPercent: safeAccuracy,
           playTimeSeconds: safePlayTime,
           highestLevelReached: safeHighestLevel,
-          earnedCoins,
+          earnedCoins: finalCoins,
+          rewardCoins: finalCoins,
           verifiedByAntiCheat: true,
           finishedAt: new Date().toISOString(),
           sessionId: sessionId || "",
@@ -234,7 +284,7 @@ export async function POST(req: NextRequest) {
         if (userId && userId !== "anonymous") {
           try {
             await adminDb.collection("users").doc(userId).update({
-              coins: FieldValue.increment(earnedCoins),
+              coins: FieldValue.increment(finalCoins),
             });
           } catch (err) {
             console.warn("Could not update user coins:", err);
@@ -245,6 +295,53 @@ export async function POST(req: NextRequest) {
       console.warn("Could not save game_results record:", saveErr);
     }
 
+    // 4b. THEO DÕI HOÀN THÀNH CHẶNG: kết quả minigame đạt chỉ tiêu của game → 1 pass cho chặng đó.
+    // Ghi courseId vào mảng passed_courses của student_learning_path tương ứng (chặng = course thuộc learning_path).
+    if (passed && effectiveUserId !== "anonymous") {
+      try {
+        const enQuery = await adminDb
+          .collection("student_learning_path")
+          .where("student_id", "==", effectiveUserId)
+          .where("learning_path_id", "==", resolvedPathId)
+          .limit(1)
+          .get();
+
+        if (!enQuery.empty) {
+          const enRef = enQuery.docs[0].ref;
+          await enRef.set(
+            {
+              passed_courses: FieldValue.arrayUnion(courseId),
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+
+          // Cập nhật tiến độ (%) = số chặng đã pass / tổng số chặng của lộ trình
+          try {
+            const after = await enRef.get();
+            const afterData = after.data();
+            const passedArr = afterData && Array.isArray(afterData.passed_courses)
+              ? afterData.passed_courses
+              : [courseId];
+            let totalStages = passedArr.length;
+            const pSnap = await adminDb.collection("learning_path").doc(resolvedPathId).get();
+            const pData = pSnap.data();
+            if (pSnap.exists && pData && Array.isArray(pData.courses)) {
+              totalStages = pData.courses.length;
+            }
+            const pct = totalStages > 0 ? Math.round((passedArr.length / totalStages) * 100) : passedArr.length;
+            await enRef.update({ progress: pct });
+          } catch (err) {
+            console.warn("Could not recompute stage progress:", err);
+          }
+        } else {
+          console.warn(`[finish] Chưa có bản ghi student_learning_path cho user=${effectiveUserId} path=${resolvedPathId} - bỏ qua ghi pass chặng.`);
+        }
+      } catch (err) {
+        console.warn("Could not mark stage as passed:", err);
+      }
+    }
+
     // 5. Return success response
     return NextResponse.json({
       success: true,
@@ -252,7 +349,7 @@ export async function POST(req: NextRequest) {
       data: {
         gameId,
         courseId,
-        pathId,
+        pathId: resolvedPathId,
         finalScore,
         userName: realUserName,
         isWin: Boolean(isWin),
@@ -260,7 +357,8 @@ export async function POST(req: NextRequest) {
         accuracyPercent: safeAccuracy,
         playTimeSeconds: safePlayTime,
         highestLevelReached: safeHighestLevel,
-        earnedCoins,
+        earnedCoins: finalCoins,
+        rewardCoins: finalCoins,
         courseCompleted: passed,
         unlockedNextCourse: passed,
         verified: true,

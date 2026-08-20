@@ -26,6 +26,7 @@ import {
   Heart,
   HelpCircle,
   Clock,
+  Target,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { onAuthStateChanged } from "firebase/auth";
@@ -157,6 +158,21 @@ let_s_learn: {
       "Hoàn thành tất cả câu hỏi để kết thúc bài học.",
     ],
   },
+  boss_battle_quiz: {
+    title: "Boss Battle Quiz (Trận Chiến Trùm Cuối)",
+    subtitle: "Chiến đấu với Trùm bằng kiến thức bài học",
+    category: "Hành Động Học Tập",
+    description: "Trả lời đúng các câu hỏi trắc nghiệm để tấn công Boss. Đúng liên tiếp tạo Combo nhân sức mạnh, sai bị phạt thời gian và mất máu.",
+    author: "E-V-E Studio",
+    controls: "Nhấn phím/phím mũi tên tương ứng để chọn đáp án và né đòn phản công của Boss.",
+    instructions: [
+      "Trả lời đúng câu hỏi để gây sát thương cho Boss.",
+      "Đúng liên tiếp để tăng Combo và nhân sức mạnh tấn công.",
+      "Sai câu hoặc hết giờ sẽ bị Boss phản công.",
+      "Tránh đòn phản công bằng cách né (bấm hướng đúng).",
+      "Hạ gục Boss trước khi hết thời gian để chiến thắng.",
+    ],
+  },
 };
 
 interface MemoryCardItem {
@@ -233,9 +249,34 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
   const [customGameUrl, setCustomGameUrl] = useState<string | null>(null);
   const [customGameTitle, setCustomGameTitle] = useState<string | null>(null);
   const [gamePassRule, setGamePassRule] = useState<{ type?: string; value?: number } | null>(null);
+  const [gameGuide, setGameGuide] = useState<{
+    subtitle?: string;
+    description?: string;
+    rules?: string;
+    rewardCoins?: number;
+  } | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const isCardMatchingEngine = !customGameUrl && (gameId.includes("card") || gameId.includes("matrix") || gameId.includes("match"));
   const displayGameTitle = customGameTitle || currentGameMeta.title;
+
+  // Thưởng Coins & Chỉ tiêu hoàn thành RIÊNG cho từng trò (từ game_info, fallback hợp lý)
+  const gameRewardCoins = gameGuide?.rewardCoins ?? 50;
+  const guideRulesLines = (gameGuide?.rules || "").split("\n").map((l) => l.trim()).filter(Boolean);
+  const guideInstructions = guideRulesLines.length > 0 ? guideRulesLines : currentGameMeta.instructions;
+  const passRuleLabel = (() => {
+    const r = gamePassRule && typeof gamePassRule === "object" ? gamePassRule : {};
+    switch (r.type) {
+      case "minLevel":
+        return `Hoàn thành ít nhất Level ${Number(r.value) || 1} của trò chơi`;
+      case "minScore":
+        return `Đạt ít nhất ${Number(r.value) || 0} điểm`;
+      case "minAccuracy":
+        return `Độ chính xác từ ${Number(r.value) || 70}% trở lên`;
+      case "win":
+      default:
+        return "Chiến thắng màn chơi";
+    }
+  })();
 
   // Memory Match state
   const [cards, setCards] = useState<MemoryCardItem[]>([]);
@@ -383,6 +424,16 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
             if (gData.passRule && typeof gData.passRule === "object") {
               setGamePassRule(gData.passRule);
             }
+            // Hướng dẫn / Luật chơi / Thưởng Coins RIÊNG cho từng trò chơi (hiển thị ở tab Guide)
+            setGameGuide((prev) => ({
+              ...(prev || {}),
+              ...(gData.subtitle ? { subtitle: String(gData.subtitle) } : {}),
+              ...(gData.description ? { description: String(gData.description) } : {}),
+              ...(gData.rules ? { rules: String(gData.rules) } : {}),
+              ...(gData.rewardCoins !== undefined && gData.rewardCoins !== null
+                ? { rewardCoins: Number(gData.rewardCoins) || 0 }
+                : {}),
+            }));
           }
         } catch (gErr) {
           console.warn("Lỗi khi tải thông tin game:", gErr);
@@ -1115,9 +1166,9 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                       <span className="font-bold text-red-600">{pairs.length}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-zinc-500 font-medium">Phần thưởng tối đa:</span>
+                      <span className="text-zinc-500 font-medium">Phần thưởng khi đạt chỉ tiêu:</span>
                       <span className="font-extrabold text-amber-600 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> +100 Coins
+                        <Sparkles className="w-3 h-3" /> +{gameRewardCoins} Coins
                       </span>
                     </div>
                   </div>
@@ -1715,8 +1766,13 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
               <Info className="w-4 h-4" /> Hướng Dẫn Trò Chơi
             </div>
             <h2 className="text-xl md:text-2xl font-bold text-zinc-900 mt-1">
-              Luật Chơi & Thưởng Coins: {currentGameMeta.title}
+              Luật Chơi & Thưởng Coins: {displayGameTitle}
             </h2>
+            {(gameGuide?.description || currentGameMeta.description) && (
+              <p className="text-xs text-zinc-500 mt-2 leading-relaxed max-w-3xl">
+                {gameGuide?.description || currentGameMeta.description}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1725,20 +1781,40 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                 <Sparkles className="w-4 h-4 text-red-600" /> Hướng Dẫn Từng Bước
               </h3>
               <ul className="space-y-2 text-xs text-zinc-600 list-disc list-inside leading-relaxed">
-                {currentGameMeta.instructions.map((inst, i) => (
+                {guideInstructions.map((inst, i) => (
                   <li key={i}>{inst}</li>
                 ))}
               </ul>
             </div>
 
-            <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3">
-              <h3 className="font-bold text-zinc-900 text-sm flex items-center gap-2">
-                <Coins className="w-4 h-4 text-red-600" /> Cơ Chế Tích Lũy Coins
-              </h3>
-              <p className="text-xs text-zinc-600 leading-relaxed">
-                Khi hoàn thành màn chơi với điểm số cao, hệ thống tự động cộng Coins vào tài khoản học viên và mở khóa bài học tiếp theo.
-              </p>
-              <div className="pt-2">
+            <div className="space-y-4">
+              <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3">
+                <h3 className="font-bold text-zinc-900 text-sm flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-red-600" /> Thưởng Coins Của Trò Chơi Này
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-black text-amber-600 flex items-center gap-1.5">
+                    <Coins className="w-5 h-5" /> +{gameRewardCoins} Coins
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-600 leading-relaxed">
+                  Hoàn thành đúng chỉ tiêu của trò chơi để nhận thưởng. Coins được hệ thống tự động cộng vào tài khoản học viên.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                <h3 className="font-bold text-zinc-900 text-sm flex items-center gap-2">
+                  <Target className="w-4 h-4 text-red-600" /> Điều Kiện Hoàn Thành / Qua Chặng
+                </h3>
+                <p className="text-xs text-zinc-600 leading-relaxed flex items-start gap-1.5">
+                  <span className="mt-0.5">✔</span> {passRuleLabel}
+                </p>
+                <p className="text-xs text-zinc-500 leading-relaxed">
+                  Khi đạt chỉ tiêu, kết quả của bạn được ghi nhận vào Bảng Xếp Hạng và mở khóa bài học tiếp theo.
+                </p>
+              </div>
+
+              <div className="pt-1">
                 <button
                   onClick={() => setActiveTab("game")}
                   className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-sm"
