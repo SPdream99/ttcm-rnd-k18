@@ -138,27 +138,23 @@ export default function StudentLeaderboardPage() {
           .map((item, idx) => {
             const rank = idx + 1;
             let badge = "Học Viên Tiềm Năng";
-            let title = "Thành Viên Năng Động";
 
             if (rank === 1) {
               badge = "Thủ Khoa Xuất Sắc";
-              title = "Bậc Thầy Lập Trình";
             } else if (rank === 2) {
               badge = "Á Khoa Toàn Diện";
-              title = "Chuyên Gia Thuật Toán";
             } else if (rank === 3) {
               badge = "Top 3 Bứt Phá";
-              title = "Nhà Khám Phá Kiến Thức";
             } else if (rank <= 5) {
               badge = "Chuyên Gia Logic";
-              title = "Học Viên Ưu Tú";
             }
 
+            // Danh hiệu đồng nhất với badge ở mọi nơi (popup, chip, bảng điểm)
             return {
               ...item,
               rank,
               badge,
-              title,
+              title: badge,
             };
           });
 
