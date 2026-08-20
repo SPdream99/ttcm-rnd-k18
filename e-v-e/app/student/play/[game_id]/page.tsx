@@ -36,6 +36,8 @@ export interface LobbyCourseItem {
   enrollmentStatus: "active" | "paused" | "not_enrolled";
   pairsCount: number;
   authorName: string;
+  stageStatus?: "completed" | "pending_approval" | "current" | "locked";
+  pathCourses?: string[];
 }
 
 const GAME_CATALOG: Record<
@@ -54,6 +56,13 @@ const GAME_CATALOG: Record<
     category: "Memory Card Matrix",
     description: "Trò chơi lật thẻ bài: Tìm và ghép đôi thẻ chứa Khái niệm với thẻ chứa Định nghĩa tương ứng của bài học.",
     author: "TS. Lê Thị Mai",
+  },
+  let_s_learn: {
+    title: "Let's Learn (Học Kiến Thức)",
+    subtitle: "Ôn luyện kiến thức bài học qua trắc nghiệm",
+    category: "Học Tập",
+    description: "Trả lời các câu hỏi trắc nghiệm được trích xuất từ bài học để ghi nhớ kiến thức vững chắc.",
+    author: "E-V-E Studio",
   },
   boss_battle_quiz: {
     title: "Boss Slayer Marathon Quiz",
@@ -102,6 +111,7 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
         // 1. Fetch Learning Paths for Course Mapping (CHỈ PATH ĐÃ DUYỆT VÀ 100% COURSES CON ĐÃ DUYỆT)
         const pathSnap = await getDocs(collection(db, "learning_path"));
         const courseToPathMap: Record<string, { pathId: string; pathTitle: string }> = {};
+        const pathCoursesMap: Record<string, string[]> = {};
         pathSnap.docs.forEach((d) => {
           const pData = d.data();
           const isPathAccepted = Boolean(pData.isAccepted ?? pData.is_accepted);
@@ -110,6 +120,7 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
 
           if (!isPathAccepted || !allCoursesApproved) return; // Ràng buộc một chiều
 
+          pathCoursesMap[d.id] = pCourses;
           pCourses.forEach((cId) => {
             courseToPathMap[cId] = {
               pathId: d.id,
@@ -120,6 +131,7 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
 
         // 2. Fetch student enrollments & check teacher role
         const userPathStatusMap = new Map<string, "active" | "paused">();
+        const pathApprovedCoursesMap = new Map<string, Set<string>>();
         let isTeacherOrAdmin = false;
         if (user) {
           try {
@@ -136,11 +148,34 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
               const data = d.data();
               if (data.learning_path_id) {
                 userPathStatusMap.set(data.learning_path_id, data.status === "paused" ? "paused" : "active");
+                const approved = Array.isArray(data.approved_courses)
+                  ? data.approved_courses
+                  : Array.isArray(data.approvedCourses)
+                  ? data.approvedCourses
+                  : [];
+                pathApprovedCoursesMap.set(data.learning_path_id, new Set(approved.map((c: any) => (typeof c === "string" ? c : c?.id))));
               }
             }
           } catch (enErr) {
             console.warn("Could not check student enrollments in lobby:", enErr);
           }
+        }
+
+        // 2.5. Số lượt chơi thực tế từ game_results để mở khóa tuần tự từng chặng
+        const coursePlayCounts: Record<string, number> = {};
+        if (user) {
+          try {
+            const resultsSnap = await getDocs(
+              query(collection(db, "game_results"), where("user_id", "==", user.uid))
+            );
+            resultsSnap.docs.forEach((d) => {
+              const rd = d.data();
+              const crs = rd.course_id || rd.courseId;
+              if (crs) {
+                coursePlayCounts[crs] = (coursePlayCounts[crs] || 0) + 1;
+              }
+            });
+          } catch {}
         }
 
         // 3. Fetch game info to check target course whitelist
@@ -154,6 +189,42 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
             }
           }
         } catch {}
+
+        const requiredPlaysPerStage = 1;
+
+        const computeStageStatus = (
+          courseId: string,
+          index: number,
+          pathCourses: string[],
+          pathId: string
+        ): "completed" | "pending_approval" | "current" | "locked" => {
+          if (isTeacherOrAdmin) return "current";
+
+          const pathStatus = userPathStatusMap.get(pathId);
+          const hasEnrolled = Boolean(pathStatus);
+
+          if (!hasEnrolled) {
+            return index === 0 ? "current" : "locked";
+          }
+          if (pathStatus === "paused") return "locked";
+
+          const plays = coursePlayCounts[courseId] || 0;
+          const hasPlayed = plays >= requiredPlaysPerStage;
+          const approved = pathApprovedCoursesMap.get(pathId) || new Set<string>();
+          const isApproved = approved.has(courseId);
+
+          if (hasPlayed && isApproved) return "completed";
+          if (hasPlayed && !isApproved) return "pending_approval";
+          if (index === 0) return "current";
+
+          const prevId = pathCourses[index - 1];
+          const prevPlays = coursePlayCounts[prevId] || 0;
+          const prevPlayed = prevPlays >= requiredPlaysPerStage;
+          const prevApproved = approved.has(prevId);
+
+          if (prevPlayed && prevApproved) return "current";
+          return "locked";
+        };
 
         // 4. Fetch courses (CHỈ LẤY KHÓA HỌC THUỘC LỘ TRÌNH ĐÃ ĐƯỢC DUYỆT 100%)
         const list: LobbyCourseItem[] = [];
@@ -173,6 +244,9 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
             ? "active"
             : userPathStatusMap.get(pInfo.pathId) || "not_enrolled";
 
+          const pathCourses = pathCoursesMap[pInfo.pathId] || [];
+          const idx = pathCourses.indexOf(d.id);
+
           list.push({
             id: d.id,
             title: data.title || d.id,
@@ -182,6 +256,8 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
             enrollmentStatus,
             pairsCount: Array.isArray(data.pairs) ? data.pairs.length : 10,
             authorName: data.authorName || "Giảng viên",
+            pathCourses,
+            stageStatus: computeStageStatus(d.id, idx, pathCourses, pInfo.pathId),
           });
         });
 
@@ -255,13 +331,25 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
         );
       })
       .sort((a, b) => {
-        const rank = { active: 0, paused: 1, not_enrolled: 2 };
-        return rank[a.enrollmentStatus] - rank[b.enrollmentStatus];
+        const rank = { "active+open": 0, active: 1, paused: 2, not_enrolled: 3, locked: 4 };
+        const key = (c: LobbyCourseItem): keyof typeof rank => {
+          if (c.enrollmentStatus === "active") {
+            return c.stageStatus === "locked" ? "locked" : "active+open";
+          }
+          return c.enrollmentStatus;
+        };
+        return rank[key(a)] - rank[key(b)];
       });
   }, [coursesList, searchTerm]);
 
   const activeCourses = useMemo(() => {
     return coursesList.filter((c) => c.enrollmentStatus === "active");
+  }, [coursesList]);
+
+  const firstPlayableCourse = useMemo(() => {
+    return coursesList.find(
+      (c) => c.enrollmentStatus === "active" && c.stageStatus !== "locked"
+    );
   }, [coursesList]);
 
   return (
@@ -307,11 +395,11 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
           </div>
         </div>
 
-        {activeCourses.length > 0 && (
+        {firstPlayableCourse && (
           <div className="pt-2 flex items-center gap-4">
-            <Link href={`/student/play/${gameId}/${activeCourses[0].id}`}>
+            <Link href={`/student/play/${gameId}/${firstPlayableCourse.id}`}>
               <button className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm transition-colors cursor-pointer flex items-center gap-2">
-                <Play className="w-4 h-4" /> Vào Chơi Khóa Đầu Tiên →
+                <Play className="w-4 h-4" /> Vào Chơi Chặng Đang Học →
               </button>
             </Link>
           </div>
@@ -366,6 +454,7 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
               const isPaused = crs.enrollmentStatus === "paused";
               const isNotEnrolled = crs.enrollmentStatus === "not_enrolled";
               const isActionLoading = actionLoadingId === crs.id;
+              const isStageLocked = crs.stageStatus === "locked";
 
               return (
                 <div
@@ -395,6 +484,11 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
                           Chưa Đăng Ký
                         </span>
                       )}
+                      {isActive && isStageLocked && (
+                        <span className="px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-600 text-[10px] font-bold border border-zinc-300 flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> Chặng Chưa Mở
+                        </span>
+                      )}
                       <span className="text-xs text-amber-600 font-bold flex items-center gap-1">
                         <Sparkles className="w-3 h-3" /> +100 Coins
                       </span>
@@ -421,7 +515,7 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
                         </button>
                       </Link>
 
-                      {isActive ? (
+                      {isActive && !isStageLocked ? (
                         <Link href={`/student/play/${gameId}/${crs.id}`} className="flex-1">
                           <button
                             type="button"
@@ -431,6 +525,16 @@ export default function GameLobbyPage({ params }: GameLobbyProps) {
                             <span>Vào Chơi</span>
                           </button>
                         </Link>
+                      ) : isActive && isStageLocked ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="flex-1 py-2 rounded-xl bg-zinc-200 text-zinc-400 text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-not-allowed opacity-60"
+                          title="Chặng này chưa được mở khóa — cần hoàn thành và được duyệt chặng trước"
+                        >
+                          <Lock className="w-3 h-3" />
+                          <span>Bị Khóa</span>
+                        </button>
                       ) : isPaused ? (
                         <button
                           type="button"

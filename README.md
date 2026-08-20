@@ -195,12 +195,34 @@ USE_MOCK_DB="false"
 ```
 
 ### 4. Khởi Tạo Cơ Sở Dữ Liệu Chuẩn (Seed Firestore)
-Chạy bộ 3 script chuẩn hóa cơ sở dữ liệu:
+
+Chạy đúng thứ tự **bộ 3 script** quản trị cơ sở dữ liệu (có thể dùng `npm run db:reset`, `npm run db:init`, `npm run db:fill` thay cho `node scripts/...`):
+
 ```bash
+# Bước 1: Xóa SẠCH toàn bộ dữ liệu hiện có trong Firestore
 node scripts/reset_firestore.mjs
+
+# Bước 2: Khởi tạo an toàn các bản ghi cốt lõi (chỉ tạo hồ sơ Giáo viên dat1 đã duyệt nếu chưa tồn tại)
 node scripts/initDatabase.mjs
+
+# Bước 3: Nạp dữ liệu mẫu tối giản (chỉ tạo các collection dưới đây)
 node scripts/fill_data.mjs
 ```
+
+**Dữ liệu mẫu được nạp bởi `fill_data.mjs`:**
+
+| Collection | Nội dung |
+|:---|:---|
+| `users` | 3 tài khoản demo: `dat@gmail.com` (student), `dat1@gmail.com` (teacher — đã duyệt), `dat2@gmail.com` (admin) |
+| `teachers` | 1 hồ sơ giảng viên của `dat1@gmail.com` (trạng thái đã duyệt) |
+| `game_info` | 2 game mặc định đã có `gameUrl` trỏ vào `public/uploads/games/`: `game_card_match_vr` → `/uploads/games/game-z/index.html`, `boss_battle_quiz` → `/uploads/games/boss_battle_quiz/index.html` |
+| `courses` | 7 chặng bài học Python (`crs_py_01` … `crs_py_07`), mỗi chặng ~50 cặp câu hỏi (tổng **369 pairs**), tất cả đã duyệt, tác giả `dat1@gmail.com` |
+| `learning_path` | 1 lộ trình **"Học Python Căn Bản"** (`lp_python_co_ban`) gồm 7 chặng nêu trên |
+
+**Lưu ý:**
+- `reset_firestore.mjs` xóa sạch toàn bộ collection (kể cả `learning_paths`, `shop_items`, `announcements`, `game_results`…) nên chỉ dùng khi muốn nạp lại dữ liệu từ đầu.
+- 2 game mặc định đã được đóng gói sẵn trong `public/uploads/games/` (nằm trong kho git). Nếu muốn build lại từ mã nguồn, chạy `node scripts/build_games.mjs` để giải nén lại vào thư mục này.
+- Tài khoản Firebase Authentication (email/mật khẩu) được tạo riêng qua trang Đăng Ký; các script chỉ nạp dữ liệu vào Firestore, không tạo tài khoản Auth.
 
 ### 5. Khởi Chạy Server Phát Triển
 ```bash
@@ -227,7 +249,9 @@ e-v-e/
 ├── infrastructure/       # Database Adapters (Firestore & Repositories)
 ├── lib/                  # Tiện ích, Firebase Client/Admin, Anti-Cheat, secureKeyStorage, aiChatStorage, pageContextService
 ├── public/               # Tài nguyên tĩnh, âm thanh, icons
+│   └── uploads/games/    # Game engine HTML5 mặc định (game-z, boss_battle_quiz) được nạp qua /uploads/games/...
 ├── scripts/              # Bộ 3 scripts quản trị cơ sở dữ liệu (reset_firestore.mjs, initDatabase.mjs, fill_data.mjs)
+│   └── data/             # Dữ liệu câu hỏi theo chặng học (py_ch1.mjs … py_ch7.mjs, mỗi file ~50 pairs)
 └── firestore.rules       # Quy tắc bảo mật Cloud Firestore
 ```
 

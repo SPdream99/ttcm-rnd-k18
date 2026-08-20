@@ -529,7 +529,6 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-6 font-mono text-xs text-zinc-400">
-              <Link href="/student/leaderboard" className="hover:text-white transition-colors">Bảng Xếp Hạng</Link>
               <Link href="/teacher/game-sdk-guide" className="hover:text-white transition-colors">Game SDK</Link>
               <Link href="/login" className="hover:text-white transition-colors">Đăng Nhập</Link>
               <Link href="/register" className="hover:text-white transition-colors">Đăng Ký</Link>

@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Thư mục web tĩnh đích cho game
-    const targetExtractDir = path.join(process.cwd(), "public", "games", gameId);
+    const targetExtractDir = path.join(process.cwd(), "public", "uploads", "games", gameId);
     if (!fs.existsSync(targetExtractDir)) {
       fs.mkdirSync(targetExtractDir, { recursive: true });
     }
@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
       console.warn(`Không tìm thấy file zip tại ${zipFilePath}, tạo placeholder entry nếu cần.`);
     }
 
-    const finalGameUrl = `/games/${gameId}/${entryHtmlPath}`;
+    const finalGameUrl = `/uploads/games/${gameId}/${entryHtmlPath}`;
 
     // 3. Cập nhật Firestore
     const updatePayload = {

@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game-Z Space Academy - E-V-E Engine</title>
+  <title>Let's Learn - E-V-E Engine</title>
   <!-- Nhúng SDK Server -->
-  <script src="/eve-game-sdk.js"></script>
   <script src="eve-game-sdk.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -29,41 +28,41 @@
   <div class="game-card">
     <div class="top-bar">
       <div style="display: flex; align-items: center; gap: 10px;">
-        <span class="badge">🚀 GAME-Z SPACE ACADEMY</span>
+        <span class="badge">📘 LET'S LEARN</span>
         <span id="z-course-title" style="font-size: 13px; color: #9ca3af;">Đang nạp dữ liệu...</span>
       </div>
       <div style="font-size: 14px; font-weight: 800;">
-        Điểm Vũ Trụ: <span id="z-score" style="color: #60a5fa;">0</span>
+        Điểm Số: <span id="z-score" style="color: #60a5fa;">0</span>
       </div>
     </div>
 
     <div id="z-start" class="screen">
       <div style="font-size: 64px;">🌌</div>
-      <h1 style="font-size: 24px; font-weight: 900;">TRẠM HỌC TẬP KHÔNG GIAN GAME-Z</h1>
+      <h1 style="font-size: 24px; font-weight: 900;">LET'S LEARN</h1>
       <p style="font-size: 13px; color: #9ca3af; max-width: 480px; line-height: 1.6;">
-        Thu thập năng lượng tri thức để đưa phi thuyền E-V-E vượt qua các vành đai thiên thạch của bài học!
+        Học và luyện tập kiến thức bài học với các câu hỏi trắc nghiệm thú vị cùng E-V-E!
       </p>
-      <button id="btn-z-start" class="btn-primary">KHỞI ĐỘNG PHI THUYỀN</button>
+      <button id="btn-z-start" class="btn-primary">BẮT ĐẦU HỌC</button>
     </div>
 
     <div id="z-play" class="hidden" style="display: flex; flex-direction: column; gap: 16px;">
       <div id="z-question" class="question-box">Câu hỏi...</div>
       <div id="z-options" class="options-grid"></div>
       <div style="display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; border-top: 1px solid #1f2937; padding-top: 12px;">
-        <span>Chặng bay: <strong id="z-progress" style="color: #fff;">0/0</strong></span>
+        <span>Câu hỏi: <strong id="z-progress" style="color: #fff;">0/0</strong></span>
         <span id="z-feedback" style="font-weight: 700;"></span>
       </div>
     </div>
 
     <div id="z-result" class="screen hidden">
-      <div style="font-size: 64px;">🌠</div>
-      <h2 style="font-size: 24px; font-weight: 900;">HOÀN THÀNH CHUYẾN BAY!</h2>
-      <p style="font-size: 13px; color: #9ca3af;">Phi thuyền đã hạ cánh an toàn với dữ liệu bài học đầy đủ.</p>
+      <div style="font-size: 64px;">📘</div>
+      <h2 style="font-size: 24px; font-weight: 900;">HOÀN THÀNH BÀI HỌC!</h2>
+      <p style="font-size: 13px; color: #9ca3af;">Bạn đã hoàn thành phần luyện tập kiến thức của bài học.</p>
       <div style="background: #1f2937; border-radius: 16px; padding: 16px 24px; display: flex; gap: 20px; font-size: 14px;">
         <div>Tổng Điểm: <strong id="z-final-score" style="color: #60a5fa; font-size: 18px;">0</strong></div>
         <div>Chính Xác: <strong id="z-final-acc" style="color: #34d399; font-size: 18px;">100%</strong></div>
       </div>
-      <button id="btn-z-replay" class="btn-primary" style="margin-top: 10px;">BAY LẠI MÀN NÀY</button>
+      <button id="btn-z-replay" class="btn-primary" style="margin-top: 10px;">HỌC LẠI</button>
     </div>
   </div>
 

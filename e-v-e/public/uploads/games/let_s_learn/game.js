@@ -1,4 +1,4 @@
-// Logic Game-Z SDK Integration
+// Logic Let's Learn SDK Integration
 (function() {
   const FALLBACK_PAIRS = [
     {
@@ -19,11 +19,26 @@
   ];
 
   let pairs = FALLBACK_PAIRS;
+  let questionOrder = [];
   let currentIndex = 0;
   let score = 0;
   let corrects = 0;
   let answered = 0;
   let isAnswering = false;
+
+  function shuffleArray(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function buildQuestionOrder() {
+    questionOrder = shuffleArray(pairs.map((_, i) => i));
+    currentIndex = 0;
+  }
 
   const titleEl = document.getElementById("z-course-title");
   const scoreEl = document.getElementById("z-score");
@@ -40,13 +55,23 @@
   window.addEventListener("DOMContentLoaded", async () => {
     if (window.EveSDK) {
       try {
+        // Đăng ký callback để nhận dữ liệu bài học đẩy qua postMessage từ Host container
+        if (typeof window.EveSDK.onDataReady === "function") {
+          window.EveSDK.onDataReady((data) => {
+            if (data && Array.isArray(data.pairs) && data.pairs.length > 0) {
+              pairs = data.pairs;
+              titleEl.textContent = data.courseTitle || "Khóa Học E-V-E";
+              buildQuestionOrder();
+            }
+          });
+        }
         const session = await window.EveSDK.initSession({
-          gameId: "game-z",
-          courseId: "crs_coding_basics"
+          gameId: "let_s_learn"
         });
         if (session && session.pairs && session.pairs.length > 0) {
           pairs = session.pairs;
           titleEl.textContent = session.courseTitle || "Khóa Học E-V-E";
+          buildQuestionOrder();
         }
       } catch (err) {
         console.warn("Offline demo:", err);
@@ -58,6 +83,7 @@
     startEl.classList.add("hidden");
     playEl.classList.remove("hidden");
     if (window.EveSDK && window.EveSDK.startTimer) window.EveSDK.startTimer();
+    buildQuestionOrder();
     renderQuestion(0);
   });
 
@@ -69,22 +95,23 @@
     answered = 0;
     currentIndex = 0;
     scoreEl.textContent = "0";
+    buildQuestionOrder();
   });
 
-  function renderQuestion(idx) {
-    if (idx >= pairs.length) {
+  function renderQuestion(pos) {
+    if (pos >= questionOrder.length) {
       finishGame();
       return;
     }
     isAnswering = false;
     feedbackEl.textContent = "";
-    const q = pairs[idx];
-    questionEl.textContent = q.title || "Thử thách " + (idx + 1);
-    progressEl.textContent = (idx + 1) + "/" + pairs.length;
+    const q = pairs[questionOrder[pos]];
+    questionEl.textContent = q.title || "Thử thách " + (pos + 1);
+    progressEl.textContent = (pos + 1) + "/" + questionOrder.length;
 
     const correct = q.description || q.rightAnswer || "Đáp án đúng";
     const distracts = q.distractions || ["Tùy chọn 1", "Tùy chọn 2", "Tùy chọn 3"];
-    const all = [correct, ...distracts].sort(() => Math.random() - 0.5);
+    const all = shuffleArray([correct, ...distracts]);
 
     optionsEl.innerHTML = "";
     all.forEach(opt => {

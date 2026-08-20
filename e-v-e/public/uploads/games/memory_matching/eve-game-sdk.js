@@ -72,8 +72,8 @@
       this.courseId = config.courseId || this._getUrlParam("courseId") || "crs_coding_basics";
       this.userId = config.userId || this._getUrlParam("userId") || "student_user";
       this.pathId = config.pathId || this._getUrlParam("pathId") || "default_path";
-      this.apiBase = config.apiBase || "/api/games";
-      this.sessionToken = null;
+      this.apiBase = config.apiBase || this._getUrlParam("apiBase") || "/api/games";
+      this.sessionToken = config.sessionToken || this._getUrlParam("sessionToken") || null;
       this.gameData = null;
       this.isRealtimeConnected = false;
       this.onDataReadyCallback = null;
@@ -89,6 +89,7 @@
 
       console.log(`%c[E-V-E Game SDK v${this.version}]%c Initializing SDK Core with Built-in Timer...`, "color: #06b6d4; font-weight: bold", "color: #94a3b8");
       this._listenParentMessages();
+      this._notifyHostReady();
     }
 
     _getUrlParam(param) {
@@ -101,19 +102,41 @@
       }
     }
 
+    _notifyHostReady() {
+      if (this._isEmbedded()) {
+        try {
+          window.parent.postMessage(
+            {
+              type: "EVE_SDK_READY",
+              version: this.version,
+              gameId: this.gameId,
+              courseId: this.courseId,
+            },
+            "*"
+          );
+        } catch (e) {}
+      }
+    }
+
     _listenParentMessages() {
       if (typeof window === "undefined") return;
 
       window.addEventListener("message", (event) => {
         if (!event.data) return;
 
-        // Xử lý nạp dữ liệu từ LMS Host Container
-        if (event.data.type === "EVE_INIT_GAME_DATA") {
+        // Xử lý nạp dữ liệu từ LMS Host Container (hỗ trợ cả EVE_INIT_GAME_DATA và EVE_INIT_DATA)
+        if (event.data.type === "EVE_INIT_GAME_DATA" || event.data.type === "EVE_INIT_DATA") {
           console.log("[E-V-E SDK] Nhận dữ liệu bài học Realtime từ Host qua postMessage:", event.data.payload);
           this.gameData = event.data.payload;
           this.isRealtimeConnected = true;
           if (event.data.payload?.sessionToken) {
             this.sessionToken = event.data.payload.sessionToken;
+          }
+          if (event.data.payload?.gameId) {
+            this.gameId = event.data.payload.gameId;
+          }
+          if (event.data.payload?.courseId) {
+            this.courseId = event.data.payload.courseId;
           }
           if (typeof this.onDataReadyCallback === "function") {
             this.onDataReadyCallback(this.gameData);
@@ -328,7 +351,7 @@
      * 4. Hoàn thành trò chơi, ghi nhận điểm số, độ chính xác & thời gian chơi
      * Tự động gửi dữ liệu lên máy chủ và Host container để cập nhật Bảng Xếp Hạng ngay lập tức
      */
-    async finishGame({ score = 100, isWin = true, accuracyPercent, accuracy, playTimeSeconds = null, details = {} }) {
+    async finishGame({ score = 100, isWin = true, accuracyPercent, accuracy, playTimeSeconds = null, highestLevelReached, levelReached, totalMatches, details = {} }) {
       const safeAccuracy = accuracyPercent !== undefined ? Number(accuracyPercent) : (accuracy !== undefined ? Number(accuracy) : 100);
       const actualTime = playTimeSeconds !== null && playTimeSeconds !== undefined
         ? Number(playTimeSeconds)
@@ -350,8 +373,16 @@
         isWin: Boolean(isWin),
         accuracyPercent: safeAccuracy,
         playTimeSeconds: actualTime,
+        highestLevelReached: highestLevelReached !== undefined ? Number(highestLevelReached) : undefined,
+        levelReached: levelReached !== undefined ? Number(levelReached) : undefined,
+        totalMatches: totalMatches !== undefined ? Number(totalMatches) : undefined,
         details,
       };
+
+      // Loại bỏ các field undefined để payload sạch
+      Object.keys(payload).forEach((key) => {
+        if (payload[key] === undefined) delete payload[key];
+      });
 
       // Gửi qua postMessage lên LMS Container nếu đang nhúng iframe để Host cập nhật UI & Ranking tức thì
       if (this._isEmbedded()) {
@@ -509,6 +540,40 @@
 
           osc.start(now);
           osc.stop(now + 0.35);
+        } else if (soundType === "click") {
+          const osc = this.audioCtx.createOscillator();
+          const gain = this.audioCtx.createGain();
+
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(800, now);
+          osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
+
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+          osc.connect(gain);
+          gain.connect(this.audioCtx.destination);
+
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } else if (soundType === "defeat" || soundType === "gameover") {
+          const notes = [392.0, 369.99, 349.23, 329.63]; // G4, F#4, F4, E4
+          notes.forEach((freq, i) => {
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(freq, now + i * 0.15);
+
+            gain.gain.setValueAtTime(0.15, now + i * 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.3);
+
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+
+            osc.start(now + i * 0.15);
+            osc.stop(now + i * 0.15 + 0.3);
+          });
         }
       } catch (e) {}
     }

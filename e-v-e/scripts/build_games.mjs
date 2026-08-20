@@ -508,8 +508,8 @@ gameZZip.writeZip(path.join(process.cwd(), "public", "game-z.zip"));
 gameZZip.writeZip(path.join(process.cwd(), "public", "eve_game_starter_kit.zip"));
 console.log("✅ Đã tạo thành công public/game-z.zip và public/eve_game_starter_kit.zip");
 
-// Giải nén luôn vào public/games/ để chơi được ngay
-const gamesPublicDir = path.join(process.cwd(), "public", "games");
+// Giải nén luôn vào public/uploads/games/ để chơi được ngay
+const gamesPublicDir = path.join(process.cwd(), "public", "uploads", "games");
 const bossExtractDir = path.join(gamesPublicDir, "boss_battle_quiz");
 const gameZExtractDir = path.join(gamesPublicDir, "game-z");
 
@@ -528,5 +528,5 @@ fs.copyFileSync(serverSdkPath, path.join(gameZExtractDir, "eve-game-sdk.js"));
 if (fs.existsSync(bossDir)) fs.rmSync(bossDir, { recursive: true, force: true });
 if (fs.existsSync(gameZDir)) fs.rmSync(gameZDir, { recursive: true, force: true });
 
-console.log("✅ Đã giải nén & ghi đè SDK server cho boss_battle_quiz và game-z vào public/games/");
+console.log("✅ Đã giải nén & ghi đè SDK server cho boss_battle_quiz và game-z vào public/uploads/games/");
 

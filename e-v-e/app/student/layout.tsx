@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -42,6 +42,13 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const { signOut } = useAuth();
   const { currentUser, profile } = useAuthAdapter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Đánh dấu đã mount trên client. Server luôn trả về false, client trả về true
+  // sau hydration => tránh lỗi Hydration cho UI phụ thuộc vai trò đăng nhập.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const cookieUser = typeof window !== "undefined" ? getAuthCookie() : null;
   const userRole =
@@ -50,8 +57,8 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     cookieUser?.role ||
     "student";
 
-  const isTeacher = userRole === "teacher";
-  const isAdmin = userRole === "admin" || userRole === "school";
+  const isTeacher = mounted && userRole === "teacher";
+  const isAdmin = mounted && (userRole === "admin" || userRole === "school");
 
   useEffect(() => {
     const cached = getAuthCookie();

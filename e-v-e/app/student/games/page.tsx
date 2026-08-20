@@ -25,6 +25,7 @@ import {
   PlusCircle,
   ExternalLink,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import { useAuthAdapter } from "@/hooks/useAuthAdapter";
 import { useToast } from "@/components/Toast";
@@ -60,6 +61,8 @@ export interface GameCourseItem {
   pairsCount: number;
   authorName: string;
   tags: string[];
+  stageStatus?: "completed" | "pending_approval" | "current" | "locked";
+  pathCourses?: string[];
 }
 
 export default function StudentGamesArcadePage() {
@@ -88,92 +91,48 @@ export default function StudentGamesArcadePage() {
         const studentUid = currentUser?.uid || auth.currentUser?.uid;
 
         // Tối ưu hóa: Chạy song song toàn bộ các truy vấn Firestore độc lập
-        const [gamesSnap, pathSnap, enSnap, coursesSnap] = await Promise.all([
+        const [gamesSnap, pathSnap, enSnap, coursesSnap, resultsSnap] = await Promise.all([
           getDocs(collection(db, "game_info")),
           getDocs(collection(db, "learning_path")),
           studentUid
             ? getDocs(query(collection(db, "student_learning_path"), where("student_id", "==", studentUid)))
             : Promise.resolve({ docs: [] } as any),
           getDocs(collection(db, "courses")),
+          studentUid
+            ? getDocs(query(collection(db, "game_results"), where("user_id", "==", studentUid)))
+            : Promise.resolve({ docs: [] } as any),
         ]);
 
-        // Standard built-in default games
-        const gamesMap = new Map<string, ArcadeGameItem>([
-          [
-            "game_card_match_vr",
-            {
-              id: "game_card_match_vr",
-              title: "Memory Matching Game (Lật Thẻ Trí Nhớ)",
-              subtitle: "Rèn luyện trí nhớ và liên kết thuật ngữ 3D",
-              genre: "Game Trí Nhớ 3D",
-              category: "memory",
-              description: "Lật và ghép đúng các cặp thuật ngữ lập trình và giải thích trước khi hết thời gian.",
-              author: "E-V-E Studio",
-              difficulty: "Trung Bình",
-              rewardCoins: 50,
-              needExtraData: true,
-              coursesAllowed: "all",
-              thumbnailUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80",
-              badge: "NỔI BẬT",
-              rating: 4.9,
-              playsCount: 1420,
-              tags: ["Memory", "Flashcards", "Logic"],
-            },
-          ],
-          [
-            "boss_battle_quiz",
-            {
-              id: "boss_battle_quiz",
-              title: "Boss Slayer Marathon Quiz",
-              subtitle: "Đấu trùm trắc nghiệm phản xạ kiến thức",
-              genre: "Trắc Nghiệm Phản Xạ",
-              category: "boss",
-              description: "Mỗi câu trả lời đúng sẽ giáng một đòn chí mạng vào Boss quái vật. Hỗ trợ mọi khóa học!",
-              author: "E-V-E Dev Team",
-              difficulty: "Thử Thách",
-              rewardCoins: 60,
-              needExtraData: true,
-              coursesAllowed: "all",
-              thumbnailUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80",
-              badge: "HOT",
-              rating: 4.8,
-              playsCount: 2350,
-              tags: ["Boss Battle", "Quiz", "Speed"],
-            },
-          ],
-        ]);
-
+        // Games chỉ được lấy từ DATABASE (game_info), KHÔNG prescripted
+        const gamesList: ArcadeGameItem[] = [];
         if (!gamesSnap.empty) {
           gamesSnap.docs.forEach((d: any) => {
             const data = d.data();
             const isGameAccepted = Boolean(
               data.isAccepted ?? data.is_accepted ?? (data.status === "approved" || data.status === "active")
             );
-            if (isGameAccepted) {
-              const existing = gamesMap.get(d.id);
-              gamesMap.set(d.id, {
-                id: d.id,
-                title: data.name || data.title || existing?.title || "Minigame",
-                subtitle: data.subtitle || existing?.subtitle || "Minigame Giáo Dục",
-                genre: data.genre || existing?.genre || "HTML5 Game",
-                category: data.category || existing?.category || "custom",
-                description: data.description || existing?.description || "Trò chơi học tập tương tác.",
-                author: data.authorName || existing?.author || "Giáo Viên E-V-E",
-                difficulty: data.difficulty || existing?.difficulty || "Trung Bình",
-                rewardCoins: Number(data.rewardCoins) || existing?.rewardCoins || 50,
-                needExtraData: Boolean(data.need_extra_data ?? data.needExtraData ?? (existing ? existing.needExtraData : true)),
-                coursesAllowed: data.courses_allowed || existing?.coursesAllowed || "all",
-                thumbnailUrl: data.thumbnailUrl || existing?.thumbnailUrl || "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80",
-                badge: data.badge || existing?.badge,
-                rating: Number(data.rating) || existing?.rating || 4.7,
-                playsCount: Number(data.playsCount) || existing?.playsCount || 420,
-                tags: Array.isArray(data.tags) ? data.tags : existing?.tags || ["Custom", "HTML5"],
-              });
-            }
+            if (!isGameAccepted) return;
+            gamesList.push({
+              id: d.id,
+              title: data.title || data.name || d.id,
+              subtitle: data.subtitle || "Minigame Giáo Dục",
+              genre: data.genre || "HTML5 Game",
+              category: (data.category as ArcadeGameItem["category"]) || "custom",
+              description: data.description || "Trò chơi học tập tương tác.",
+              author: data.authorName || data.author || "Giáo Viên E-V-E",
+              difficulty: data.difficulty || "Trung Bình",
+              rewardCoins: Number(data.rewardCoins) || 0,
+              needExtraData: Boolean(data.need_extra_data ?? data.needExtraData ?? true),
+              coursesAllowed: data.courses_allowed || data.coursesAllowed || "all",
+              thumbnailUrl: data.thumbnailUrl || "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80",
+              badge: data.badge,
+              rating: Number(data.rating) || 4.7,
+              playsCount: Number(data.playsCount) || 0,
+              tags: Array.isArray(data.tags) ? data.tags : ["Custom", "HTML5"],
+            });
           });
         }
-
-        setGames(Array.from(gamesMap.values()));
+        setGames(gamesList);
 
         // Lấy tập ID khóa học đã duyệt
         const acceptedCourseIds = new Set<string>();
@@ -186,6 +145,7 @@ export default function StudentGamesArcadePage() {
 
         // Fetch Learning Paths map (CHỈ LẤY PATH ĐÃ DUYỆT VÀ 100% COURSES CON ĐÃ ĐƯỢC DUYỆT)
         const courseToPathMap: Record<string, { pathId: string; pathTitle: string }> = {};
+        const pathCoursesMap: Record<string, string[]> = {};
         pathSnap.docs.forEach((d: any) => {
           const pData = d.data();
           const isPathAccepted = Boolean(pData.isAccepted ?? pData.is_accepted);
@@ -194,6 +154,7 @@ export default function StudentGamesArcadePage() {
 
           if (!isPathAccepted || !allCoursesApproved) return; // Ràng buộc một chiều
 
+          pathCoursesMap[d.id] = pCourses;
           pCourses.forEach((cId) => {
             courseToPathMap[cId] = {
               pathId: d.id,
@@ -202,16 +163,71 @@ export default function StudentGamesArcadePage() {
           });
         });
 
-        // Map student enrollments
+        // Map student enrollments + approved_courses (chặng được Giáo viên duyệt)
         const userPathStatusMap = new Map<string, "active" | "paused">();
+        const pathApprovedCoursesMap = new Map<string, Set<string>>();
         for (const d of enSnap.docs) {
           const data = d.data();
           if (data.learning_path_id) {
             userPathStatusMap.set(data.learning_path_id, data.status === "paused" ? "paused" : "active");
+            const approved = Array.isArray(data.approved_courses)
+              ? data.approved_courses
+              : Array.isArray(data.approvedCourses)
+              ? data.approvedCourses
+              : [];
+            pathApprovedCoursesMap.set(data.learning_path_id, new Set(approved.map((c: any) => (typeof c === "string" ? c : c?.id))));
           }
         }
 
+        // Số lượt chơi thực tế từ game_results để mở khóa tuần tự từng chặng
+        const coursePlayCounts: Record<string, number> = {};
+        resultsSnap.docs.forEach((d: any) => {
+          const rd = d.data();
+          const crs = rd.course_id || rd.courseId;
+          if (crs) {
+            coursePlayCounts[crs] = (coursePlayCounts[crs] || 0) + 1;
+          }
+        });
+
         const isTeacherOrAdmin = ["teacher", "instructor", "admin"].includes(currentUser?.role || profile?.role || "");
+
+        const requiredPlaysPerStage = 1;
+
+        // Logic mở khóa tuần tự (giống LearningPathMap): chặng kế chỉ mở khi chặng trước ĐÃ CHƠI và ĐÃ ĐƯỢC GIÁO VIÊN DUYỆT
+        const computeStageStatus = (
+          courseId: string,
+          index: number,
+          pathCourses: string[],
+          pathId: string
+        ): "completed" | "pending_approval" | "current" | "locked" => {
+          if (isTeacherOrAdmin) return "current";
+
+          const pathStatus = userPathStatusMap.get(pathId);
+          const hasEnrolled = Boolean(pathStatus);
+
+          // Chưa đăng ký lộ trình: chỉ chặng đầu tiên mở (để đăng ký xong chơi ngay), các chặng sau khóa
+          if (!hasEnrolled) {
+            return index === 0 ? "current" : "locked";
+          }
+          if (pathStatus === "paused") return "locked";
+
+          const plays = coursePlayCounts[courseId] || 0;
+          const hasPlayed = plays >= requiredPlaysPerStage;
+          const approved = pathApprovedCoursesMap.get(pathId) || new Set<string>();
+          const isApproved = approved.has(courseId);
+
+          if (hasPlayed && isApproved) return "completed";
+          if (hasPlayed && !isApproved) return "pending_approval";
+          if (index === 0) return "current";
+
+          const prevId = pathCourses[index - 1];
+          const prevPlays = coursePlayCounts[prevId] || 0;
+          const prevPlayed = prevPlays >= requiredPlaysPerStage;
+          const prevApproved = approved.has(prevId);
+
+          if (prevPlayed && prevApproved) return "current";
+          return "locked";
+        };
 
         // Map all courses and attach enrollment status (CHỈ LẤY KHÓA HỌC THUỘC LỘ TRÌNH ĐÃ DUYỆT 100%)
         const cl: GameCourseItem[] = [];
@@ -228,6 +244,9 @@ export default function StudentGamesArcadePage() {
             ? "active"
             : userPathStatusMap.get(pInfo.pathId) || "not_enrolled";
 
+          const pathCourses = pathCoursesMap[pInfo.pathId] || [];
+          const idx = pathCourses.indexOf(d.id);
+
           cl.push({
             id: d.id,
             title: cd.title || d.id,
@@ -238,6 +257,8 @@ export default function StudentGamesArcadePage() {
             pairsCount: Array.isArray(cd.pairs) ? cd.pairs.length : 10,
             authorName: cd.authorName || "Giảng viên",
             tags: Array.isArray(cd.tags) ? cd.tags : ["Lập trình"],
+            pathCourses,
+            stageStatus: computeStageStatus(d.id, idx, pathCourses, pInfo.pathId),
           });
         });
         setCoursesList(cl);
@@ -313,8 +334,8 @@ export default function StudentGamesArcadePage() {
 
       toast.success(
         action === "resume"
-          ? `Đã kích hoạt lại lộ trình "${course.learningPathTitle || "Lớp học"}"! Đang nạp trò chơi...`
-          : `Đăng ký thành công lộ trình "${course.learningPathTitle || "Lớp học"}"! Đang nạp trò chơi...`,
+          ? `Đã kích hoạt lại lộ trình "${course.learningPathTitle || "Lớp học"}"!`
+          : `Đăng ký thành công lộ trình "${course.learningPathTitle || "Lớp học"}"!`,
         "Thành công"
       );
 
@@ -324,9 +345,16 @@ export default function StudentGamesArcadePage() {
         )
       );
 
-      setTimeout(() => {
-        handleLaunchWithCourse(course.id);
-      }, 700);
+      // Chỉ tự động nạp trò chơi nếu chặng này đã được mở khóa (tránh nhảy vào chặng locked)
+      if (course.stageStatus !== "locked") {
+        setTimeout(() => {
+          handleLaunchWithCourse(course.id);
+        }, 700);
+      } else {
+        setTimeout(() => {
+          router.push("/student/learning-paths");
+        }, 900);
+      }
     } catch (err) {
       console.error("Lỗi khi cập nhật trạng thái lộ trình:", err);
       toast.error("Không thể cập nhật trạng thái lớp học. Vui lòng thử lại!", "Lỗi");
@@ -347,9 +375,21 @@ export default function StudentGamesArcadePage() {
         );
       })
       .sort((a, b) => {
-        // Active first, then paused, then not_enrolled
-        const rank = { active: 0, paused: 1, not_enrolled: 2 };
-        return rank[a.enrollmentStatus] - rank[b.enrollmentStatus];
+        // Active + mở khóa đầu, sau đó active, paused, not_enrolled, locked chặng cuối
+        const rank = {
+          "active+open": 0,
+          active: 1,
+          paused: 2,
+          not_enrolled: 3,
+          locked: 4,
+        };
+        const key = (c: GameCourseItem): keyof typeof rank => {
+          if (c.enrollmentStatus === "active") {
+            return c.stageStatus === "locked" ? "locked" : "active+open";
+          }
+          return c.enrollmentStatus;
+        };
+        return rank[key(a)] - rank[key(b)];
       });
   }, [coursesList, courseSearchTerm]);
 
@@ -438,7 +478,22 @@ export default function StudentGamesArcadePage() {
 
       {/* Games Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredGames.map((game) => (
+        {filteredGames.length === 0 ? (
+          <div className="col-span-full p-10 rounded-2xl bg-white border-2 border-dashed border-zinc-300 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-100 text-zinc-400 flex items-center justify-center mx-auto">
+              <Gamepad2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-sm font-bold text-zinc-700">
+              {games.length === 0 ? "Chưa có trò chơi nào" : "Không tìm thấy trò chơi phù hợp"}
+            </h3>
+            <p className="text-xs text-zinc-500 max-w-md mx-auto leading-relaxed">
+              {games.length === 0
+                ? "Hiện chưa có trò chơi nào được cấu hình trong hệ thống. Vui lòng quay lại sau khi trò chơi được phát hành."
+                : "Hãy thử điều chỉnh từ khóa tìm kiếm hoặc bộ lọc thể loại để tìm thấy trò chơi bạn mong muốn."}
+            </p>
+          </div>
+        ) : (
+          filteredGames.map((game) => (
           <div
             key={game.id}
             className="group rounded-2xl bg-white border border-zinc-200 overflow-hidden shadow-xs hover:border-red-600 hover:shadow-md transition-all flex flex-col justify-between"
@@ -490,7 +545,8 @@ export default function StudentGamesArcadePage() {
               </div>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* ================= COURSE SELECTION & SUGGESTION MODAL ================= */}
@@ -542,6 +598,7 @@ export default function StudentGamesArcadePage() {
                 const isPaused = course.enrollmentStatus === "paused";
                 const isNotEnrolled = course.enrollmentStatus === "not_enrolled";
                 const isActionLoading = actionLoadingId === course.id;
+                const isStageLocked = course.stageStatus === "locked";
 
                 return (
                   <div
@@ -576,6 +633,16 @@ export default function StudentGamesArcadePage() {
                             Thuộc: {course.learningPathTitle}
                           </span>
                         )}
+                        {course.stageStatus === "locked" && (
+                          <span className="px-2 py-0.5 rounded-full bg-zinc-200 text-zinc-600 text-[10px] font-bold border border-zinc-300 flex items-center gap-1">
+                            <Lock className="w-3 h-3" /> Chặng Chưa Mở
+                          </span>
+                        )}
+                        {course.stageStatus === "current" && isActive && (
+                          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold border border-red-200 flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" /> Chặng Đang Học
+                          </span>
+                        )}
                       </div>
 
                       <h4 className="text-xs font-bold text-zinc-900">{course.title}</h4>
@@ -594,7 +661,14 @@ export default function StudentGamesArcadePage() {
                         </button>
                       </Link>
 
-                      {isActive && (
+                      {isActive && isStageLocked && (
+                        <span className="px-3.5 py-1.5 rounded-lg bg-zinc-200 text-zinc-500 text-[11px] font-bold flex items-center gap-1.5 cursor-not-allowed">
+                          <Lock className="w-3 h-3" />
+                          <span>Bị Khóa</span>
+                        </span>
+                      )}
+
+                      {isActive && !isStageLocked && (
                         <button
                           type="button"
                           onClick={() => handleLaunchWithCourse(course.id)}

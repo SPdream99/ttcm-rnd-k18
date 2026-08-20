@@ -69,7 +69,7 @@ async function initDatabaseSafely() {
 
   let addedCount = 0;
 
-  // 1. TEACHERS
+  // 1. TEACHERS - CHỈ GIÁO VIÊN DAT1 (ĐÃ DUYỆT)
   const teachersRef = db.collection("teachers");
   const defaultTeachers = [
     {
@@ -82,17 +82,8 @@ async function initDatabaseSafely() {
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
       rating: 4.9,
       totalStudents: 128,
-    },
-    {
-      id: "teacher_nhatanh_01",
-      name: "GS. Nguyễn Nhật Ánh",
-      fullName: "GS. Nguyễn Nhật Ánh",
-      email: "nhatanh@eve.edu.vn",
-      specialty: "Trí Tuệ Nhân Tạo & Kiến Trúc Hệ Thống",
-      bio: "Trưởng ban học thuật E-V-E, chuyên gia về AI Agents và Machine Learning.",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
-      rating: 5.0,
-      totalStudents: 240,
+      isAccepted: true,
+      is_accepted: true,
     },
   ];
 
@@ -107,79 +98,6 @@ async function initDatabaseSafely() {
       addedCount++;
       console.log(`  + Đã tạo Giảng viên: "${t.name}" (ID: ${t.id})`);
     }
-  }
-
-  // 2. SHOP ITEMS (Default Decorations)
-  const shopRef = db.collection("shop_items");
-  const defaultShopItems = [
-    {
-      id: "item_frame_cosmic_01",
-      name: "Khung Vũ Trụ Lấp Lánh",
-      price: 100,
-      type: "avatar_frame",
-      image_url: "/assets/shop/frames/cosmic_glow.png",
-    },
-    {
-      id: "item_frame_gold",
-      name: "Khung Hoàng Gia Vàng",
-      price: 300,
-      type: "avatar_frame",
-      image_url: "/assets/shop/frames/royal_gold.png",
-    },
-    {
-      id: "item_title_explorer",
-      name: "Danh hiệu: Nhà Khám Phá Vũ Trụ",
-      price: 50,
-      type: "title_tag",
-      image_url: "/assets/shop/titles/explorer.png",
-    },
-    {
-      id: "item_title_admin",
-      name: "Danh hiệu: Quản Trị Viên",
-      price: 0,
-      type: "title_tag",
-      image_url: "/assets/shop/titles/admin.png",
-    },
-    {
-      id: "item_title_master",
-      name: "Danh hiệu: Bậc Thầy Thuật Toán",
-      price: 200,
-      type: "title_tag",
-      image_url: "/assets/shop/titles/master.png",
-    },
-  ];
-
-  for (const item of defaultShopItems) {
-    const doc = await shopRef.doc(item.id).get();
-    if (!doc.exists) {
-      await shopRef.doc(item.id).set({
-        ...item,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-      addedCount++;
-      console.log(`  + Đã tạo Vật phẩm Shop: "${item.name}" (ID: ${item.id})`);
-    }
-  }
-
-  // 3. ANNOUNCEMENTS
-  const annRef = db.collection("announcements");
-  const defaultAnn = {
-    id: "ann_welcome_default",
-    title: "Chào Đón Học Kỳ E-V-E 2026",
-    content: "Chào mừng toàn thể Học viên và Giảng viên tham gia hệ thống E-V-E Learning Hub.",
-    category: "system",
-    date: "2026-08-01",
-  };
-  const annDoc = await annRef.doc(defaultAnn.id).get();
-  if (!annDoc.exists) {
-    await annRef.doc(defaultAnn.id).set({
-      ...defaultAnn,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-    addedCount++;
-    console.log(`  + Đã tạo Thông báo hệ thống: "${defaultAnn.title}"`);
   }
 
   console.log("\n=================================================================");

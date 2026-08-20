@@ -35,6 +35,13 @@ const DEFAULT_COURSE_TITLES: Record<string, string> = {
   crs_data_structures: "Bài 5: Cấu Trúc Dữ Liệu & Giải Thuật Chuyên Sâu",
   crs_python_mini_games: "Bài 6: Lập Trình Trò Chơi Mini Với Python",
   crs_ai_robotics: "Bài 7: Khám Phá Trí Tuệ Nhân Tạo & Robotics",
+  crs_py_01: "Chặng 1: Nhập Môn Python & Môi Trường Lập Trình",
+  crs_py_02: "Chặng 2: Biến, Kiểu Dữ Liệu & Ép Kiểu",
+  crs_py_03: "Chặng 3: Toán Tử & Biểu Thức",
+  crs_py_04: "Chặng 4: Chuỗi & Xử Lý Văn Bản",
+  crs_py_05: "Chặng 5: Cấu Trúc Điều Kiện",
+  crs_py_06: "Chặng 6: Vòng Lặp",
+  crs_py_07: "Chặng 7: Hàm & Lập Trình Hướng Đối Tượng",
 };
 
 export default function LearningPathMap({

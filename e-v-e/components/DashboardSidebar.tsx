@@ -38,7 +38,6 @@ const STUDENT_NAV = [
 
 const TEACHER_NAV = [
   { id: "overview", label: "Bảng Điều Khiển", icon: GraduationCap, href: "/teacher/dashboard" },
-  { id: "classes", label: "Quản Lý Lớp Học", icon: Layers, href: "/teacher/classes" },
   { id: "create_path", label: "Soạn Bài & Lộ Trình", icon: BookOpen, href: "/teacher/upload-center" },
   { id: "upload_game", label: "Kho & Nộp Game Engine", icon: Gamepad2, href: "/teacher/upload-center" },
   { id: "game_guide", label: "Hướng Dẫn Game SDK", icon: Code, href: "/teacher/game-sdk-guide" },

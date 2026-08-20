@@ -34,18 +34,6 @@ function sanitizeCourse(c: any) {
   };
 }
 
-function sanitizeClass(cls: any) {
-  return {
-    id: String(cls.id || ""),
-    name: String(cls.name || "Lớp học"),
-    code: String(cls.code || "K18"),
-    subject: String(cls.subject || "Lập trình"),
-    schedule: typeof cls.schedule === "string" ? cls.schedule : "19h30 - 21h30",
-    total_students: Number(cls.total_students || cls.totalStudents || 0),
-    description: String(cls.description || "Lớp học do giảng viên trực tiếp phụ trách."),
-  };
-}
-
 function sanitizeGame(g: any) {
   return {
     id: String(g.id || ""),
@@ -72,13 +60,11 @@ export default function TeacherDashboardPage() {
     enrolledStudents: 0,
     myCoursesCount: 0,
     myGamesCount: 0,
-    myClassesCount: 0,
     myAssignmentsCount: 0,
   });
 
   const [recentCourses, setRecentCourses] = useState<any[]>([]);
   const [myGames, setMyGames] = useState<any[]>([]);
-  const [myClasses, setMyClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -89,10 +75,9 @@ export default function TeacherDashboardPage() {
         const cacheKey = `teacher_dashboard_exact_v2_${teacherUid || teacherEmail || "me"}`;
         const cached = cacheService.get<any>(cacheKey);
         if (cached && cached.data) {
-          setStats(cached.data.stats || { totalPlays: 0, enrolledStudents: 0, myCoursesCount: 0, myGamesCount: 0, myClassesCount: 0, myAssignmentsCount: 0 });
+          setStats(cached.data.stats || { totalPlays: 0, enrolledStudents: 0, myCoursesCount: 0, myGamesCount: 0, myAssignmentsCount: 0 });
           setRecentCourses((cached.data.recentCourses || []).map(sanitizeCourse));
           setMyGames((cached.data.myGames || []).map(sanitizeGame));
-          setMyClasses((cached.data.myClasses || []).map(sanitizeClass));
           setLoading(false);
           if (!cached.isStale) return;
         }
@@ -159,9 +144,9 @@ export default function TeacherDashboardPage() {
 
         const myCourseIds = new Set(myCoursesList.map((c) => c.id));
 
-        // ── 2. Fetch & Filter Teacher's Classes ──
+        // ── 2. Fetch & Filter Teacher's Class IDs (for student & assignment counting) ──
         const classesSnap = await getDocs(collection(db, "classes"));
-        let myClassesList: any[] = [];
+        const myClassIds = new Set<string>();
         classesSnap.docs.forEach((d) => {
           const data = d.data();
           const docTeacherId = data.teacher_id || data.teacherId || data.instructorId || data.authorId;
@@ -174,21 +159,9 @@ export default function TeacherDashboardPage() {
             (teacherName && docTeacherName && docTeacherName.toLowerCase() === teacherName.toLowerCase());
 
           if (isMatch) {
-            myClassesList.push(
-              sanitizeClass({
-                id: d.id,
-                name: data.name,
-                code: data.code,
-                subject: data.subject,
-                schedule: data.schedule,
-                total_students: data.total_students || data.totalStudents,
-                description: data.description,
-              })
-            );
+            myClassIds.add(d.id);
           }
         });
-
-        const myClassIds = new Set(myClassesList.map((c) => c.id));
 
         // ── 3. Fetch & Filter Enrolled Students (Đếm thực tế từ class_members) ──
         const membersSnap = await getDocs(collection(db, "class_members"));
@@ -203,11 +176,6 @@ export default function TeacherDashboardPage() {
             if (studentKey) uniqueStudentKeys.add(String(studentKey));
             classStudentCountMap[classId] = (classStudentCountMap[classId] || 0) + 1;
           }
-        });
-
-        // Gán sĩ số thực tế từ DB vào từng lớp
-        myClassesList.forEach((c) => {
-          c.total_students = classStudentCountMap[c.id] || 0;
         });
 
         const enrolledStudentsCount = uniqueStudentKeys.size;
@@ -312,18 +280,15 @@ export default function TeacherDashboardPage() {
             enrolledStudents: enrolledStudentsCount,
             myCoursesCount: myCoursesList.length,
             myGamesCount: myGamesList.length,
-            myClassesCount: myClassesList.length,
             myAssignmentsCount,
           },
           recentCourses: myCoursesList.slice(0, 5),
           myGames: myGamesList.slice(0, 5),
-          myClasses: myClassesList.slice(0, 4),
         };
 
         setStats(resultData.stats);
         setRecentCourses(resultData.recentCourses);
         setMyGames(resultData.myGames);
-        setMyClasses(resultData.myClasses);
 
         cacheService.set(cacheKey, resultData, 60000);
       } catch (err) {
@@ -428,67 +393,6 @@ export default function TeacherDashboardPage() {
           </div>
           <div className="text-xs text-zinc-500">Minigames đã xuất bản / tích hợp SDK</div>
         </div>
-      </div>
-
-      {/* Quick Class Hub */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-            <FolderOpen className="w-5 h-5 text-red-600" /> Các Lớp Học Giảng Dạy ({myClasses.length})
-          </h2>
-          <Link
-            href="/teacher/classes"
-            className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
-          >
-            Quản lý lớp học <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {myClasses.length === 0 && !loading ? (
-          <div className="p-8 rounded-2xl bg-white border-2 border-dashed border-zinc-200 text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
-              <FolderOpen className="w-6 h-6" />
-            </div>
-            <h3 className="font-bold text-sm text-zinc-900">Thầy/Cô chưa có lớp học nào được phân công</h3>
-            <p className="text-xs text-zinc-500 max-w-md mx-auto">
-              Hãy tạo lớp học mới hoặc liên hệ Ban quản trị để phân công danh sách học sinh vào lớp giảng dạy của Thầy/Cô.
-            </p>
-            <Link href="/teacher/classes">
-              <button className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 cursor-pointer">
-                Tạo Lớp Đầu Tiên
-              </button>
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {myClasses.map((cls) => (
-              <div
-                key={cls.id}
-                className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded-md bg-red-50 text-red-700 text-xs font-bold border border-red-200">
-                    {cls.code || "K18"}
-                  </span>
-                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                    Đang hoạt động • {cls.total_students || 0} Học viên
-                  </span>
-                </div>
-                <h3 className="font-bold text-base text-zinc-900">{cls.name}</h3>
-                <p className="text-xs text-zinc-500 line-clamp-2">{cls.description}</p>
-                <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-xs text-zinc-500">
-                  <span>{cls.schedule || "19h30 - 21h30"}</span>
-                  <Link
-                    href={`/teacher/classes/students`}
-                    className="font-bold text-red-600 hover:underline"
-                  >
-                    Xem sĩ số & sổ điểm →
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Recent Courses and Games */}
