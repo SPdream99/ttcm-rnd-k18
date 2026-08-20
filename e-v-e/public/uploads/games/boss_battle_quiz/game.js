@@ -633,8 +633,10 @@ function startDodgePhase() {
   GameState.targetDirection = chosen;
   GameState.isDodgeActive = true;
 
-  // Dodge penalty: -0.1s per previously wrong answer (min 0.4s)
-  GameState.dodgeTimeRemaining = Math.max(0.4, GameState.dodgeTimeMax - (GameState.totalWrong * 0.1));
+  // Dodge penalty: -0.1s per completed dodge phase (cumulative) + -0.1s per wrong answer (cumulative), min 0.4s
+  const completedDodgePenalty = (GameState.round - 1) * 0.1;
+  const wrongAnswerPenalty = GameState.totalWrong * 0.1;
+  GameState.dodgeTimeRemaining = Math.max(0.4, GameState.dodgeTimeMax - completedDodgePenalty - wrongAnswerPenalty);
 
   UI.dodge.targetIcon.innerText = chosen.icon;
   UI.dodge.targetName.innerText = chosen.name;
