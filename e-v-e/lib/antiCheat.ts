@@ -44,7 +44,25 @@ export function generateGameSessionToken(payload: Omit<GameSessionPayload, "sess
 }
 
 /**
- * 2. Xác thực session token và kiểm tra điểm số có hợp lệ hay bị can thiệp
+ * 2. Giải mã session token để lấy sessionId (dùng làm khóa chống trùng lặp kết quả)
+ */
+export function decodeGameSessionToken(sessionToken: string): GameSessionPayload | null {
+  try {
+    const [encodedPayload, signature] = sessionToken.split(".");
+    if (!encodedPayload || !signature) return null;
+
+    const expectedSig = simpleHash(`${encodedPayload}_${SERVER_SECRET_SALT}`);
+    if (signature !== expectedSig) return null;
+
+    const decodedString = Buffer.from(encodedPayload, "base64url").toString("utf-8");
+    return JSON.parse(decodedString);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 3. Xác thực session token và kiểm tra điểm số có hợp lệ hay bị can thiệp
  */
 export function validateGameScore(
   sessionToken: string | undefined,

@@ -155,7 +155,7 @@ const FALLBACK_PAIRS: Record<string, any> = {
       },
     ],
   },
-  crs_astrophysics: {
+crs_astrophysics: {
     title: "Thiên Văn Học & Hố Đen Vũ Trụ",
     pairs: [
       {
@@ -164,6 +164,45 @@ const FALLBACK_PAIRS: Record<string, any> = {
         description: "Chân trời sự kiện (Event Horizon)",
         explanation: "Chân trời sự kiện là biên giới không thời gian xung quanh hố đen mà tại đó vận tốc vũ trụ cấp 2 vượt quá vận tốc ánh sáng.",
         distractions: ["Điểm kỳ dị", "Vùng bồi tụ", "Vành đai Kuiper"],
+      },
+    ],
+  },
+  boss_battle_quiz: {
+    title: "Đấu Trí Boss Trắc Nghiệm (Boss Slayer Quiz)",
+    subtitle: "Đấu trùm trắc nghiệm phản xạ kiến thức lập trình",
+    genre: "boss",
+    category: "boss",
+    description: "Mỗi câu trả lời đúng sẽ giáng một đòn chí mạng vào Boss quái vật.",
+    author: "E-V-E Dev Team",
+    difficulty: "Thử Thách",
+    rewardCoins: 60,
+    needExtraData: true,
+    coursesAllowed: "all",
+    thumbnailUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80",
+    badge: "HOT",
+    rating: 4.8,
+    playsCount: 2350,
+    pairs: [
+      {
+        id: "bbq1",
+        title: "Hàm print() trong Python có tác dụng gì?",
+        description: "Xuất dữ liệu hoặc chuỗi thông báo ra màn hình console.",
+        explanation: "Hàm print() là hàm tích hợp sẵn trong Python dùng để in các đối tượng, chuỗi văn bản ra luồng xuất chuẩn stdout.",
+        distractions: ["Nhập dữ liệu từ bàn phím", "Xóa biến số", "Đóng chương trình"],
+      },
+      {
+        id: "bbq2",
+        title: "Kiểu dữ liệu Boolean trong Python nhận những giá trị nào?",
+        description: "True hoặc False",
+        explanation: "Kiểu Boolean (bool) trong Python là kiểu logic chỉ có 2 giá trị phân biệt được viết hoa chữ cái đầu là True và False.",
+        distractions: ["1 hoặc 0", "Yes hoặc No", "Chuỗi văn bản"],
+      },
+      {
+        id: "bbq3",
+        title: "Vòng lặp For trong Python có tác dụng gì?",
+        description: "Tự động hóa việc lặp đi lặp lại một khối lệnh nhiều lần mà không cần viết lại mã.",
+        explanation: "Vòng lặp (For, While) giúp tối ưu mã nguồn, giảm trùng lặp bằng cách tự động thực hiện lại một nhóm lệnh cho đến khi thỏa mãn điều kiện dừng.",
+        distractions: ["Thay đổi độ phân giải màn hình", "Nâng cấp phần cứng", "Tăng tốc độ mạng"],
       },
     ],
   },
@@ -305,10 +344,44 @@ async function handleInitGame(gameId?: string, courseId?: string, userId?: strin
   }
 
   if (!pairs || pairs.length === 0) {
-    if (FALLBACK_PAIRS[courseId]) {
+    // Thử lấy pairs từ contentData hoặc content_data (dạng cũ)
+    let alternatePairs = [];
+    try {
+      const cSnap = await getDoc(doc(db, "courses", courseId));
+      if (cSnap.exists()) {
+        const cData = cSnap.data();
+        const alternate = Array.isArray(cData?.contentData)
+          ? cData.contentData
+          : Array.isArray(cData?.content_data)
+            ? cData.content_data
+            : null;
+        if (alternate && alternate.length > 0) {
+          alternatePairs = alternate;
+        }
+      }
+    } catch (e) {
+      console.warn("Lỗi đọc contentData từ course:", e);
+    }
+
+    if (alternatePairs.length > 0) {
+      pairs = alternatePairs;
+      title = cData?.title || title;
+    } else if (FALLBACK_PAIRS[courseId]) {
       const fb = FALLBACK_PAIRS[courseId];
       title = fb.title;
       pairs = fb.pairs;
+    } else {
+      // Sinh pairs placeholder tự động cho phép chơi thử
+      pairs = [];
+      const subject = courseId.replace(/crs_/, "").replace(/_/g, " ").toUpperCase();
+      pairs = [{
+        id: "p1",
+        title: `${subject} - Câu hỏi 1`,
+        description: "Nội dung câu hỏi sẽ được nạp từ bài học.",
+        explanation: "Giải thích cho câu hỏi 1.",
+        distractions: ["Lựa chọn B", "Lựa chọn C", "Lựa chọn D"],
+      }];
+      title = `${subject} - Trò Chơi`;
     }
   }
 
@@ -336,7 +409,7 @@ async function handleInitGame(gameId?: string, courseId?: string, userId?: strin
     minPlayTimeSeconds: 5,
   });
 
-  const normalizedPairs = (pairs || []).map((p: any, idx: number) => {
+  const normalizedPairs = (pairs || []).map((p) => {
     const qImg = p.image_url || p.imageUrl || p.question_image_url || p.questionImageUrl || "";
     const rImg = p.right_answer_image_url || p.rightAnswerImageUrl || "";
     const wImgs = p.wrong_answers_image_urls || p.wrongAnswersImageUrls || p.distraction_image_urls || p.distractionImageUrls || [];
@@ -384,7 +457,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { gameId, courseId, userId } = body;
     return await handleInitGame(gameId, courseId, userId);
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
       { success: false, error: error.message || "Internal server error" },
       { status: 500 }
@@ -399,7 +472,7 @@ export async function GET(req: NextRequest) {
     const courseId = searchParams.get("courseId") || undefined;
     const userId = searchParams.get("userId") || undefined;
     return await handleInitGame(gameId, courseId, userId);
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
       { success: false, error: error.message || "Internal server error" },
       { status: 500 }

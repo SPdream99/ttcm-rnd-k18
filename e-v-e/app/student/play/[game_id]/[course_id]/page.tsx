@@ -144,6 +144,19 @@ const GAME_METADATA: Record<string, { title: string; subtitle: string; category:
       "Giữ lượng Mạng (Hearts) không bị cạn kiệt để đạt chiến thắng.",
     ],
   },
+let_s_learn: {
+    title: "Let's Learn (Học Kiến Thức)",
+    subtitle: "Ôn luyện kiến thức bài học qua trắc nghiệm",
+    category: "Học Tập",
+    description: "Trả lời các câu hỏi trắc nghiệm được trích xuất từ bài học để ghi nhớ kiến thức vững chắc.",
+    author: "E-V-E Studio",
+    controls: "Đọc câu hỏi và chọn đáp án đúng nhất.",
+    instructions: [
+      "Mỗi câu hỏi có 4 đáp án, chỉ có 1 đáp án đúng.",
+      "Trả lời đúng sẽ ghi được 40 điểm.",
+      "Hoàn thành tất cả câu hỏi để kết thúc bài học.",
+    ],
+  },
 };
 
 interface MemoryCardItem {
@@ -219,6 +232,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
   const [customGameUrl, setCustomGameUrl] = useState<string | null>(null);
   const [customGameTitle, setCustomGameTitle] = useState<string | null>(null);
+  const [gamePassRule, setGamePassRule] = useState<{ type?: string; value?: number } | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const isCardMatchingEngine = !customGameUrl && (gameId.includes("card") || gameId.includes("matrix") || gameId.includes("match"));
   const displayGameTitle = customGameTitle || currentGameMeta.title;
@@ -366,6 +380,9 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
             if (gData.title) {
               setCustomGameTitle(gData.title);
             }
+            if (gData.passRule && typeof gData.passRule === "object") {
+              setGamePassRule(gData.passRule);
+            }
           }
         } catch (gErr) {
           console.warn("Lỗi khi tải thông tin game:", gErr);
@@ -432,6 +449,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
             sessionToken,
             userId: uid,
             userName: studentName,
+            passRule: gamePassRule,
           };
           iframeRef.current.contentWindow.postMessage(
             { type: "EVE_INIT_GAME_DATA", payload: initPayload },
@@ -463,6 +481,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
         const finishedScore = Number(p.score) || 0;
         const finishedAccuracy = Number(p.accuracyPercent ?? p.accuracy) || 100;
         const finishedTime = Number(p.playTimeSeconds) || 30;
+        const finishedHighestLevel = Number(p.highestLevelReached ?? p.levelReached ?? 0) || 0;
 
         if (p.score !== undefined) setScore(finishedScore);
         if (p.playTimeSeconds !== undefined) setFinalPlayTime(finishedTime);
@@ -484,6 +503,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
               isWin: Boolean(p.isWin !== false),
               accuracyPercent: finishedAccuracy,
               playTimeSeconds: finishedTime,
+              highestLevelReached: finishedHighestLevel,
               sessionToken: sessionToken,
             }),
           });
@@ -499,7 +519,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
     window.addEventListener("message", handleSdkMessage);
     return () => window.removeEventListener("message", handleSdkMessage);
-  }, [gameId, courseId, courseTitle, pairs, uid, studentName, sessionToken]);
+  }, [gameId, courseId, courseTitle, pairs, uid, studentName, sessionToken, gamePassRule]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -849,13 +869,13 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
       </div>
 
       {/* 2. Navigation Tabs (LUÔN HIỂN THỊ) */}
-      <div className="flex items-center gap-2 border-b border-zinc-200 pb-3">
+      <div className="flex items-center gap-3 border-b border-zinc-200 pb-3">
         <button
           onClick={() => setActiveTab("game")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 ${
             activeTab === "game"
-              ? "bg-red-600 text-white border-red-600 shadow-sm"
-              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-white text-zinc-600 hover:bg-zinc-50 border border-zinc-200"
           }`}
         >
           <Play className="w-3.5 h-3.5" /> Màn Chơi Tương Tác
@@ -863,10 +883,10 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
         <button
           onClick={() => setActiveTab("leaderboard")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 ${
             activeTab === "leaderboard"
-              ? "bg-red-600 text-white border-red-600 shadow-sm"
-              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-white text-zinc-600 hover:bg-zinc-50 border border-zinc-200"
           }`}
         >
           <Trophy className="w-3.5 h-3.5" /> Bảng Xếp Hạng ({rankingList.length})
@@ -874,10 +894,10 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
 
         <button
           onClick={() => setActiveTab("guide")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 ${
             activeTab === "guide"
-              ? "bg-red-600 text-white border-red-600 shadow-sm"
-              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+              ? "bg-red-600 text-white shadow-sm"
+              : "bg-white text-zinc-600 hover:bg-zinc-50 border border-zinc-200"
           }`}
         >
           <Info className="w-3.5 h-3.5" /> Hướng Dẫn Cách Chơi
@@ -1030,7 +1050,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
               {/* Lives & Streak HUD */}
               <div className="flex items-center gap-3">
                 {isCardMatchingEngine && gameState === "playing" && (
-                  <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Heart
                         key={i}
@@ -1207,6 +1227,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                             sessionToken,
                             userId: uid,
                             userName: studentName,
+                            passRule: gamePassRule,
                           };
                           // Hỗ trợ cả 2 chuẩn event name của SDK
                           iframeRef.current.contentWindow.postMessage(
@@ -1248,7 +1269,7 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                   </div>
 
                   {/* Cards Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 max-w-4xl mx-auto">
+                  <div className="grid grid-cols-4 gap-3 md:gap-4 max-w-4xl mx-auto">
                     {cards.map((card) => {
                       const isRevealed = previewTimer > 0 || card.isFlipped || card.isMatched;
 
@@ -1256,12 +1277,12 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                         <div
                           key={card.uid}
                           onClick={() => handleCardClick(card)}
-                          className={`min-h-[140px] md:min-h-[160px] rounded-2xl border-2 p-3.5 flex flex-col items-center justify-between text-center cursor-pointer transition-all duration-300 select-none shadow-sm relative overflow-hidden ${
+                          className={`min-h-[150px] md:min-h-[170px] rounded-3xl border-2 p-4 flex flex-col items-center justify-between text-center cursor-pointer transition-all duration-300 select-none shadow-sm relative overflow-hidden ${
                             card.isMatched
                               ? "bg-emerald-50 border-emerald-500 ring-2 ring-emerald-200"
                               : isRevealed
                               ? "bg-white border-red-600 shadow-md scale-100"
-                              : "bg-gradient-to-br from-red-600 to-rose-700 border-red-500 text-white hover:shadow-md hover:scale-[1.02] active:scale-95"
+                              : "bg-gradient-to-br from-red-500 to-red-700 border-red-400 text-white hover:shadow-lg hover:scale-[1.02] active:scale-95"
                           }`}
                         >
                           {isRevealed ? (
@@ -1293,9 +1314,9 @@ export default function StudentPlayPage({ params }: PlayPageProps) {
                             </div>
                           ) : (
                             /* Card Back */
-                            <div className="h-full w-full flex flex-col items-center justify-center space-y-1">
-                              <span className="text-4xl font-black text-white drop-shadow">?</span>
-                              <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">E-V-E</span>
+                            <div className="h-full w-full flex flex-col items-center justify-center space-y-2">
+                              <span className="text-5xl font-black text-white drop-shadow-lg">?</span>
+                              <span className="text-[11px] font-bold text-white/90 uppercase tracking-widest">E-V-E</span>
                             </div>
                           )}
                         </div>

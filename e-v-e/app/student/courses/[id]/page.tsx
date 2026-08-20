@@ -11,6 +11,7 @@ import {
   Layers,
   Sparkles,
   Lock,
+  X,
 } from "lucide-react";
 import { doc, getDoc, getDocs, query, collection, where } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
@@ -132,6 +133,18 @@ export default function CourseDetailPage() {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [showNotice, setShowNotice] = useState<"paused" | "not_enrolled" | null>(null);
+  const [availableGames, setAvailableGames] = useState<{
+    id: string;
+    title: string;
+    subtitle: string;
+    genre: string;
+    description: string;
+    author: string;
+    rewardCoins: number;
+    gameUrl: string;
+  }[]>([]);
+  const [isStageUnlocked, setIsStageUnlocked] = useState(true);
+  const [showGamesModal, setShowGamesModal] = useState(false);
 
   useEffect(() => {
     // Check if student is actively enrolled in a path containing this course
@@ -151,6 +164,13 @@ export default function CourseDetailPage() {
                 return {
                   includesCourse: courses.includes(courseId),
                   isPaused: data.status === "paused",
+                  learningPathId: data.learning_path_id,
+                  approvedCourses: Array.isArray(data.approved_courses)
+                    ? data.approved_courses
+                    : Array.isArray(data.approvedCourses)
+                    ? data.approvedCourses
+                    : [],
+                  pathCourses: courses,
                 };
               }
             } catch {}
@@ -162,6 +182,46 @@ export default function CourseDetailPage() {
 
           setIsEnrolled(Boolean(match));
           setIsPaused(Boolean(match?.isPaused));
+
+          // Tính trạng thái mở khóa tuần tự của chặng này (chỉ chơi khi chặng đã mở)
+          if (match && match.pathCourses && Array.isArray(match.pathCourses)) {
+            try {
+              const resultsSnap = await getDocs(
+                query(collection(db, "game_results"), where("user_id", "==", user.uid))
+              );
+              const counts: Record<string, number> = {};
+              resultsSnap.docs.forEach((r) => {
+                const rd = r.data();
+                const crs = rd.course_id || rd.courseId;
+                if (crs) counts[crs] = (counts[crs] || 0) + 1;
+              });
+
+              const requiredPlaysPerStage = 1;
+              const pathCourses = match.pathCourses;
+              const index = pathCourses.indexOf(courseId);
+              const approved = new Set<string>(match.approvedCourses || []);
+              const plays = counts[courseId] || 0;
+              const hasPlayed = plays >= requiredPlaysPerStage;
+
+              let unlocked = false;
+              if (match.isPaused) {
+                unlocked = false;
+              } else if (hasPlayed && approved.has(courseId)) {
+                unlocked = true; // đã hoàn thành + được duyệt
+              } else if (index === 0) {
+                unlocked = true; // chặng đầu tiên
+              } else {
+                const prevId = pathCourses[index - 1];
+                const prevPlays = counts[prevId] || 0;
+                const prevPlayed = prevPlays >= requiredPlaysPerStage;
+                const prevApproved = approved.has(prevId);
+                unlocked = prevPlayed && prevApproved;
+              }
+              setIsStageUnlocked(unlocked);
+            } catch {}
+          } else {
+            setIsStageUnlocked(true);
+          }
         } catch (err) {
           console.warn("Could not check enrollment status:", err);
         }
@@ -173,6 +233,42 @@ export default function CourseDetailPage() {
 
   useEffect(() => {
     async function loadCourse() {
+      // 0. Load games hỗ trợ khóa học này từ DATABASE (game_info) — không prescripted
+      try {
+        const gamesSnap = await getDocs(collection(db, "game_info"));
+        const list: {
+          id: string;
+          title: string;
+          subtitle: string;
+          genre: string;
+          description: string;
+          author: string;
+          rewardCoins: number;
+          gameUrl: string;
+        }[] = [];
+        gamesSnap.docs.forEach((g) => {
+          const gd = g.data();
+          const isGameAccepted = Boolean(
+            gd.isAccepted ?? gd.is_accepted ?? (gd.status === "approved" || gd.status === "active")
+          );
+          if (!isGameAccepted) return;
+          const allowed = gd.courses_allowed || gd.coursesAllowed || "all";
+          const supportsCourse = allowed === "all" || (Array.isArray(allowed) && allowed.includes(courseId));
+          if (!supportsCourse) return;
+          list.push({
+            id: g.id,
+            title: gd.title || gd.name || g.id,
+            subtitle: gd.subtitle || "Minigame Giáo Dục",
+            genre: gd.genre || "HTML5 Game",
+            description: gd.description || "Trò chơi học tập tương tác.",
+            author: gd.authorName || gd.author || "Giáo Viên E-V-E",
+            rewardCoins: Number(gd.rewardCoins) || 0,
+            gameUrl: gd.gameUrl || "",
+          });
+        });
+        setAvailableGames(list);
+      } catch {}
+
       // 1. Try fetching via init API (has server-side admin access)
       try {
         const res = await fetch("/api/games/init", {
@@ -263,16 +359,26 @@ export default function CourseDetailPage() {
     <div className="space-y-8 pb-12 font-sans">
       {/* ── HEADER BANNER ── */}
       <header className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <button
             onClick={() => router.back()}
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-zinc-100 border border-zinc-200 text-xs font-bold text-zinc-700 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors cursor-pointer shadow-sm"
           >
             <ArrowLeft className="w-4 h-4" /> Quay Lại
           </button>
-          <span className="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-1.5">
-            <BookOpen className="w-3.5 h-3.5 text-red-600" /> Chi Tiết Bài Giảng
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowGamesModal(true)}
+              title="Minigame Tương Tác Của Khóa Học"
+              aria-label="Mở minigame tương tác của khóa học"
+              className="w-9 h-9 rounded-xl bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+            >
+              <Gamepad2 className="w-4 h-4" />
+            </button>
+            <span className="px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-1.5">
+              <BookOpen className="w-3.5 h-3.5 text-red-600" /> Chi Tiết Bài Giảng
+            </span>
+          </div>
         </div>
 
         <div>
@@ -364,6 +470,102 @@ export default function CourseDetailPage() {
         </div>
       )}
 
+      {/* ── MINIGAME TƯƠNG TÁC POPUP MODAL ── */}
+      {showGamesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl bg-white border-2 border-red-500 shadow-2xl">
+            <div className="sticky top-0 z-10 bg-white border-b border-zinc-200 px-5 py-4 flex items-center justify-between rounded-t-2xl">
+              <h2 className="text-base font-extrabold text-zinc-900 flex items-center gap-2">
+                <Gamepad2 className="w-5 h-5 text-red-600" /> Minigame Tương Tác Của Khóa Học ({availableGames.length})
+              </h2>
+              <button
+                onClick={() => setShowGamesModal(false)}
+                title="Đóng"
+                aria-label="Đóng popup minigame"
+                className="w-8 h-8 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {availableGames.length === 0 ? (
+                <div className="p-6 rounded-2xl bg-zinc-50 border border-zinc-200 text-center">
+                  <p className="text-xs text-zinc-500">Chưa có minigame nào được cấu hình cho khóa học này.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {availableGames.map((game) => {
+                    const canPlay = isEnrolled && !isPaused && isStageUnlocked;
+                    const lockReason = !isEnrolled
+                      ? "Chưa đăng ký khóa học"
+                      : isPaused
+                      ? "Bị khóa do tạm dừng"
+                      : "Chặng chưa được mở khóa — cần hoàn thành chặng trước";
+
+                    return canPlay ? (
+                      <Link
+                        key={game.id}
+                        href={`/student/play/${game.id}/${courseId}`}
+                        className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 hover:shadow-md transition group flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="px-2.5 py-0.5 rounded-md bg-red-50 text-red-700 text-xs font-bold border border-red-200">
+                              {game.genre || "Minigame"}
+                            </span>
+                            <span className="text-xs text-amber-600 font-extrabold flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" /> +{game.rewardCoins} Coins
+                            </span>
+                          </div>
+                          <h3 className="font-extrabold text-base text-zinc-900 group-hover:text-red-600 transition">
+                            {game.title}
+                          </h3>
+                          <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
+                            {game.subtitle} — {game.description}
+                          </p>
+                        </div>
+                        <div className="mt-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-bold text-red-600">
+                          <span>Bắt đầu chơi</span>
+                          <Play className="w-3.5 h-3.5 fill-red-600" />
+                        </div>
+                      </Link>
+                    ) : (
+                      <div
+                        key={game.id}
+                        onClick={() => setShowNotice(isPaused ? "paused" : "not_enrolled")}
+                        className="p-6 rounded-2xl bg-zinc-50 border-2 border-zinc-200 opacity-60 cursor-not-allowed flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="px-2.5 py-0.5 rounded-md bg-zinc-200 text-zinc-600 text-xs font-bold">
+                              {game.genre || "Minigame"}
+                            </span>
+                            <span className="text-xs text-zinc-400 font-bold flex items-center gap-1">
+                              <Lock className="w-3 h-3" /> Đang Khóa
+                            </span>
+                          </div>
+                          <h3 className="font-extrabold text-base text-zinc-700">
+                            {game.title}
+                          </h3>
+                          <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
+                            {game.subtitle} — {game.description}
+                          </p>
+                        </div>
+                        <div className="mt-5 pt-3 border-t border-zinc-200 flex items-center justify-between text-xs font-bold text-zinc-400">
+                          <span>{lockReason}</span>
+                          <Lock className="w-3.5 h-3.5" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Banner Canh Bao Khi Khong Duoc Phep Choi */}
       {(!isEnrolled || isPaused) && (
         <div className={`p-4 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-xs ${
@@ -388,70 +590,6 @@ export default function CourseDetailPage() {
           </div>
         </div>
       )}
-
-      {/* ── AVAILABLE GAMES FOR THIS COURSE ── */}
-      <section className="space-y-4 pt-4 border-t border-zinc-200">
-        <h2 className="text-base font-extrabold text-zinc-900 flex items-center gap-2">
-          <Gamepad2 className="w-4 h-4 text-red-600" /> Minigame Tương Tác Của Khóa Học
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Game 1: Memory Match */}
-          {(!isEnrolled || isPaused) ? (
-            <div
-              onClick={() => setShowNotice(isPaused ? "paused" : "not_enrolled")}
-              className="p-6 rounded-2xl bg-zinc-50 border-2 border-zinc-200 opacity-60 cursor-not-allowed flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="px-2.5 py-0.5 rounded-md bg-zinc-200 text-zinc-600 text-xs font-bold">
-                    Memory Match
-                  </span>
-                  <span className="text-xs text-zinc-400 font-bold flex items-center gap-1">
-                    <Lock className="w-3 h-3" /> Đang Khóa
-                  </span>
-                </div>
-                <h3 className="font-extrabold text-base text-zinc-700">
-                  Ghép Cặp Thẻ Bài Thuật Toán
-                </h3>
-                <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
-                  Tìm và ghép đôi thẻ chứa Khái niệm với thẻ chứa Định nghĩa tương ứng của bài học.
-                </p>
-              </div>
-              <div className="mt-5 pt-3 border-t border-zinc-200 flex items-center justify-between text-xs font-bold text-zinc-400">
-                <span>{isPaused ? "Bị khóa do tạm dừng" : "Chưa đăng ký khóa học"}</span>
-                <Lock className="w-3.5 h-3.5" />
-              </div>
-            </div>
-          ) : (
-            <Link
-              href={`/student/play/game_card_match_vr/${courseId}`}
-              className="p-6 rounded-2xl bg-white border border-zinc-200 hover:border-red-600 hover:shadow-md transition group flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="px-2.5 py-0.5 rounded-md bg-red-50 text-red-700 text-xs font-bold border border-red-200">
-                    Memory Match
-                  </span>
-                  <span className="text-xs text-amber-600 font-extrabold flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> +100 Coins
-                  </span>
-                </div>
-                <h3 className="font-extrabold text-base text-zinc-900 group-hover:text-red-600 transition">
-                  Ghép Cặp Thẻ Bài Thuật Toán
-                </h3>
-                <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
-                  Tìm và ghép đôi thẻ chứa Khái niệm với thẻ chứa Định nghĩa tương ứng của bài học.
-                </p>
-              </div>
-              <div className="mt-5 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs font-bold text-red-600">
-                <span>Bắt đầu chơi</span>
-                <Play className="w-3.5 h-3.5 fill-red-600" />
-              </div>
-            </Link>
-          )}
-        </div>
-      </section>
 
       {/* ── BOTTOM NAVIGATION ── */}
       <div className="pt-4 flex items-center justify-between border-t border-zinc-200">

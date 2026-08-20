@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
 
         // Fetch real names from in-memory cache or Firestore
         const userNamesMap = new Map<string, string>();
+        const testerUserIds = new Set<string>();
         const now = Date.now();
         const missingUserIds: string[] = [];
 
@@ -60,6 +61,16 @@ export async function GET(req: NextRequest) {
                 const uDoc = await adminDb.collection("users").doc(uId).get();
                 if (uDoc.exists) {
                   const uData = uDoc.data();
+                  // Loại trừ tài khoản Tester khỏi Bảng Xếp Hạng
+                  const isTester = Boolean(
+                    uData?.isTester === true ||
+                      uData?.is_tester === true ||
+                      uData?.role === "tester" ||
+                      uData?.role === "Tester"
+                  );
+                  if (isTester) {
+                    testerUserIds.add(uId);
+                  }
                   const realName =
                     uData?.name ||
                     uData?.displayName ||
@@ -97,6 +108,10 @@ export async function GET(req: NextRequest) {
         snapshot.docs.forEach((docSnap) => {
           const d = docSnap.data();
           const uId = d.userId || "anonymous";
+
+          // Bỏ qua kết quả của tài khoản Tester
+          if (testerUserIds.has(uId)) return;
+
           const dScore = Number(d.score) || 0;
           const dAccuracy = Number(d.accuracyPercent) ?? 100;
           const dPlayTime = Number(d.playTimeSeconds) || 9999;

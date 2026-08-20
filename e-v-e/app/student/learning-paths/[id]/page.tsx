@@ -65,6 +65,7 @@ export default function LearningPathDetailPage({
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [alreadyEnrolled, setAlreadyEnrolled] = useState(false);
+  const [courseTitleMap, setCourseTitleMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -108,12 +109,15 @@ export default function LearningPathDetailPage({
           // Kiểm tra điều kiện một chiều: Tất cả khóa học con phải được duyệt
           const coursesSnap = await getDocs(collection(db, "courses"));
           const acceptedCourseIds = new Set<string>();
+          const titles: Record<string, string> = {};
           coursesSnap.docs.forEach((d) => {
             const cd = d.data();
+            titles[d.id] = cd.title || d.id;
             if (cd.isAccepted ?? cd.is_accepted) {
               acceptedCourseIds.add(d.id);
             }
           });
+          setCourseTitleMap(titles);
 
           const isPathAccepted = Boolean(data.is_accepted ?? data.isAccepted);
           const pathCourses: string[] = Array.isArray(data.courses) ? data.courses : [];
@@ -390,7 +394,7 @@ export default function LearningPathDetailPage({
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase text-zinc-400">Khóa học {index + 1}</p>
-                  <p className="text-sm font-extrabold text-zinc-900">{courseId}</p>
+                  <p className="text-sm font-extrabold text-zinc-900">{courseTitleMap[courseId] || courseId}</p>
                 </div>
               </div>
 

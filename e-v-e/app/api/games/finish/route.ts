@@ -1,7 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/infrastructure/firebase/firebaseAdmin";
-import { validateGameScore } from "@/lib/antiCheat";
+import { validateGameScore, decodeGameSessionToken } from "@/lib/antiCheat";
+
+interface PassRule {
+  type?: string;
+  value?: number;
+}
+
+/**
+ * Luật qua chặng mặc định cho các game chưa cấu hình passRule trong game_info.
+ * Mỗi game CẦN khai báo passRule để xác định kết quả đủ đạt (hoàn thành chặng + vào BXH).
+ */
+const DEFAULT_PASS_RULES: Record<string, PassRule> = {
+  game_card_match_vr: { type: "minLevel", value: 2 },
+};
+
+function evaluatePassRule(
+  rule: PassRule | null | undefined,
+  result: { score: number; isWin: boolean; accuracyPercent: number; highestLevelReached?: number }
+): boolean {
+  const r = rule && typeof rule === "object" ? rule : {};
+  const type = r.type || "win";
+  switch (type) {
+    case "minLevel":
+      return Number(result.highestLevelReached || 0) >= Number(r.value || 0);
+    case "minScore":
+      return Number(result.score || 0) >= Number(r.value || 0);
+    case "minAccuracy":
+      return Number(result.accuracyPercent || 0) >= Number(r.value || 0);
+    case "win":
+    default:
+      return Boolean(result.isWin);
+  }
+}
+
+async function isTesterUser(userId: string): Promise<boolean> {
+  if (!userId || userId === "anonymous") return false;
+  try {
+    const uSnap = await adminDb.collection("users").doc(userId).get();
+    if (!uSnap.exists) return false;
+    const u = uSnap.data()!;
+    return Boolean(
+      u.isTester === true ||
+        u.is_tester === true ||
+        u.role === "tester" ||
+        u.role === "Tester"
+    );
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,6 +66,8 @@ export async function POST(req: NextRequest) {
       isWin = true,
       accuracyPercent = 100,
       playTimeSeconds = 30,
+      highestLevelReached,
+      levelReached,
     } = body;
 
     if (!gameId || !courseId) {
@@ -28,6 +79,7 @@ export async function POST(req: NextRequest) {
 
     const safePlayTime = Math.max(1, Number(playTimeSeconds) || 1);
     const safeAccuracy = Math.min(100, Math.max(0, Math.round(Number(accuracyPercent) || 100)));
+    const safeHighestLevel = Math.max(1, Number(highestLevelReached ?? levelReached ?? 0) || 1);
 
     // 1. Anti-Cheat & Secure Score Validation
     const validation = validateGameScore(sessionToken, Number(score), safePlayTime);
@@ -45,7 +97,31 @@ export async function POST(req: NextRequest) {
     const finalScore = validation.sanitizedScore;
     const earnedCoins = validation.earnedCoins;
 
-    // 2. Update user coins if userId provided using Admin Firestore
+    // 1b. Loại trừ Tester: không nhận coins, không lưu kết quả, không lên BXH
+    const tester = await isTesterUser(userId || "");
+    if (tester) {
+      return NextResponse.json({
+        success: true,
+        tester: true,
+        message: "Tài khoản tester: kết quả không được ghi nhận.",
+        data: {
+          gameId,
+          courseId,
+          finalScore,
+          userName: userName || "Tester",
+          isWin,
+          accuracyPercent: safeAccuracy,
+          playTimeSeconds: safePlayTime,
+          earnedCoins: 0,
+          courseCompleted: false,
+          unlockedNextCourse: false,
+          verified: true,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // 2. Update user coins + lấy tên thật (chỉ khi là học viên thật)
     let realUserName = userName || "";
     if (userId && userId !== "anonymous") {
       try {
@@ -61,11 +137,8 @@ export async function POST(req: NextRequest) {
               (uData?.email ? uData.email.split("@")[0] : "");
           }
         }
-        await uRef.update({
-          coins: FieldValue.increment(earnedCoins),
-        });
       } catch (err) {
-        console.warn("Could not update user coins or fetch name in Admin Firestore:", err);
+        console.warn("Could not fetch user name in Admin Firestore:", err);
       }
     }
 
@@ -73,60 +146,70 @@ export async function POST(req: NextRequest) {
       realUserName = userId && userId !== "anonymous" ? `Học viên #${userId.slice(-4)}` : "Học viên";
     }
 
-    // 3. Upsert game result: keep only best score per user per game+course
-    // This prevents duplicate leaderboard entries
+    // 3. Lấy luật qua chặng của game (passRule) từ game_info
+    let passRule: PassRule | null = null;
     try {
-      const effectiveUserId = userId || "anonymous";
-
-      // Check if user already has a result for this game+course
-      const existingSnap = await adminDb
-        .collection("game_results")
-        .where("gameId", "==", gameId)
-        .where("courseId", "==", courseId)
-        .where("userId", "==", effectiveUserId)
-        .limit(10)
-        .get();
-
-      if (!existingSnap.empty) {
-        // Find the doc with the highest score
-        let bestDoc = existingSnap.docs[0];
-        let bestScore = bestDoc.data().score || 0;
-
-        // Clean up any extra duplicates - keep only the best one
-        for (let i = 1; i < existingSnap.docs.length; i++) {
-          const docData = existingSnap.docs[i].data();
-          if ((docData.score || 0) > bestScore) {
-            await bestDoc.ref.delete().catch(() => {});
-            bestDoc = existingSnap.docs[i];
-            bestScore = docData.score || 0;
-          } else {
-            await existingSnap.docs[i].ref.delete().catch(() => {});
-          }
+      const gRef = adminDb.collection("game_info").doc(gameId);
+      const gSnap = await gRef.get();
+      if (gSnap.exists) {
+        const gData = gSnap.data();
+        if (gData?.passRule && typeof gData.passRule === "object") {
+          passRule = gData.passRule;
         }
+      }
+      if (!passRule && DEFAULT_PASS_RULES[gameId]) {
+        passRule = DEFAULT_PASS_RULES[gameId];
+      }
+    } catch (err) {
+      console.warn("Could not load passRule:", err);
+    }
 
-        // Update if new score is better or same score with faster time / better accuracy
-        const prevData = bestDoc.data();
-        const isBetter =
-          finalScore > bestScore ||
-          (finalScore === bestScore &&
-            (safePlayTime < (prevData.playTimeSeconds || 9999) ||
-              safeAccuracy > (prevData.accuracyPercent || 0)));
+    // Đánh giá kết quả đủ đạt (passed = qualified) theo luật qua chặng của game
+    const passed = evaluatePassRule(passRule, {
+      score: finalScore,
+      isWin: Boolean(isWin),
+      accuracyPercent: safeAccuracy,
+      highestLevelReached: safeHighestLevel,
+    });
 
-        if (isBetter || !prevData.userName) {
-          await bestDoc.ref.update({
-            score: Math.max(finalScore, bestScore),
+    // 4. Lưu kết quả: MỖI LẦN CHƠI = 1 DOC MỚI (không upsert/xóa kết quả cũ).
+    // Chống trùng lặp khi SDK + Host cùng POST cho 1 phiên chơi (dùng sessionId).
+    const sessionId = sessionToken ? decodeGameSessionToken(sessionToken)?.sessionId : null;
+    const effectiveUserId = userId || "anonymous";
+
+    try {
+      let duplicateOf;
+      if (sessionId) {
+        const dupSnap = await adminDb
+          .collection("game_results")
+          .where("sessionId", "==", sessionId)
+          .limit(1)
+          .get();
+        if (!dupSnap.empty) {
+          duplicateOf = dupSnap.docs[0];
+        }
+      }
+
+      if (duplicateOf) {
+        // Cập nhật bản ghi của cùng phiên chơi (giữ điểm cao nhất) — KHÔNG tạo doc mới
+        const prevScore = Number(duplicateOf.data().score) || 0;
+        if (finalScore >= prevScore) {
+          await duplicateOf.ref.update({
+            score: Math.max(finalScore, prevScore),
             rawReportedScore: score,
             userName: realUserName,
-            isWin,
+            // isWin = passed để BXH lọc bằng index isWin==true theo đúng luật qua chặng
+            isWin: passed,
+            passed,
             accuracyPercent: safeAccuracy,
             playTimeSeconds: safePlayTime,
-            earnedCoins,
+            highestLevelReached: safeHighestLevel,
             verifiedByAntiCheat: true,
             finishedAt: new Date().toISOString(),
           });
         }
       } else {
-        // No existing record, create new one
+        // Lần chơi mới → thêm doc mới
         await adminDb.collection("game_results").add({
           gameId,
           courseId,
@@ -135,41 +218,59 @@ export async function POST(req: NextRequest) {
           userName: realUserName,
           score: finalScore,
           rawReportedScore: score,
-          isWin,
+          // isWin = passed để BXH lọc bằng index isWin==true theo đúng luật qua chặng
+          isWin: passed,
+          passed,
           accuracyPercent: safeAccuracy,
           playTimeSeconds: safePlayTime,
+          highestLevelReached: safeHighestLevel,
           earnedCoins,
           verifiedByAntiCheat: true,
           finishedAt: new Date().toISOString(),
+          sessionId: sessionId || "",
         });
+
+        // Cộng coins chỉ khi tạo bản ghi mới (1 lần / phiên chơi)
+        if (userId && userId !== "anonymous") {
+          try {
+            await adminDb.collection("users").doc(userId).update({
+              coins: FieldValue.increment(earnedCoins),
+            });
+          } catch (err) {
+            console.warn("Could not update user coins:", err);
+          }
+        }
       }
     } catch (saveErr) {
       console.warn("Could not save game_results record:", saveErr);
     }
 
-    // 4. Return success response
+    // 5. Return success response
     return NextResponse.json({
       success: true,
-      message: "Kết quả trò chơi đã được kiểm định an toàn và cập nhật điểm thành công!",
+      message: "Kết quả trò chơi đã được kiểm định an toàn và ghi nhận thành công!",
       data: {
         gameId,
         courseId,
         pathId,
         finalScore,
         userName: realUserName,
-        isWin,
+        isWin: Boolean(isWin),
+        passed,
         accuracyPercent: safeAccuracy,
         playTimeSeconds: safePlayTime,
+        highestLevelReached: safeHighestLevel,
         earnedCoins,
-        courseCompleted: isWin,
-        unlockedNextCourse: isWin,
+        courseCompleted: passed,
+        unlockedNextCourse: passed,
         verified: true,
         timestamp: new Date().toISOString(),
       },
     });
-  } catch (error: any) {
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : error ? String(error) : "Failed to finalize game session";
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to finalize game session" },
+      { success: false, error: msg },
       { status: 500 }
     );
   }
