@@ -345,10 +345,11 @@ async function handleInitGame(gameId?: string, courseId?: string, userId?: strin
 
   if (!pairs || pairs.length === 0) {
     // Thử lấy pairs từ contentData hoặc content_data (dạng cũ)
-    let alternatePairs = [];
+    let alternatePairs: any[] = [];
+    let alternateTitle = "";
     try {
-      const cSnap = await getDoc(doc(db, "courses", courseId));
-      if (cSnap.exists()) {
+      const cSnap = await adminDb.collection("courses").doc(courseId).get();
+      if (cSnap.exists) {
         const cData = cSnap.data();
         const alternate = Array.isArray(cData?.contentData)
           ? cData.contentData
@@ -357,6 +358,7 @@ async function handleInitGame(gameId?: string, courseId?: string, userId?: strin
             : null;
         if (alternate && alternate.length > 0) {
           alternatePairs = alternate;
+          alternateTitle = cData?.title || "";
         }
       }
     } catch (e) {
@@ -365,7 +367,7 @@ async function handleInitGame(gameId?: string, courseId?: string, userId?: strin
 
     if (alternatePairs.length > 0) {
       pairs = alternatePairs;
-      title = cData?.title || title;
+      title = alternateTitle || title;
     } else if (FALLBACK_PAIRS[courseId]) {
       const fb = FALLBACK_PAIRS[courseId];
       title = fb.title;
@@ -409,7 +411,7 @@ async function handleInitGame(gameId?: string, courseId?: string, userId?: strin
     minPlayTimeSeconds: 5,
   });
 
-  const normalizedPairs = (pairs || []).map((p) => {
+  const normalizedPairs = (pairs || []).map((p: any, idx: number) => {
     const qImg = p.image_url || p.imageUrl || p.question_image_url || p.questionImageUrl || "";
     const rImg = p.right_answer_image_url || p.rightAnswerImageUrl || "";
     const wImgs = p.wrong_answers_image_urls || p.wrongAnswersImageUrls || p.distraction_image_urls || p.distractionImageUrls || [];
@@ -457,7 +459,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { gameId, courseId, userId } = body;
     return await handleInitGame(gameId, courseId, userId);
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || "Internal server error" },
       { status: 500 }
@@ -472,7 +474,7 @@ export async function GET(req: NextRequest) {
     const courseId = searchParams.get("courseId") || undefined;
     const userId = searchParams.get("userId") || undefined;
     return await handleInitGame(gameId, courseId, userId);
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || "Internal server error" },
       { status: 500 }
