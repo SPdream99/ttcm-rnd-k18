@@ -67,6 +67,7 @@ export default function TeacherUploadCenterPage() {
   const [gameTitle, setGameTitle] = useState("");
   const [gameDesc, setGameDesc] = useState("");
   const [gameRules, setGameRules] = useState("");
+  const [gameRewardCoins, setGameRewardCoins] = useState(50);
   const [gameVisibility, setGameVisibility] = useState<"private" | "public" | "free_to_share" | "free_to_use">("public");
   const [gameZipFile, setGameZipFile] = useState<File | null>(null);
   const [needExtraData, setNeedExtraData] = useState(true);
@@ -424,6 +425,7 @@ export default function TeacherUploadCenterPage() {
     formData.append("title", gameTitle.trim());
     formData.append("description", gameDesc.trim());
     formData.append("rules", gameRules.trim());
+    formData.append("rewardCoins", String(gameRewardCoins || 0));
     formData.append("authorId", teacherUid);
     formData.append("authorName", teacherName);
     formData.append("visibility", gameVisibility);
@@ -1201,6 +1203,24 @@ export default function TeacherUploadCenterPage() {
 - Điều kiện thắng: Hoàn thành 100% cặp câu hỏi trong thời gian quy định.`}
                   className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2.5 text-xs text-zinc-900 focus:outline-none placeholder:text-zinc-400 placeholder:italic font-mono text-[11px] leading-relaxed whitespace-pre-line"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 mb-1">
+                  Thưởng Coins cho học viên hoàn thành trò chơi này
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={500}
+                  value={gameRewardCoins}
+                  onChange={(e) => setGameRewardCoins(Math.max(0, Math.min(500, Number(e.target.value) || 0)))}
+                  placeholder="VD: 50"
+                  className="w-full bg-zinc-50 border border-zinc-300 focus:border-red-600 rounded-xl px-4 py-2.5 text-xs text-zinc-900 focus:outline-none placeholder:text-zinc-400"
+                />
+                <p className="text-[11px] text-zinc-500 mt-1">
+                  Số Coins học viên nhận được khi đạt chỉ tiêu (passRule) của trò chơi. Hệ thống cộng Coins tự động sau mỗi màn chơi đạt chỉ tiêu.
+                </p>
               </div>
 
               {/* Upload Zip File with Drag & Drop */}

@@ -19,23 +19,46 @@ export async function GET(req: NextRequest) {
     let rankings: any[] = [];
 
     try {
-      // Query game results for this specific game + course
-      const snapshot = await adminDb
-        .collection("game_results")
-        .where("gameId", "==", gameId)
-        .where("courseId", "==", courseId)
-        .where("isWin", "==", true)
-        .orderBy("score", "desc")
-        .limit(100)
-        .get();
+      // Query game results for this specific game + course.
+      // Ưu tiên truy vấn composite index đã tối ưu; nếu index chưa tồn tại (query lỗi)
+      // thì fallback về truy vấn đơn giản hơn và lọc/sắp xếp tại code để BXH luôn chính xác.
+      let snapshot: any = null;
+      try {
+        snapshot = await adminDb
+          .collection("game_results")
+          .where("gameId", "==", gameId)
+          .where("courseId", "==", courseId)
+          .where("isWin", "==", true)
+          .orderBy("score", "desc")
+          .limit(200)
+          .get();
+      } catch (compositeErr) {
+        console.warn("Composite leaderboard query failed, falling back to simple query:", compositeErr);
+        try {
+          snapshot = await adminDb
+            .collection("game_results")
+            .where("gameId", "==", gameId)
+            .where("courseId", "==", courseId)
+            .limit(500)
+            .get();
+        } catch (simpleErr) {
+          console.warn("Simple leaderboard query failed, falling back to gameId-only query:", simpleErr);
+          snapshot = await adminDb
+            .collection("game_results")
+            .where("gameId", "==", gameId)
+            .limit(1000)
+            .get();
+        }
+      }
 
-      if (!snapshot.empty) {
+      if (snapshot && !snapshot.empty) {
         // Collect all unique userIds to fetch real names from users collection
         const userIds = new Set<string>();
-        snapshot.docs.forEach((docSnap) => {
+        snapshot.docs.forEach((docSnap: any) => {
           const d = docSnap.data();
-          if (d.userId && d.userId !== "anonymous") {
-            userIds.add(d.userId);
+          const uId = d.userId || d.user_id || "";
+          if (uId && uId !== "anonymous") {
+            userIds.add(uId);
           }
         });
 
@@ -105,11 +128,18 @@ export async function GET(req: NextRequest) {
           }
         >();
 
-        snapshot.docs.forEach((docSnap) => {
+        snapshot.docs.forEach((docSnap: any) => {
           const d = docSnap.data();
-          const uId = d.userId || "anonymous";
 
-          // Bỏ qua kết quả của tài khoản Tester
+          // Chỉ tính kết quả đạt chỉ tiêu (isWin == passed theo luật qua chặng của game)
+          // và đúng khóa học này (cần thiết khi fallback truy vấn theo gameId-only).
+          if (d.isWin !== true) return;
+          if ((d.courseId || d.course_id) !== courseId) return;
+
+          const uId = d.userId || d.user_id || "";
+
+          // Chỉ xếp hạng người chơi thật (có tài khoản). Bỏ qua khách ẩn danh & Tester.
+          if (!uId || uId === "anonymous") return;
           if (testerUserIds.has(uId)) return;
 
           const dScore = Number(d.score) || 0;
@@ -136,7 +166,7 @@ export async function GET(req: NextRequest) {
             const realName =
               userNamesMap.get(uId) ||
               d.userName ||
-              (uId !== "anonymous" ? `Học viên #${uId.slice(-4)}` : "Học viên");
+              (uId ? `Học viên #${uId.slice(-4)}` : "Học viên");
 
             bestByUser.set(uId, {
               id: docSnap.id,

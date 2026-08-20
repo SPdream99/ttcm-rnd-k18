@@ -14,10 +14,24 @@ export async function POST(req: NextRequest) {
     const title = (formData.get("title") as string) || "Trò chơi mới";
     const description = (formData.get("description") as string) || "";
     const rules = (formData.get("rules") as string) || "";
+    const rewardCoins = Math.max(0, Math.min(500, Math.floor(Number(formData.get("rewardCoins")) || 0)));
     const authorId = (formData.get("authorId") as string) || "anonymous";
     const authorName = (formData.get("authorName") as string) || "Giáo viên";
     const visibility = (formData.get("visibility") as string) || "public";
     const needExtraData = formData.get("needExtraData") !== "false";
+    // Chỉ tiêu tối thiểu (passRule): mọi game bắt buộc có ít nhất 1 chỉ tiêu. Mặc định: chiến thắng.
+    let passRule: any = { type: "win" };
+    const passRuleRaw = formData.get("passRule") as string;
+    if (passRuleRaw) {
+      try {
+        const parsed = JSON.parse(passRuleRaw);
+        if (parsed && typeof parsed === "object" && parsed.type) {
+          passRule = parsed;
+        }
+      } catch {
+        passRule = { type: "win" };
+      }
+    }
     const coursesAllowedRaw = formData.get("coursesAllowed") as string;
     let coursesAllowed: any = "all";
     if (coursesAllowedRaw) {
@@ -78,6 +92,7 @@ export async function POST(req: NextRequest) {
       title,
       description: combinedDescription,
       rules: rules.trim(),
+      rewardCoins,
       summary: description.trim(),
       authorId,
       author_id: authorId,
@@ -92,6 +107,8 @@ export async function POST(req: NextRequest) {
       courses_allowed: coursesAllowed,
       coursesBlocked: [],
       courses_blocked: [],
+      passRule,
+      pass_rule: passRule,
       zipPath: zipRelPath,
       fileName: file.name,
       file_name: file.name,

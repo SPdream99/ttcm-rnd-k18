@@ -189,11 +189,13 @@ export default function CourseDetailPage() {
               const resultsSnap = await getDocs(
                 query(collection(db, "game_results"), where("user_id", "==", user.uid))
               );
+              // Chỉ tính PASS (kết quả minigame đạt chỉ tiêu của game) để xác định hoàn thành chặng
               const counts: Record<string, number> = {};
               resultsSnap.docs.forEach((r) => {
                 const rd = r.data();
                 const crs = rd.course_id || rd.courseId;
-                if (crs) counts[crs] = (counts[crs] || 0) + 1;
+                const isPass = rd.passed === true || rd.isWin === true || rd.result === "win";
+                if (crs && isPass) counts[crs] = (counts[crs] || 0) + 1;
               });
 
               const requiredPlaysPerStage = 1;
