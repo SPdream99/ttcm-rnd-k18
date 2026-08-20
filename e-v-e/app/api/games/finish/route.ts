@@ -187,21 +187,25 @@ export async function POST(req: NextRequest) {
 
     // Phần thưởng Coins riêng theo từng trò chơi: game đã khai báo rewardCoins → chỉ thưởng khi đạt chỉ tiêu.
     // Game chưa khai báo → giữ nguyên công thức cũ (theo điểm số) để không phá vỡ hành vi hiện tại.
-    const finalCoins =
+    const computeCoins = (passedResult: boolean): number =>
       gameRewardCoins !== undefined
-        ? passed
+        ? passedResult
           ? gameRewardCoins
           : 0
         : earnedCoins;
+    const finalCoins = computeCoins(passed);
 
     // 4. Lưu kết quả: MỖI LẦN CHƠI = 1 DOC MỚI (không upsert/xóa kết quả cũ).
     // Chống trùng lặp khi SDK + Host cùng POST cho 1 phiên chơi (dùng sessionId).
     const sessionId = sessionToken ? decodeGameSessionToken(sessionToken)?.sessionId : null;
     const effectiveUserId = userId || "anonymous";
 
-    // Xác định pathId của chặng nếu client không gửi kèm (tìm lộ trình chứa khóa học này)
-    let resolvedPathId = pathId || "default_path";
-    if (!pathId) {
+    // Xác định pathId của chặng: client/SDK có thể gửi thiếu hoặc gửi giá trị mặc định "default_path"
+    // (iframe URL không truyền pathId) → phải TỰ PHÂN GIẢI lại từ courseId để ghi đúng chặng.
+    const normalizePathId = async (): Promise<string> => {
+      if (pathId && pathId !== "default_path" && pathId !== "undefined") {
+        return pathId;
+      }
       try {
         const pathSnap = await adminDb
           .collection("learning_path")
@@ -209,12 +213,27 @@ export async function POST(req: NextRequest) {
           .limit(1)
           .get();
         if (!pathSnap.empty) {
-          resolvedPathId = pathSnap.docs[0].id;
+          return pathSnap.docs[0].id;
         }
       } catch (err) {
-        console.warn("Could not resolve pathId for course:", err);
+        console.warn("Could not resolve pathId via array-contains:", err);
       }
-    }
+      // Fallback: quét toàn bộ lộ trình và lọc trong code (không phụ thuộc index)
+      try {
+        const allPaths = await adminDb.collection("learning_path").get();
+        const matchPath = allPaths.docs.find((d) => {
+          const pd = d.data();
+          return (
+            (Array.isArray(pd.courses) && pd.courses.includes(courseId)) ||
+            (Array.isArray(pd.courseIds) && pd.courseIds.includes(courseId))
+          );
+        });
+        if (matchPath) return matchPath.id;
+      } catch {}
+      return "default_path";
+    };
+
+    const resolvedPathId = await normalizePathId();
 
     try {
       let duplicateOf;
@@ -230,28 +249,64 @@ export async function POST(req: NextRequest) {
       }
 
       if (duplicateOf) {
-        // Cập nhật bản ghi của cùng phiên chơi (giữ điểm cao nhất) — KHÔNG tạo doc mới
-        const prevScore = Number(duplicateOf.data().score) || 0;
-        if (finalScore >= prevScore) {
-          await duplicateOf.ref.update({
-            score: Math.max(finalScore, prevScore),
-            rawReportedScore: score,
-            userName: realUserName,
-            userId: effectiveUserId,
-            user_id: effectiveUserId,
-            courseId,
-            course_id: courseId,
-            pathId: resolvedPathId,
-            path_id: resolvedPathId,
-            // isWin = passed để BXH lọc bằng index isWin==true theo đúng luật qua chặng
-            isWin: passed,
-            passed,
-            accuracyPercent: safeAccuracy,
-            playTimeSeconds: safePlayTime,
-            highestLevelReached: safeHighestLevel,
-            verifiedByAntiCheat: true,
-            finishedAt: new Date().toISOString(),
-          });
+        // Cập nhật bản ghi của cùng phiên chơi — KHÔNG tạo doc mới.
+        // QUAN TRỌNG: SDK trong iframe và Host có thể POST trùng phiên (sessionId) với dữ liệu
+        // lệch nhau (vd Host không gửi highestLevelReached). Phải HỢP NHẤT không phá vỡ bản ghi:
+        // giữ ĐIỂM CAO NHẤT + LEVEL CAO NHẤT, rồi tính lại passed theo dữ liệu tốt nhất có được.
+        const prevData = duplicateOf.data();
+        const prevScore = Number(prevData.score) || 0;
+        const prevHighest = Math.max(
+          Number(prevData.highestLevelReached) || 0,
+          Number(prevData.levelReached) || 0
+        );
+        const bestScore = Math.max(finalScore, prevScore);
+        const bestHighestLevel = Math.max(safeHighestLevel, prevHighest);
+
+        // Tính lại kết quả đạt chỉ tiêu dựa trên DỮ LIỆU TỐT NHẤT của phiên chơi
+        const effectivePassed = evaluatePassRule(passRule, {
+          score: bestScore,
+          isWin: Boolean(isWin),
+          accuracyPercent: safeAccuracy,
+          highestLevelReached: bestHighestLevel,
+        });
+
+        // Đồng bộ phần thưởng Coins theo kết quả hợp nhất (không để mất thưởng khi host POST trước)
+        const mergedCoins = computeCoins(effectivePassed);
+        const prevEarnedCoins = Number(prevData.earnedCoins) || 0;
+        const coinsDelta = Math.max(0, mergedCoins - prevEarnedCoins);
+
+        await duplicateOf.ref.update({
+          score: bestScore,
+          rawReportedScore: Math.max(Number(prevData.rawReportedScore) || 0, Number(score) || 0),
+          userName: realUserName,
+          userId: effectiveUserId,
+          user_id: effectiveUserId,
+          courseId,
+          course_id: courseId,
+          pathId: resolvedPathId,
+          path_id: resolvedPathId,
+          highestLevelReached: bestHighestLevel,
+          // isWin = passed để BXH lọc bằng index isWin==true theo đúng luật qua chặng
+          isWin: effectivePassed,
+          passed: effectivePassed,
+          accuracyPercent: Math.max(Number(prevData.accuracyPercent) || 0, safeAccuracy),
+          playTimeSeconds: Math.min(Number(prevData.playTimeSeconds) || 9999, safePlayTime),
+          earnedCoins: mergedCoins,
+          rewardCoins: mergedCoins,
+          verifiedByAntiCheat: true,
+          finishedAt: new Date().toISOString(),
+        });
+
+        // Nếu hợp nhất làm tăng phần thưởng (vd bản ghi cũ bị ghi 0 coins khi host POST thiếu dữ liệu)
+        // thì cộng bù phần chênh lệch cho học viên — KHÔNG cộng trùng toàn bộ.
+        if (userId && userId !== "anonymous" && coinsDelta > 0) {
+          try {
+            await adminDb.collection("users").doc(userId).update({
+              coins: FieldValue.increment(coinsDelta),
+            });
+          } catch (err) {
+            console.warn("Could not credit coin delta on merged session:", err);
+          }
         }
       } else {
         // Lần chơi mới → thêm doc mới
@@ -297,17 +352,54 @@ export async function POST(req: NextRequest) {
 
     // 4b. THEO DÕI HOÀN THÀNH CHẶNG: kết quả minigame đạt chỉ tiêu của game → 1 pass cho chặng đó.
     // Ghi courseId vào mảng passed_courses của student_learning_path tương ứng (chặng = course thuộc learning_path).
+    let stageProgressUpdated = false;
     if (passed && effectiveUserId !== "anonymous") {
       try {
-        const enQuery = await adminDb
-          .collection("student_learning_path")
-          .where("student_id", "==", effectiveUserId)
-          .where("learning_path_id", "==", resolvedPathId)
-          .limit(1)
-          .get();
+        // Tìm bản ghi đăng ký lộ trình của học viên cho chặng này
+        let enRef: any = null;
 
-        if (!enQuery.empty) {
-          const enRef = enQuery.docs[0].ref;
+        // Thử truy vấn kết hợp trước (cần composite index student_id + learning_path_id)
+        try {
+          const enQuery = await adminDb
+            .collection("student_learning_path")
+            .where("student_id", "==", effectiveUserId)
+            .where("learning_path_id", "==", resolvedPathId)
+            .limit(1)
+            .get();
+          if (!enQuery.empty) {
+            enRef = enQuery.docs[0].ref;
+          }
+        } catch (enErr) {
+          console.warn("Composite student_learning_path query failed, falling back:", enErr);
+        }
+
+        // Fallback: truy vấn theo student_id rồi lọc theo pathId trong code (không phụ thuộc index)
+        if (!enRef) {
+          try {
+            const enFallback = await adminDb
+              .collection("student_learning_path")
+              .where("student_id", "==", effectiveUserId)
+              .get();
+            if (!enFallback.empty) {
+              const match = enFallback.docs.find((d) => {
+                const dd = d.data();
+                return (
+                  dd.learning_path_id === resolvedPathId ||
+                  dd.learningPathId === resolvedPathId ||
+                  dd.path_id === resolvedPathId ||
+                  dd.pathId === resolvedPathId ||
+                  dd.lpath_id === resolvedPathId ||
+                  dd.lpathId === resolvedPathId
+                );
+              });
+              if (match) enRef = match.ref;
+            }
+          } catch (enErr2) {
+            console.warn("Could not query student enrollments:", enErr2);
+          }
+        }
+
+        if (enRef) {
           await enRef.set(
             {
               passed_courses: FieldValue.arrayUnion(courseId),
@@ -329,8 +421,9 @@ export async function POST(req: NextRequest) {
             if (pSnap.exists && pData && Array.isArray(pData.courses)) {
               totalStages = pData.courses.length;
             }
-            const pct = totalStages > 0 ? Math.round((passedArr.length / totalStages) * 100) : passedArr.length;
+            const pct = totalStages > 0 ? Math.min(100, Math.round((passedArr.length / totalStages) * 100)) : passedArr.length;
             await enRef.update({ progress: pct });
+            stageProgressUpdated = true;
           } catch (err) {
             console.warn("Could not recompute stage progress:", err);
           }
@@ -361,6 +454,7 @@ export async function POST(req: NextRequest) {
         rewardCoins: finalCoins,
         courseCompleted: passed,
         unlockedNextCourse: passed,
+        stageProgressUpdated,
         verified: true,
         timestamp: new Date().toISOString(),
       },
